@@ -442,8 +442,16 @@ canvas{width:100%!important}
     <div style="font-size:13px;font-weight:800;color:var(--bl);margin-bottom:12px">Parametros del Suplidor</div>
 
     <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">SKUs Descontinuados</div>
-    <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Apagados por defecto. Activa los que quieras incluir en la orden.</div>
-    <div id="discSkuList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700">Mostrar todos los descontinuados</div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px">Activa o apaga todos de una vez</div>
+      </div>
+      <div id="masterToggle" onclick="toggleAllDisc()"         style="width:48px;height:26px;border-radius:13px;background:#ddd;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s">
+        <div id="masterToggleDot" style="position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s"></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:8px">O activa individualmente en la tab <b>Desc.</b></div>
     <hr style="border:none;border-top:1px solid var(--br);margin-bottom:14px">
 
     <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Lead Time Normal</div>
@@ -734,8 +742,10 @@ function go(t,el){
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.getElementById(t+'Sec').classList.add('on');el.classList.add('on');
-  if(t==='report')renderReport();
+  if(t==='report') renderReport();
   if(t==='chart'){buildRow();renderChart();}
+  if(t==='cfg'){updateCfgUI();renderDiscSkus();updateMasterToggle();}
+  if(t==='disc') renderDiscTab();
 }
 
 // -- PO with  adjustments & container-based split --
@@ -1581,14 +1591,38 @@ function initApp(r){
   r.po.forEach(p=>{PO_BASE.push(p);palAdj[p.sku]=p.pal;});
   document.getElementById('uploadSec').style.display='none';
   document.getElementById('mainApp').style.display='block';
-  renderPO();buildRow();renderChart();
+  renderPO(); buildRow(); renderChart();
+  renderReport(); renderEmg(); renderDiscTab(); updateMasterToggle();
+  // Alertas QoO
+  if(window._qooAlertas&&window._qooAlertas.length){
+    var al=document.getElementById('qooAlerta');
+    var ll=document.getElementById('qooAlertaList');
+    if(al&&ll){
+      ll.innerHTML=window._qooAlertas.map(function(a){
+        return '<div>SKU '+a.sku+': QoO='+a.qoo+' uni, QTY='+a.sumaQTY+' uni (dif: '+(a.diff>0?'+':'')+a.diff+' uni)</div>';
+      }).join('');
+      al.style.display='block';
+    }
+  }
 }
 
 function loadDemo(){
   document.querySelector('.ahdr').style.display='';
   document.getElementById('uploadSec').style.display='none';
   document.getElementById('mainApp').style.display='block';
-  renderPO();buildRow();renderChart();
+  renderPO(); buildRow(); renderChart();
+  renderReport(); renderEmg(); renderDiscTab();
+  // Alertas QoO
+  if(window._qooAlertas&&window._qooAlertas.length){
+    var al=document.getElementById('qooAlerta');
+    var ll=document.getElementById('qooAlertaList');
+    if(al&&ll){
+      ll.innerHTML=window._qooAlertas.map(function(a){
+        return '<div>SKU '+a.sku+': QoO='+a.qoo+' uni, QTY='+a.sumaQTY+' uni (dif: '+(a.diff>0?'+':'')+a.diff+' uni)</div>';
+      }).join('');
+      al.style.display='block';
+    }
+  }
 }
 
 // Hide header until app loads
@@ -1675,6 +1709,45 @@ function exportExcelPO(){
 
 function verPO(){try{var now=new Date();var mm=String(now.getMonth()+1).padStart(2,"0");var yyyy=now.getFullYear();var seqEl=document.getElementById("poSeqInput");var seqNum=seqEl?parseInt(seqEl.value)||1:1;window._poNum="LAI"+mm+yyyy+"-"+String(seqNum).padStart(2,"0");window._poNum2="LAI"+mm+yyyy+"-"+String(seqNum+1).padStart(2,"0");var html=buildPOHTML();var inner=document.getElementById("poBodyInner");if(!inner){alert("Error: overlay no encontrado");return;}inner.innerHTML="<div style='padding:10px;background:#fff;margin:8px;border-radius:10px'>"+html+"</div>";document.getElementById("poBarTitle").textContent="Orden de Compra";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var hint=document.getElementById("poHint");if(hint)hint.textContent=toList.length?"Para: "+toList.map(function(c){return c.nombre||c.email;}).join(", "):"Agrega contactos en Config";var ov=document.getElementById("poOv");if(ov){ov.style.display="block";ov.scrollTop=0;}}catch(err){alert("Error al generar PO: "+err.message);}}function doEmail(){var st=_poState||window._emgState;if(!st){alert("Primero presiona Ver / Enviar PO.");return;}var poNum=window._poNum||"LAI062026-01";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var nombre=toList.length?(toList[0].nombre||"Jason"):"Jason";var partes=["Hola "+nombre+",","",st.isEmg?"Adjunto PO de emergencia "+st.poNum+" para su revision inmediata.":"Adjunto orden de compra "+poNum+" para su revision y confirmacion.","",st.isEmg?"PO#: "+st.poNum+" - ETA requerida: "+st.etaStr:"PO#: "+poNum+" - Ship: 15 Ago 2026 - ETA: ~15 Oct 2026","",st.isEmg?"Favor confirmar disponibilidad y fecha de despacho a la brevedad.":"Favor confirmar recibo, disponibilidad y fecha de produccion.","","Gracias,","Caribbean Cabinet Products"];var msg=partes.join("\n");var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);function flash(txt){var h=document.getElementById("poHint");if(!h)return;h.textContent=txt;h.style.color="#86efac";setTimeout(function(){h.textContent=toList.length?"Para: "+toList.map(function(c){return c.nombre||c.email;}).join(", "):"Agrega contactos en Config";h.style.color="";},3500);}function copiar(){if(navigator.clipboard){navigator.clipboard.writeText(msg).then(function(){flash("Mensaje copiado - pegalo en tu email o WhatsApp");}).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);flash("Mensaje copiado");});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);flash("Mensaje copiado");}}if(isMobile&&navigator.share){navigator.share({title:poNum,text:msg}).catch(function(){copiar();});}else if(toList.length){var toStr=toList.map(function(c){return c.email;}).join(",");var ccList=cnts.filter(function(c){return c.rol==="cc";});var ccStr=ccList.length?"&cc="+ccList.map(function(c){return c.email;}).join(","):"";var asunto=st.isEmg?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products":"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);window.open(url);flash("Abriendo cliente de correo...");}else{copiar();}}
 function sendEmailSuplidor(){var st=_poState||window._emgState;if(!st){alert("Primero presiona Ver / Enviar PO.");return;}var poNum=window._poNum||"LAI062026-01";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var ccList=cnts.filter(function(c){return c.rol==="cc";});if(!toList.length){alert("Agrega contactos en la tab Config primero.");return;}var nombre=toList[0].nombre||"Jason";var partes=["Hola "+nombre+",","",st.isEmg?"Adjunto PO de emergencia "+st.poNum+" para su revision inmediata.":"Adjunto orden de compra "+poNum+" para su revision y confirmacion.","",st.isEmg?"PO#: "+st.poNum+" - ETA requerida: "+st.etaStr:"PO#: "+poNum+" - Ship: 15 Ago 2026 - ETA: ~15 Oct 2026","",st.isEmg?"Favor confirmar disponibilidad y fecha de despacho a la brevedad.":"Favor confirmar recibo, disponibilidad y fecha de produccion.","","Gracias,","Caribbean Cabinet Products"];var msg=partes.join("\n");var asunto=st.isEmg?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products":"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";var toStr=toList.map(function(c){return c.email;}).join(",");var ccStr=ccList.length?"&cc="+ccList.map(function(c){return c.email;}).join(","):"";var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(isMobile&&navigator.share){navigator.share({title:asunto,text:msg}).catch(function(){window.open(url);});}else{window.open(url);}}
+function toggleAllDisc(){
+  if(!window._allV51Skus||!window._allV51Skus.length){
+    if(rawMasMenos&&rawMasMenos.length) preLlenarDiscSkus(rawMasMenos);
+    else{alert("Carga el reporte primero.");return;}
+  }
+  if(!window._hiddenSkus) window._hiddenSkus={};
+  if(!window._userActivated) window._userActivated={};
+  var disc=window._allV51Skus.filter(function(s){return s.disc;});
+  if(!disc.length) return;
+  var todosApagados=disc.every(function(s){return !!window._hiddenSkus[s.sku];});
+  if(todosApagados){
+    // Prender todos
+    disc.forEach(function(s){
+      delete window._hiddenSkus[s.sku];
+      window._userActivated[s.sku]=true;
+    });
+  } else {
+    // Apagar todos
+    disc.forEach(function(s){
+      window._hiddenSkus[s.sku]=true;
+      delete window._userActivated[s.sku];
+    });
+  }
+  updateMasterToggle();
+  if(rawMasMenos&&rawMasMenos.length) processFiles();
+  renderDiscSkus();
+  renderDiscTab();
+}
+
+function updateMasterToggle(){
+  var mt=document.getElementById("masterToggle");
+  var md=document.getElementById("masterToggleDot");
+  if(!mt||!md) return;
+  var disc=(window._allV51Skus||[]).filter(function(s){return s.disc;});
+  var todosApagados=!disc.length||disc.every(function(s){return !!(window._hiddenSkus||{})[s.sku];});
+  mt.style.background=todosApagados?"#ddd":"var(--gn)";
+  md.style.left=todosApagados?"4px":"26px";
+}
+
 function preLlenarDiscSkus(mm){
   if(!mm||!mm.length) return;
   var s0=mm[0];
@@ -1707,10 +1780,14 @@ function preLlenarDiscSkus(mm){
 function renderDiscTab(){
   var wrap = document.getElementById("discTableWrap");
   if(!wrap) return;
+  // Si no hay datos, intentar llenar desde rawMasMenos
+  if((!window._allV51Skus||!window._allV51Skus.length) && rawMasMenos&&rawMasMenos.length){
+    preLlenarDiscSkus(rawMasMenos);
+  }
   var all = window._allV51Skus||[];
   var disc = all.filter(function(s){return s.disc;});
   if(!disc.length){
-    wrap.innerHTML = "<div style='font-size:12px;color:var(--mu);text-align:center;padding:20px'>Carga el reporte primero.</div>";
+    wrap.innerHTML = "<div style='font-size:12px;color:var(--mu);text-align:center;padding:20px'>"      +(rawMasMenos&&rawMasMenos.length?'No hay SKUs descontinuados.':"Carga el reporte primero.")      +"</div>";
     return;
   }
   var rows = disc.map(function(s){
@@ -1748,10 +1825,14 @@ function renderDiscTab(){
 function renderDiscSkus(){
   var list = document.getElementById("discSkuList");
   if(!list) return;
+  // Si no hay datos, intentar llenar desde rawMasMenos
+  if((!window._allV51Skus||!window._allV51Skus.length) && rawMasMenos&&rawMasMenos.length){
+    preLlenarDiscSkus(rawMasMenos);
+  }
   var all = window._allV51Skus||[];
   var disc = all.filter(function(s){return s.disc;});
   if(!disc.length){
-    list.innerHTML = "<div style='font-size:12px;color:var(--mu);padding:8px'>Carga el reporte primero para ver los SKUs descontinuados.</div>";
+    list.innerHTML = "<div style='font-size:12px;color:var(--mu);padding:8px'>"      +(rawMasMenos&&rawMasMenos.length?'No hay SKUs descontinuados en el reporte.':"Carga el reporte primero.")      +"</div>";
     return;
   }
   list.innerHTML = disc.map(function(s){
