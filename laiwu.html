@@ -519,7 +519,7 @@ canvas{width:100%!important}
     <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin:14px 0 8px">Asistente IA</div>
     <div style="background:#f8f9fa;border-radius:8px;padding:10px;margin-bottom:6px">
       <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:5px">API Key de Anthropic (para el asistente)</label>
-      <input id="cfgApiKey" type="password" placeholder="sk-ant-..."         style="width:100%;padding:8px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:13px;font-family:monospace;box-sizing:border-box">
+      <input id="cfgApiKey" type="password" placeholder="gsk_..."         style="width:100%;padding:8px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:13px;font-family:monospace;box-sizing:border-box">
       <div style="font-size:10px;color:#aaa;margin-top:4px">Se guarda solo en este dispositivo. No se comparte.</div>
     </div>
     <button id="btnSaveKey" style="width:100%;padding:10px;background:var(--bl);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">Guardar API Key</button>
@@ -601,25 +601,28 @@ DATA.forEach(d=>{
 var aiHistory = [];
 
 function getContexto(){
-  // Construir contexto con datos actuales de la app
-  if(!DATA||!DATA.length) return "No hay datos cargados aun.";
-  var ctx = ["=== INVENTARIO LAIWU (Vendor 51) === Fecha: "+new Date().toLocaleDateString('es-PR')];
-  ctx.push("\nSKUs ACTIVOS ("+DATA.filter(function(d){return d.tasa>0;}).length+" SKUs con ventas):");
-  DATA.filter(function(d){return d.tasa>0;}).forEach(function(d){
-    var meses = d.tasa>0 ? Math.round(d.qoh/d.tasa*10)/10 : "N/A";
-    var estado = d.qoh<d.piso?"BAJO PISO":d.qoh<d.safety?"EN BANDA":"SOBRE SAFETY";
-    var confTotal = d.conf.reduce(function(a,b){return a+b;},0);
-    ctx.push("- "+d.sku+" ("+d.desc+"): QoH="+Math.round(d.qoh)+" uni | Tasa="+Math.round(d.tasa)+"/mes | "+meses+" meses cobertura | "+estado+(confTotal>0?" | En transito: "+confTotal+" uni":""));
-  });
-  // SKUs con emergencia
-  var riesgo = DATA.filter(function(d){return d.tasa>0&&d.qoh<d.piso;});
-  if(riesgo.length){
-    ctx.push("\nSKUs BAJO PISO ("+riesgo.length+"): "+riesgo.map(function(d){return d.sku;}).join(", "));
+  if(typeof DATA==="undefined"||!DATA||!DATA.length){
+    return "No hay datos de inventario cargados. El usuario debe cargar el reporte de inventario primero.";
   }
-  // Orden actual
-  if(PO_BASE&&PO_BASE.length){
-    var totalPal = PO_BASE.reduce(function(a,p){return a+(palAdj[p.sku]||0);},0);
-    ctx.push("\nORDEN ACTUAL: "+totalPal+" paletas totales | "+(window._poNum||"PO pendiente"));
+  var MN=['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];
+  var ctx=["=== INVENTARIO LAIWU (Vendor 51) === Fecha: "+new Date().toLocaleDateString('es-PR')];
+  var conVentas=DATA.filter(function(d){return d.tasa>0;});
+  ctx.push("\n"+conVentas.length+" SKUs activos con ventas:");
+  conVentas.forEach(function(d){
+    var meses=Math.round(d.qoh/d.tasa*10)/10;
+    var estado=d.qoh<d.piso?"BAJO PISO - CRITICO":d.qoh<d.safety?"EN BANDA - ALERTA":"OK";
+    var confTotal=d.conf.reduce(function(a,b){return a+b;},0);
+    var proxLlegada="";
+    for(var i=0;i<12;i++){if(d.conf[i]>0){proxLlegada=" | Proximo llegada: "+MN[i]+" ("+d.conf[i]+" uni)";break;}}
+    ctx.push("SKU "+d.sku+" - "+d.desc+": QoH="+Math.round(d.qoh)+" | Tasa="+Math.round(d.tasa)+"/mes | Cobertura="+meses+"m | "+estado+proxLlegada);
+  });
+  var riesgo=DATA.filter(function(d){return d.tasa>0&&d.qoh<d.piso;});
+  if(riesgo.length) ctx.push("\nSKUs CRITICOS BAJO PISO: "+riesgo.map(function(d){return d.sku;}).join(", "));
+  var sinStock=DATA.filter(function(d){return d.tasa>0&&d.qoh===0;});
+  if(sinStock.length) ctx.push("SKUs EN STOCKOUT: "+sinStock.map(function(d){return d.sku;}).join(", "));
+  if(typeof PO_BASE!=="undefined"&&PO_BASE&&PO_BASE.length){
+    var totalPal=PO_BASE.reduce(function(a,p){return a+(palAdj[p.sku]||0);},0);
+    ctx.push("\nORDEN EN PROCESO: "+(window._poNum||"pendiente")+" - "+totalPal+" paletas");
   }
   return ctx.join("\n");
 }
@@ -636,6 +639,14 @@ function addMsg(role, text){
 
 function sendAI(pregunta){
   if(!pregunta||!pregunta.trim()) return;
+  // Cargar key si no esta en memoria
+  if(!window._claudeKey){
+    window._claudeKey=localStorage.getItem("CCP_AI_KEY")||"";
+  }
+  if(!window._claudeKey||!window._claudeKey.startsWith("gsk_")){
+    addMsg("ai","Para usar el asistente, ve a Config → Asistente IA y guarda tu API Key de Groq (gsk_...).");
+    return;
+  }
   var input = document.getElementById("aiInput");
   if(input) input.value = "";
   addMsg("user", pregunta);
@@ -652,33 +663,30 @@ function sendAI(pregunta){
 
   var messages = aiHistory.slice(-8); // ultimos 8 mensajes para contexto
 
-  fetch("https://api.anthropic.com/v1/messages", {
+  fetch("https://api.groq.com/openai/v1/chat/completions", {
     method:"POST",
     headers:{
       "Content-Type":"application/json",
-      "x-api-key": window._claudeKey||"",
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
+      "Authorization": "Bearer "+(window._claudeKey||"")
     },
     body: JSON.stringify({
-      model:"claude-sonnet-4-6",
+      model:"llama-3.3-70b-versatile",
       max_tokens:1000,
-      system: systemPrompt,
-      messages: messages
+      messages: [{role:"system",content:systemPrompt}].concat(messages)
     })
   })
   .then(function(r){return r.json();})
   .then(function(data){
     thinkDiv.remove();
-    var respuesta = (data.content&&data.content[0]&&data.content[0].text)
-      ? data.content[0].text
-      : "No pude obtener respuesta.";
+    var respuesta = (data.choices&&data.choices[0]&&data.choices[0].message)
+      ? data.choices[0].message.content
+      : (data.error?data.error.message:"No pude obtener respuesta.");
     addMsg("ai", respuesta);
     aiHistory.push({role:"assistant", content: respuesta});
   })
   .catch(function(err){
     thinkDiv.remove();
-    addMsg("ai", "Error conectando con el asistente. Verifica tu conexion.");
+    addMsg("ai","Error: "+err.message+". Verifica que la API Key de Groq sea correcta en Config.");
   });
 }
 
@@ -1056,7 +1064,7 @@ ${hasPO2?`<div class="pb"></div>${poBlock((window._poNum2||'LAI062026-02'),'1 Se
       border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">Cerrar</button>
   </div>
   <div class="ai-msgs" id="aiMsgs">
-    <div class="ai-msg ai">Hola! Soy tu asistente de inventario Laiwu. Puedes preguntarme sobre niveles de stock, fechas de llegada, SKUs en riesgo, ventas y suministro. Carga el reporte primero para obtener respuestas con datos reales.</div>
+    <div class="ai-msg ai">Hola! Soy tu asistente de inventario Laiwu (powered by Groq). Puedes preguntarme sobre niveles de stock, fechas de llegada, SKUs en riesgo, ventas y suministro. Carga el reporte y configura tu API Key de Groq en Config para comenzar.</div>
   </div>
   <div class="ai-input-area">
     <div class="ai-chips">
@@ -1801,7 +1809,7 @@ var bxl=document.getElementById("btnExcelPO");if(bxl)bxl.addEventListener("click
   var btnSaveKey=document.getElementById("btnSaveKey");
   if(btnSaveKey)btnSaveKey.addEventListener("click",function(){
     var key=(document.getElementById("cfgApiKey")||{}).value||"";
-    if(!key.startsWith("sk-ant-")){alert("La API key debe empezar con sk-ant-");return;}
+    if(!key.startsWith("gsk_")){alert("La API key de Groq debe empezar con gsk_");return;}
     localStorage.setItem("CCP_AI_KEY",key);
     window._claudeKey=key;
     var fb=document.getElementById("keyFb");if(fb){fb.textContent="Key guardada";setTimeout(function(){fb.textContent="";},2500);}
@@ -1825,7 +1833,7 @@ var bxl=document.getElementById("btnExcelPO");if(bxl)bxl.addEventListener("click
       border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">Cerrar</button>
   </div>
   <div class="ai-msgs" id="aiMsgs">
-    <div class="ai-msg ai">Hola! Soy tu asistente de inventario Laiwu. Puedes preguntarme sobre niveles de stock, fechas de llegada, SKUs en riesgo, ventas y suministro. Carga el reporte primero para obtener respuestas con datos reales.</div>
+    <div class="ai-msg ai">Hola! Soy tu asistente de inventario Laiwu (powered by Groq). Puedes preguntarme sobre niveles de stock, fechas de llegada, SKUs en riesgo, ventas y suministro. Carga el reporte y configura tu API Key de Groq en Config para comenzar.</div>
   </div>
   <div class="ai-input-area">
     <div class="ai-chips">
