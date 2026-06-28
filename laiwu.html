@@ -1756,14 +1756,14 @@ function updateMasterToggle(){
 function preLlenarDiscSkus(mm){
   if(!mm||!mm.length) return;
   var s0=mm[0];
-  var vcCol=findCol(s0,"Vendor Code","VendorCode","VENDOR CODE");
+  var vcCol =findCol(s0,"Vendor Code","VendorCode","VENDOR CODE");
   var skuCol=findCol(s0,"Item Number","ItemNumber","ITEM NUMBER");
   var descCol=findCol(s0,"Item Description","ItemDescription","ITEM DESCRIPTION");
   var discCol=findCol(s0,"Discontinued Item?","Discontinued","DISCONTINUED");
+  var qohCol =findCol(s0,"Quantity on Hand","QuantityonHand","QOH");
+  var l12Col =findCol(s0,"Last 12 Months Sales","Last12MonthsSales","LAST 12 MONTHS");
   if(!vcCol||!skuCol) return;
   if(!window._hiddenSkus) window._hiddenSkus={};
-  if(!window._userActivated) window._userActivated={};
-  // Llenar lista completa de SKUs Vendor 51
   window._allV51Skus=[];
   mm.forEach(function(r){
     if(String(r[vcCol]||"").trim()!=="51") return;
@@ -1771,60 +1771,21 @@ function preLlenarDiscSkus(mm){
     if(!sku) return;
     var disc=discCol?String(r[discCol]||"").trim().toUpperCase():"";
     var desc=String(r[descCol]||"").trim();
-    var qohVal = r["Quantity on Hand"]!=null ? Number(r["Quantity on Hand"])||0 : 0;
-    var l12Val = r["Last 12 Months Sales"]!=null ? Number(r["Last 12 Months Sales"])||0 : 0;
-    window._allV51Skus.push({sku:sku,desc:desc,disc:disc==="Y",qoh:qohVal,l12:l12Val});
-    // Ocultar descontinuados SALVO que el usuario los haya activado
-    if(disc==="Y" && !window._userActivated[sku]){
+    var qoh=Number(r[qohCol])||0;
+    var l12=Number(r[l12Col])||0;
+    var esDisc=(disc==="Y");
+    window._allV51Skus.push({sku:sku,desc:desc,disc:esDisc,qoh:qoh,l12:l12});
+    // Descontinuados Y = apagados por defecto
+    // Solo si el usuario no los ha tocado manualmente
+    if(esDisc && !(sku in window._hiddenSkus)){
       window._hiddenSkus[sku]=true;
+    } else if(!esDisc){
+      // Activos N = siempre activos (quitar de hidden si estaban)
+      if(window._hiddenSkus[sku]===undefined){
+        // no tocado - dejar activo
+      }
     }
   });
-}
-
-
-function renderDiscTab(){
-  var wrap = document.getElementById("discTableWrap");
-  if(!wrap) return;
-  // Si no hay datos, intentar llenar desde rawMasMenos
-  if((!window._allV51Skus||!window._allV51Skus.length) && rawMasMenos&&rawMasMenos.length){
-    preLlenarDiscSkus(rawMasMenos);
-  }
-  var all = window._allV51Skus||[];
-  var disc = all.filter(function(s){return s.disc;});
-  if(!disc.length){
-    wrap.innerHTML = "<div style='font-size:12px;color:var(--mu);text-align:center;padding:20px'>"      +(rawMasMenos&&rawMasMenos.length?'No hay SKUs descontinuados.':"Carga el reporte primero.")      +"</div>";
-    return;
-  }
-  var rows = disc.map(function(s){
-    var hidden = !!(window._hiddenSkus||{})[s.sku];
-    var qoh = s.qoh!=null ? s.qoh : 0;
-    var l12 = s.l12!=null ? s.l12 : 0;
-    var qohColor = qoh < 0 ? "color:var(--rd)" : qoh === 0 ? "color:var(--mu)" : "color:var(--tx)";
-    var bgToggle = hidden ? "#ddd" : "var(--gn)";
-    var dotPos = hidden ? "left:3px" : "left:19px";
-    var estadoLabel = hidden ? "Apagado" : "Activo";
-    var estadoColor = hidden ? "var(--rd)" : "var(--gn)";
-    return "<tr style='border-bottom:.5px solid #f0f0f0'>"      +"<td style='padding:10px 8px;font-weight:700;font-size:12px'>"+s.sku+"</td>"      +"<td style='padding:10px 8px;font-size:11px'>"+s.desc+"</td>"      +"<td style='padding:10px 8px;text-align:right;font-size:12px;"+qohColor+"'>"+fmt(qoh)+"</td>"      +"<td style='padding:10px 8px;text-align:right;font-size:12px'>"+fmt(l12)+"</td>"      +"<td style='padding:10px 8px;text-align:center'>"        +"<div style='display:flex;align-items:center;justify-content:center;gap:6px'>"          +"<span style='font-size:10px;font-weight:600;color:"+estadoColor+"'>"+estadoLabel+"</span>"          +"<div class='disc-toggle' data-sku='"+s.sku+"' "            +"style='width:40px;height:22px;border-radius:11px;background:"+bgToggle+";"            +"position:relative;cursor:pointer;flex-shrink:0'>"            +"<div style='position:absolute;top:3px;"+dotPos+";width:16px;height:16px;"            +"border-radius:50%;background:#fff'></div>"          +"</div>"        +"</div>"      +"</td>"    +"</tr>";
-  }).join("");
-  wrap.innerHTML = "<div style='overflow-x:auto'>"    +"<table style='width:100%;border-collapse:collapse;font-size:12px'>"    +"<thead><tr style='background:#f8f9fa'>"    +"<th style='padding:8px;text-align:left;font-size:10px;color:var(--mu);font-weight:600'>SKU</th>"    +"<th style='padding:8px;text-align:left;font-size:10px;color:var(--mu);font-weight:600'>Descripcion</th>"    +"<th style='padding:8px;text-align:right;font-size:10px;color:var(--mu);font-weight:600'>QoH</th>"    +"<th style='padding:8px;text-align:right;font-size:10px;color:var(--mu);font-weight:600'>L12 uni</th>"    +"<th style='padding:8px;text-align:center;font-size:10px;color:var(--mu);font-weight:600'>Estado</th>"    +"</tr></thead>"    +"<tbody>"+rows+"</tbody>"    +"</table></div>";
-  // Delegacion de eventos para los toggles
-  wrap.onclick = function(e){
-    var tog = e.target.closest(".disc-toggle");
-    if(!tog) return;
-    var sku = tog.dataset.sku;
-    if(!window._hiddenSkus) window._hiddenSkus={};
-    if(!window._userActivated) window._userActivated={};
-    if(window._hiddenSkus[sku]){
-      delete window._hiddenSkus[sku];
-      window._userActivated[sku]=true;
-    } else {
-      window._hiddenSkus[sku]=true;
-      delete window._userActivated[sku];
-    }
-    if(rawMasMenos&&rawMasMenos.length) processFiles();
-    renderDiscTab();
-    renderDiscSkus();
-  };
 }
 
 function renderDiscSkus(){
@@ -1889,17 +1850,13 @@ var _origInitApp=initApp;initApp=function(r){_origInitApp(r);setTimeout(renderEm
 var _origLoadDemo=loadDemo;loadDemo=function(){_origLoadDemo();setTimeout(renderEmg,100);};
 document.addEventListener("DOMContentLoaded",function(){var bco=document.getElementById("btnCloseOv");if(bco)bco.addEventListener("click",function(){document.getElementById("poOv").style.display="none";});var brp=document.getElementById("btnRefreshPO");if(brp)brp.addEventListener("click",verPO);var bpr=document.getElementById("btnPrint");if(bpr)bpr.addEventListener("click",function(){window.print();});var bse=document.getElementById("btnSendEmail");if(bse)bse.addEventListener("click",sendEmailSuplidor);
 var bxl=document.getElementById("btnExcelPO");if(bxl)bxl.addEventListener("click",exportExcelPO);
-  // API Key
-  var savedKey=localStorage.getItem("CCP_AI_KEY");
-  if(savedKey){window._claudeKey=savedKey; var ki=document.getElementById("cfgApiKey");if(ki)ki.value=savedKey;}
-  var btnSaveKey=document.getElementById("btnSaveKey");
-  if(btnSaveKey)btnSaveKey.addEventListener("click",function(){
-    var key=(document.getElementById("cfgApiKey")||{}).value||"";
-    if(!key.startsWith("gsk_")){alert("La API key de Groq debe empezar con gsk_");return;}
-    localStorage.setItem("CCP_AI_KEY",key);
-    window._claudeKey=key;
-    var fb=document.getElementById("keyFb");if(fb){fb.textContent="Key guardada";setTimeout(function(){fb.textContent="";},2500);}
-  });var bem=document.getElementById("btnEmail");if(bem)bem.addEventListener("click",doEmail);var bge=document.getElementById("btnGenEmg");if(bge)bge.addEventListener("click",openEmg);var bce=document.getElementById("btnCloseEmg");if(bce)bce.addEventListener("click",function(){document.getElementById("emgOv").classList.remove("open");});var eov=document.getElementById("emgOv");if(eov)eov.addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});var bcy=document.getElementById("btnCopyEmg");if(bcy)bcy.addEventListener("click",function(){var msg=document.getElementById("emgMsg").textContent,fb=document.getElementById("emgFb");function done(){fb.textContent="Copiado";setTimeout(function(){fb.textContent="";},2500);}if(navigator.clipboard){navigator.clipboard.writeText(msg).then(done).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();}});var cfgMap=[["ltFabM","ltFabP","ltFabV","ltFab",1,5],["ltTraM","ltTraP","ltTraV","ltTra",1,6],["ssM","ssP","ssV","ss",1,6],["mpM","mpP","mpV","maxPal",10,24]];cfgMap.forEach(function(row){var bm=document.getElementById(row[0]),bp=document.getElementById(row[1]),vEl=document.getElementById(row[2]),key=row[3],mn=row[4],mx=row[5];if(bm)bm.addEventListener("click",function(){CFG[key]=Math.max(mn,CFG[key]-1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});if(bp)bp.addEventListener("click",function(){CFG[key]=Math.min(mx,CFG[key]+1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});});var brc=document.getElementById("btnRecalc");if(brc)brc.addEventListener("click",function(){alert("Recargue el archivo con nuevos parametros.");});var brt=document.getElementById("btnReset");if(brt)brt.addEventListener("click",function(){CFG={ltFab:1,ltTra:2,ss:3,maxPal:18};updateCfgUI();});var bac=document.getElementById("btnAddCnt");if(bac)bac.addEventListener("click",function(){for(var i=1;i<4;i++){var blk=document.getElementById("cnt-block-"+i);if(blk&&blk.style.display==="none"){blk.style.display="block";["cnt-nombre-","cnt-email-"].forEach(function(pfx){var el=document.getElementById(pfx+i);if(el)el.value="";});var rol=document.getElementById("cnt-rol-"+i);if(rol)rol.value="to";break;}}});for(var di=1;di<4;di++){(function(idx){var btn=document.getElementById("cnt-del-"+idx);if(btn)btn.addEventListener("click",function(){var blk=document.getElementById("cnt-block-"+idx);if(blk)blk.style.display="none";});})(di);}document.addEventListener("click",function(e){var td=e.target&&e.target.closest?e.target.closest("td[data-cid]"):null;if(td){showRtt(td,td.getAttribute("data-cid"));return;}var rtt=document.getElementById("rtt");if(rtt&&e.target!==rtt&&!rtt.contains(e.target)){hideTT();}});});
+  // Key de Groq - se configura en el Hub, se lee aqui
+  window._claudeKey=localStorage.getItem("CCP_AI_KEY")||"";
+  var aiKeyStatus=document.getElementById("aiKeyStatus");
+  if(aiKeyStatus){
+    aiKeyStatus.textContent=window._claudeKey?"Key activa: "+window._claudeKey.slice(0,12)+"...":"Sin key. Configura en el Hub.";
+    aiKeyStatus.style.color=window._claudeKey?"#1D9E75":"#C0392B";
+  }var bem=document.getElementById("btnEmail");if(bem)bem.addEventListener("click",doEmail);var bge=document.getElementById("btnGenEmg");if(bge)bge.addEventListener("click",openEmg);var bce=document.getElementById("btnCloseEmg");if(bce)bce.addEventListener("click",function(){document.getElementById("emgOv").classList.remove("open");});var eov=document.getElementById("emgOv");if(eov)eov.addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});var bcy=document.getElementById("btnCopyEmg");if(bcy)bcy.addEventListener("click",function(){var msg=document.getElementById("emgMsg").textContent,fb=document.getElementById("emgFb");function done(){fb.textContent="Copiado";setTimeout(function(){fb.textContent="";},2500);}if(navigator.clipboard){navigator.clipboard.writeText(msg).then(done).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();}});var cfgMap=[["ltFabM","ltFabP","ltFabV","ltFab",1,5],["ltTraM","ltTraP","ltTraV","ltTra",1,6],["ssM","ssP","ssV","ss",1,6],["mpM","mpP","mpV","maxPal",10,24]];cfgMap.forEach(function(row){var bm=document.getElementById(row[0]),bp=document.getElementById(row[1]),vEl=document.getElementById(row[2]),key=row[3],mn=row[4],mx=row[5];if(bm)bm.addEventListener("click",function(){CFG[key]=Math.max(mn,CFG[key]-1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});if(bp)bp.addEventListener("click",function(){CFG[key]=Math.min(mx,CFG[key]+1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});});var brc=document.getElementById("btnRecalc");if(brc)brc.addEventListener("click",function(){alert("Recargue el archivo con nuevos parametros.");});var brt=document.getElementById("btnReset");if(brt)brt.addEventListener("click",function(){CFG={ltFab:1,ltTra:2,ss:3,maxPal:18};updateCfgUI();});var bac=document.getElementById("btnAddCnt");if(bac)bac.addEventListener("click",function(){for(var i=1;i<4;i++){var blk=document.getElementById("cnt-block-"+i);if(blk&&blk.style.display==="none"){blk.style.display="block";["cnt-nombre-","cnt-email-"].forEach(function(pfx){var el=document.getElementById(pfx+i);if(el)el.value="";});var rol=document.getElementById("cnt-rol-"+i);if(rol)rol.value="to";break;}}});for(var di=1;di<4;di++){(function(idx){var btn=document.getElementById("cnt-del-"+idx);if(btn)btn.addEventListener("click",function(){var blk=document.getElementById("cnt-block-"+idx);if(blk)blk.style.display="none";});})(di);}document.addEventListener("click",function(e){var td=e.target&&e.target.closest?e.target.closest("td[data-cid]"):null;if(td){showRtt(td,td.getAttribute("data-cid"));return;}var rtt=document.getElementById("rtt");if(rtt&&e.target!==rtt&&!rtt.contains(e.target)){hideTT();}});});
 </script>
 
 <!-- BOTON FLOTANTE IA -->
