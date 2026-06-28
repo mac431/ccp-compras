@@ -694,7 +694,12 @@ function sendAI(pregunta){
   })
   .catch(function(err){
     thinkDiv.remove();
-    addMsg("ai","Error: "+err.message+". Verifica que la API Key de Groq sea correcta en Config.");
+    var msg=err.message||"";
+    if(msg.toLowerCase().indexOf("cors")>=0||msg.toLowerCase().indexOf("fetch")>=0||msg.toLowerCase().indexOf("network")>=0){
+      addMsg("ai","Error de CORS: Groq no permite llamadas directas desde el navegador en GitHub Pages. Prueba abrir la app como archivo local o usa un proxy.");
+    } else {
+      addMsg("ai","Error: "+msg+". Verifica la API Key de Groq en Config.");
+    }
   });
 }
 
@@ -1364,7 +1369,7 @@ async function handleFile(num, input){
     try{
       var wb = XLSX.read(e.target.result, {type:"array", cellDates:true});
       var ws = wb.Sheets[wb.SheetNames[0]];
-      var data = XLSX.utils.sheet_to_json(ws, {defval:0, raw:false});
+      var data = XLSX.utils.sheet_to_json(ws, {defval:0, raw:true});
       if(num===1){ rawMasMenos=data; loaded.f1=true; preLlenarDiscSkus(data); }
       if(num===2){ rawQTY=data; loaded.f2=true; }
       var card = document.getElementById(cardId);
@@ -1383,7 +1388,7 @@ async function handleFile(num, input){
         try{
           var wb2 = XLSX.read(e2.target.result, {type:"binary", cellDates:true});
           var ws2 = wb2.Sheets[wb2.SheetNames[0]];
-          var data2 = XLSX.utils.sheet_to_json(ws2, {defval:0, raw:false});
+          var data2 = XLSX.utils.sheet_to_json(ws2, {defval:0, raw:true});
           if(num===1){ rawMasMenos=data2; loaded.f1=true; }
           if(num===2){ rawQTY=data2; loaded.f2=true; }
           var card2=document.getElementById(cardId);
