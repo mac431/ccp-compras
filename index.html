@@ -91,6 +91,61 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .summ-item .lbl{font-size:10px;color:var(--mu);margin-top:2px}
 /* Upload hidden */
 input[type=file]{display:none}
+
+/* PANEL IA HUB */
+#aiPanel{position:fixed;top:0;right:-380px;width:360px;height:100vh;
+  background:#fff;z-index:800;box-shadow:-4px 0 20px rgba(0,0,0,.15);
+  display:flex;flex-direction:column;transition:right .3s ease}
+#aiPanel.open{right:0}
+#aiOverlay{position:fixed;inset:0;background:rgba(0,0,0,.3);
+  z-index:799;display:none}
+#aiOverlay.open{display:block}
+.ai-hdr{background:linear-gradient(135deg,#0D3F75,#185FA5);color:#fff;
+  padding:14px 16px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0}
+.ai-hdr h3{font-size:14px;font-weight:700;margin:0}
+.ai-hdr p{font-size:10px;opacity:.7;margin:2px 0 0}
+.ai-msgs{flex:1;overflow-y:auto;padding:12px;
+  display:flex;flex-direction:column;gap:10px;background:#f8f9fa}
+.ai-msg{max-width:90%;padding:10px 12px;border-radius:12px;
+  font-size:12px;line-height:1.6}
+.ai-msg.user{background:#185FA5;color:#fff;align-self:flex-end;
+  border-radius:12px 12px 2px 12px}
+.ai-msg.ai{background:#fff;color:#1a1a1a;align-self:flex-start;
+  border-radius:12px 12px 12px 2px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ai-msg.thinking{color:#888;font-style:italic;background:#fff;
+  align-self:flex-start}
+.ai-input-area{padding:12px;border-top:1px solid #e5e5e5;
+  background:#fff;flex-shrink:0}
+.ai-input-row{display:flex;gap:8px}
+.ai-input-row input{flex:1;padding:10px 12px;border:1.5px solid #e5e5e5;
+  border-radius:20px;font-size:13px;font-family:inherit;outline:none}
+.ai-input-row input:focus{border-color:#185FA5}
+.ai-input-row button{width:38px;height:38px;border-radius:50%;
+  background:#185FA5;color:#fff;border:none;font-size:18px;cursor:pointer}
+.ai-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ai-chip{padding:5px 10px;background:#EBF3FF;color:#185FA5;border:none;
+  border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
+  white-space:nowrap}
+#aiFab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;
+  border-radius:50%;background:linear-gradient(135deg,#185FA5,#0D3F75);
+  color:#fff;border:none;font-size:22px;cursor:pointer;z-index:700;
+  box-shadow:0 4px 16px rgba(24,95,165,.4);
+  display:flex;align-items:center;justify-content:center}
+/* Config key modal */
+.key-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:900;display:none;align-items:center;justify-content:center;
+  padding:20px}
+.key-modal.open{display:flex}
+.key-box{background:#fff;border-radius:14px;padding:20px;
+  width:100%;max-width:400px}
+.key-box h3{font-size:15px;font-weight:800;color:var(--bl);margin-bottom:12px}
+.key-box input{width:100%;padding:10px;border:1.5px solid var(--br);
+  border-radius:8px;font-size:13px;font-family:monospace;
+  box-sizing:border-box;margin-bottom:10px}
+.key-box-btns{display:flex;gap:8px}
+.key-box-btns button{flex:1;padding:11px;border:none;border-radius:9px;
+  font-size:13px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -122,6 +177,7 @@ input[type=file]{display:none}
 <div class="tabs">
   <div class="tab on" id="tab-tools" onclick="goTab('tools')">Herramientas</div>
   <div class="tab" id="tab-tracker" onclick="goTab('tracker')">Tracker POs</div>
+<div class="tab" id="tab-cfg" onclick="goTab('cfg')">Config</div>
 </div>
 
 <!-- TAB: HERRAMIENTAS -->
@@ -214,6 +270,21 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- CONFIG SEC -->
+<div class="sec" id="cfgSec">
+  <div class="card">
+    <h3 style="font-size:13px;font-weight:700;color:var(--bl);margin-bottom:12px">Asistente IA</h3>
+    <p style="font-size:11px;color:var(--mu);margin-bottom:12px">La API Key se aplica a todas las herramientas (Laiwu, FINSA, etc.). Obten tu key gratis en <b>console.groq.com</b>.</p>
+    <div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:10px">
+      <label style="font-size:11px;color:var(--mu);display:block;margin-bottom:6px;font-weight:600">API Key de Groq</label>
+      <input type="password" id="hubApiKey" placeholder="gsk_..." style="width:100%;padding:9px 12px;border:1.5px solid var(--br);border-radius:8px;font-size:13px;font-family:monospace;box-sizing:border-box">
+      <div style="font-size:10px;color:#aaa;margin-top:4px">Se guarda en este dispositivo. No se comparte.</div>
+    </div>
+    <button id="hubSaveKey" style="width:100%;padding:12px;background:var(--bl);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">Guardar API Key</button>
+    <div id="hubKeyFb" style="text-align:center;font-size:12px;color:var(--gn);margin-top:8px;min-height:18px"></div>
+  </div>
+</div>
+
 <!-- MODAL NUEVO PO -->
 <div class="overlay" id="newPOModal">
   <div class="modal">
@@ -302,6 +373,7 @@ function goTab(t){
   document.getElementById('tab-'+t).classList.add('on');
   document.getElementById(t+'Sec').classList.add('on');
   if(t==='tracker') renderTracker();
+  if(t==='cfg') loadHubKey();
 }
 
 //  REPORTE: Google Drive 
@@ -600,8 +672,265 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('detailModal').addEventListener('click', function(e){ if(e.target===this) closeDetail(); });
   // Intentar cargar de Drive
   fetchFromDrive();
+
+  //  AGENTE IA HUB 
+  var aiHistory=[];
+  var _groqKey='';
+
+  // Cargar key guardada
+  var savedKey=localStorage.getItem('CCP_AI_KEY')||'';
+  if(savedKey){_groqKey=savedKey;}
+
+  function openKeyModal(){
+    var ki=document.getElementById('keyInput');
+    if(ki) ki.value=_groqKey;
+    document.getElementById('keyModal').classList.add('open');
+  }
+  function closeKeyModal(){
+    document.getElementById('keyModal').classList.remove('open');
+  }
+  function saveKey(){
+    var k=(document.getElementById('keyInput')||{}).value||'';
+    if(!k.startsWith('gsk_')){
+      alert('La key de Groq debe empezar con gsk_');return;
+    }
+    _groqKey=k;
+    localStorage.setItem('CCP_AI_KEY',k);
+    var fb=document.getElementById('keyFb');
+    if(fb){fb.textContent='Key guardada correctamente';
+      setTimeout(function(){fb.textContent='';closeKeyModal();},1500);}
+  }
+
+  function getContextoHub(){
+    var ctx=['=== CCP COMPRAS HUB === Fecha: '+new Date().toLocaleDateString('es-PR')];
+
+    // Reporte de inventario
+    var rep=null;
+    try{rep=JSON.parse(localStorage.getItem('CCP_REPORT')||'null');}catch(e){}
+    if(rep&&rep.length){
+      ctx.push('\nREPORTE INVENTARIO: '+rep.length+' SKUs totales cargados');
+      // Resumir por vendor
+      var vendors={};
+      rep.forEach(function(r){
+        var v=String(r['Vendor Code']||r['Vendor_Code']||'').trim();
+        if(!v) return;
+        if(!vendors[v]) vendors[v]={n:0,stockout:0};
+        vendors[v].n++;
+        var qoh=Number(r['Quantity on Hand']||0);
+        if(qoh<=0) vendors[v].stockout++;
+      });
+      Object.keys(vendors).forEach(function(v){
+        var vd=vendors[v];
+        ctx.push('Vendor '+v+': '+vd.n+' SKUs'+(vd.stockout>0?' ('+vd.stockout+' en stockout)':''));
+      });
+    } else {
+      ctx.push('\nREPORTE: No cargado aun');
+    }
+
+    // Tracker de POs
+    var pos=[];
+    try{pos=JSON.parse(localStorage.getItem('CCP_POs')||'[]');}catch(e){}
+    if(pos.length){
+      var estados=['Borrador','Aprobado Samuel','En Epicor','En transito','Parcial','Recibido'];
+      ctx.push('\nTRACKER POs: '+pos.length+' ordenes registradas');
+      pos.forEach(function(p){
+        var est=estados[p.estado]||'Desconocido';
+        var eta=p.etaConf||p.eta||'sin ETA';
+        ctx.push('PO '+p.po+' ('+p.sup+'): '+est+' | ETA: '+eta+(p.pal?' | '+p.pal:''));
+      });
+      var pendientes=pos.filter(function(p){return p.estado<2;});
+      if(pendientes.length){
+        ctx.push('\nPOs PENDIENTES APROBACION ('+pendientes.length+'): '+
+          pendientes.map(function(p){return p.po;}).join(', '));
+      }
+      var transito=pos.filter(function(p){return p.estado===3;});
+      if(transito.length){
+        ctx.push('POs EN TRANSITO ('+transito.length+'): '+
+          transito.map(function(p){return p.po+' ETA:'+( p.etaConf||p.eta||'?');}).join(', '));
+      }
+    } else {
+      ctx.push('\nTRACKER: Sin POs registrados aun');
+    }
+
+    return ctx.join('\n');
+  }
+
+  function addMsgHub(role,text){
+    var msgs=document.getElementById('aiMsgs');
+    var div=document.createElement('div');
+    div.className='ai-msg '+role;
+    div.textContent=text;
+    msgs.appendChild(div);
+    msgs.scrollTop=msgs.scrollHeight;
+    return div;
+  }
+
+  function sendAIHub(pregunta){
+    if(!pregunta||!pregunta.trim()) return;
+    var input=document.getElementById('aiInput');
+    if(input) input.value='';
+
+    if(!_groqKey||!_groqKey.startsWith('gsk_')){
+      addMsgHub('ai','Para usar el asistente, toca "Configurar API Key" y agrega tu key de Groq (gratis en console.groq.com).');
+      return;
+    }
+
+    addMsgHub('user',pregunta);
+    var thinkDiv=addMsgHub('thinking','Pensando...');
+    aiHistory.push({role:'user',content:pregunta});
+
+    var systemPrompt='Eres un asistente experto en compras e inventario para Caribbean Cabinet Products en Puerto Rico. '
+      +'Tienes acceso al inventario de todos los suplidores y al tracker de ordenes de compra. '
+      +'Responde en espanol, de forma concisa y con numeros especificos cuando esten disponibles. '
+      +'\n\nCONTEXTO ACTUAL:\n'+getContextoHub();
+
+    var messages=aiHistory.slice(-8);
+
+    fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+_groqKey
+      },
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        max_tokens:1000,
+        messages:[{role:'system',content:systemPrompt}].concat(messages)
+      })
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      thinkDiv.remove();
+      var resp=(data.choices&&data.choices[0]&&data.choices[0].message)
+        ?data.choices[0].message.content
+        :(data.error?data.error.message:'No pude obtener respuesta.');
+      addMsgHub('ai',resp);
+      aiHistory.push({role:'assistant',content:resp});
+    })
+    .catch(function(err){
+      thinkDiv.remove();
+      addMsgHub('ai','Error: '+err.message);
+    });
+  }
+
+  // Listeners
+  var fab=document.getElementById('aiFab');
+  if(fab) fab.addEventListener('click',function(){
+    document.getElementById('aiPanel').classList.add('open');
+    document.getElementById('aiOverlay').classList.add('open');
+    var inp=document.getElementById('aiInput');
+    if(inp) setTimeout(function(){inp.focus();},300);
+  });
+  var aiClose=document.getElementById('aiClose');
+  if(aiClose) aiClose.addEventListener('click',function(){
+    document.getElementById('aiPanel').classList.remove('open');
+    document.getElementById('aiOverlay').classList.remove('open');
+  });
+  var aiOv=document.getElementById('aiOverlay');
+  if(aiOv) aiOv.addEventListener('click',function(){
+    document.getElementById('aiPanel').classList.remove('open');
+    this.classList.remove('open');
+  });
+  var aiSend=document.getElementById('aiSend');
+  if(aiSend) aiSend.addEventListener('click',function(){
+    sendAIHub((document.getElementById('aiInput')||{}).value||'');
+  });
+  var aiInp=document.getElementById('aiInput');
+  if(aiInp) aiInp.addEventListener('keydown',function(e){
+    if(e.key==='Enter') sendAIHub(this.value.trim());
+  });
+  var btnKey=document.getElementById('aiBtnKey');
+  if(btnKey) btnKey.addEventListener('click',openKeyModal);
+
+  // Chips
+  document.querySelectorAll('.ai-chip').forEach(function(chip){
+    chip.addEventListener('click',function(){
+      sendAIHub(this.getAttribute('data-q'));
+    });
+  });
+
+  //  API KEY GLOBAL 
+  function loadHubKey(){
+    var saved=localStorage.getItem("CCP_AI_KEY")||"";
+    var inp=document.getElementById("hubApiKey");
+    if(inp) inp.value=saved;
+    var fb=document.getElementById("hubKeyFb");
+    if(fb) fb.textContent=saved?"Key guardada: "+saved.slice(0,12)+"...":"";
+  }
+  var hubSaveKey=document.getElementById("hubSaveKey");
+  if(hubSaveKey) hubSaveKey.addEventListener("click",function(){
+    var k=(document.getElementById("hubApiKey")||{}).value||"";
+    if(!k.startsWith("gsk_")){alert("La key de Groq debe empezar con gsk_");return;}
+    localStorage.setItem("CCP_AI_KEY",k);
+    // Tambien actualizar el agente del hub
+    _groqKey=k;
+    var fb=document.getElementById("hubKeyFb");
+    if(fb){fb.textContent="Key guardada correctamente";setTimeout(function(){fb.textContent="Key activa: "+k.slice(0,12)+"...";},1500);}
+  });
+  // Cargar key al inicio
+  (function(){var k=localStorage.getItem("CCP_AI_KEY")||"";if(k){_groqKey=k;}}());
+
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- BOTON FLOTANTE IA -->
+<button id="aiFab" title="Asistente CCP">🤖</button>
+
+<!-- OVERLAY -->
+<div id="aiOverlay"></div>
+
+<!-- PANEL IA -->
+<div id="aiPanel">
+  <div class="ai-hdr">
+    <div>
+      <h3>🤖 Asistente CCP Compras</h3>
+      <p>Inventario · Suministro · POs · Ventas</p>
+    </div>
+    <button id="aiClose" style="background:rgba(255,255,255,.2);border:none;
+      color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;
+      cursor:pointer">Cerrar</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg ai">Hola! Soy tu asistente de compras CCP. Puedo responder preguntas sobre inventario de todos los suplidores, POs en transito, fechas de llegada y niveles de stock. Carga el reporte primero para obtener respuestas con datos reales.</div>
+  </div>
+  <div class="ai-input-area">
+    <div class="ai-chips" id="aiChips">
+      <button class="ai-chip" data-q="Que suplidores tienen SKUs en riesgo?">SKUs en riesgo</button>
+      <button class="ai-chip" data-q="Cuantos POs tengo en transito?">POs en transito</button>
+      <button class="ai-chip" data-q="Cual es el proximo embarque que llega?">Proximos embarques</button>
+      <button class="ai-chip" data-q="Resume el estado general del inventario">Estado general</button>
+    </div>
+    <div class="ai-input-row">
+      <input id="aiInput" type="text" placeholder="Pregunta sobre inventario, POs...">
+      <button id="aiSend">&#x27A4;</button>
+    </div>
+    <div style="text-align:center;margin-top:6px">
+      <button id="aiBtnKey" style="background:none;border:none;color:#aaa;
+        font-size:10px;cursor:pointer;text-decoration:underline">
+        Configurar API Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL API KEY -->
+<div class="key-modal" id="keyModal">
+  <div class="key-box">
+    <h3>API Key de Groq</h3>
+    <p style="font-size:11px;color:#888;margin-bottom:10px">
+      Obtén tu key gratis en <b>console.groq.com</b>.
+      Se guarda solo en este dispositivo.
+    </p>
+    <input type="password" id="keyInput" placeholder="gsk_...">
+    <div class="key-box-btns">
+      <button onclick="closeKeyModal()"
+        style="background:#f0f0f0;color:#333">Cancelar</button>
+      <button onclick="saveKey()"
+        style="background:var(--bl);color:#fff">Guardar</button>
+    </div>
+    <div id="keyFb" style="text-align:center;font-size:11px;
+      color:var(--gn);margin-top:8px;min-height:16px"></div>
+  </div>
+</div>
 </body>
 </html>
