@@ -217,7 +217,9 @@ canvas{width:100%!important}
       <button id="btnRefreshPO" style="padding:5px 10px;background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Actualizar</button>
     </div>
     <div class="po-btns">
-      <button id="btnPrint" style="background:#fff;color:#185FA5">Imprimir / PDF</button>
+      <button id="btnPrint" style="background:#fff;color:#185FA5">Imprimir / PDF</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+      <button id="btnExcelPO" style="padding:10px;background:#217346;color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer">Exportar Excel</button>
       <button id="btnEmail" style="background:#1D9E75;color:#fff">Copiar mensaje</button>
     </div>
     <button id="btnSendEmail" style="width:100%;margin-top:6px;padding:9px;background:#0D3F75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Enviar email al suplidor</button>
@@ -397,6 +399,12 @@ canvas{width:100%!important}
 <div id="cfgSec" class="sec">
   <div class="card">
     <div style="font-size:13px;font-weight:800;color:var(--bl);margin-bottom:12px">Parametros del Suplidor</div>
+
+    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">SKUs Descontinuados</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Apagados por defecto. Activa los que quieras incluir en la orden.</div>
+    <div id="discSkuList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+    <hr style="border:none;border-top:1px solid var(--br);margin-bottom:14px">
+
     <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Lead Time Normal</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:#f8f9fa;border-radius:8px;padding:10px">
@@ -466,6 +474,7 @@ canvas{width:100%!important}
     <button id="btnAddCnt" style="width:100%;padding:10px;background:transparent;border:1.5px dashed var(--bl);color:var(--bl);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px">+ Agregar contacto</button>
     <button id="btnRecalc" style="width:100%;padding:13px;background:var(--bl);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">Recalcular</button>
     <button id="btnReset" style="width:100%;padding:10px;background:transparent;border:1.5px solid var(--br);border-radius:10px;font-size:12px;color:var(--mu);cursor:pointer">Restaurar valores por defecto</button>
+
   </div>
 </div>
 </div><!-- end mainApp -->
@@ -632,6 +641,61 @@ function updateTotals(){
   renderConts();
 }
 
+// SKUs ocultos por usuario
+if(!window._hiddenSkus) window._hiddenSkus={};
+
+function toggleSKU(sku){
+  window._hiddenSkus[sku]=true;
+  // Recalcular sin ese SKU
+  var newBase = PO_BASE.filter(function(p){return !window._hiddenSkus[p.sku];});
+  PO_BASE.length=0;
+  newBase.forEach(function(p){PO_BASE.push(p);});
+  Object.keys(palAdj).forEach(function(k){if(window._hiddenSkus[k])delete palAdj[k];});
+  renderPO();
+  updateHiddenPanel();
+}
+
+function restoreSKU(sku){
+  if(!window._hiddenSkus) window._hiddenSkus={};
+  if(!window._userActivated) window._userActivated={};
+  delete window._hiddenSkus[sku];
+  window._userActivated[sku]=true;
+  if(rawMasMenos&&rawMasMenos.length){
+    processFiles();
+  }
+  updateHiddenPanel();
+  renderDiscSkus();
+}
+
+
+function updateHiddenPanel(){
+  var hidden=Object.keys(window._hiddenSkus||{}).filter(function(k){
+    return window._hiddenSkus[k];
+  });
+  var panel=document.getElementById("hiddenSkuPanel");
+  if(!panel) return;
+  if(!hidden.length){panel.style.display="none"; return;}
+  panel.style.display="block";
+  var list=document.getElementById("hiddenSkuList");
+  if(!list) return;
+  list.innerHTML=hidden.map(function(sku){
+    return "<span style='display:inline-flex;align-items:center;gap:4px;"
+      +"background:#f0f0f0;border-radius:6px;padding:4px 10px;margin:2px;font-size:12px'>"
+      +sku
+      +"<button data-restore='"+sku+"' "
+        +"style='background:none;border:none;color:var(--bl);cursor:pointer;"
+        +"font-size:16px;font-weight:700;line-height:1;padding:0 0 0 4px'>+</button>"
+      +"</span>";
+  }).join("");
+  list.onclick=function(e){
+    var btn=e.target.closest("button[data-restore]");
+    if(!btn) return;
+    var sku=btn.getAttribute("data-restore");
+    if(sku) restoreSKU(sku);
+  };
+}
+
+
 function adjPal(sku,delta){
   palAdj[sku]=Math.max(0,palAdj[sku]+delta);
   const p=PO_BASE.find(x=>x.sku===sku);
@@ -649,7 +713,7 @@ function renderPO(){
       <td class="r">${fmt(p.qoh)}</td>
       <td class="r">
         <div class="adj">
-          <button onclick="adjPal('${p.sku}',-1)"></button>
+          <button onclick="adjPal('${p.sku}',-1)">-</button>
           <span class="pval" id="pval_${p.sku}">${palAdj[p.sku]}</span>
           <button onclick="adjPal('${p.sku}',1)">+</button>
         </div>
@@ -922,7 +986,8 @@ let loaded={f1:false, f2:false};
 
 // -- CHECK FOR REPORT FROM HUB (sessionStorage) --
 function resetArchivos(){rawMasMenos=null; rawQTY=null;loaded.f1=false; loaded.f2=false;var uc1=document.getElementById("uc1");var us1=document.getElementById("us1");var uc2=document.getElementById("uc2");var us2=document.getElementById("us2");if(uc1){uc1.style.border="2px dashed #ddd";uc1.style.background="#fff";}if(us1)us1.textContent="Toca para cargar REPORTE_MAS_MENOS.xlsx";if(uc2){uc2.style.border="2px dashed #ddd";uc2.style.background="#fff";}if(us2)us2.textContent="QTY___.xlsx";var ls=document.getElementById("loadStatus");if(ls)ls.textContent="";var cb=document.getElementById("continueBtn");if(cb)cb.style.display="none";}
-function checkHubReport(){try{var stored=sessionStorage.getItem("CCP_REPORT");if(stored){rawMasMenos=JSON.parse(stored);loaded.f1=true;var dt=sessionStorage.getItem("CCP_REPORT_DATE");var dstr=dt?new Date(dt).toLocaleDateString("es-PR",{day:"2-digit",month:"short",year:"numeric"}):"hoy";var uc1=document.getElementById("uc1");var us1=document.getElementById("us1");var ck1=document.getElementById("uchk1");if(uc1){uc1.style.border="2px solid #1D9E75";uc1.style.background="#E8F7F2";}if(us1)us1.textContent="Reporte del "+dstr+" - "+rawMasMenos.length.toLocaleString()+" SKUs";if(ck1)ck1.textContent="OK";var ls=document.getElementById("loadStatus");if(ls)ls.textContent="Reporte cargado del hub. Carga el QTY o continua.";var cb=document.getElementById("continueBtn");if(cb)cb.style.display="block";return;}}catch(e){}var us1=document.getElementById("us1");if(us1)us1.textContent="REPORTE_MAS_MENOS.xlsx";}
+function checkHubReport(){try{var stored=sessionStorage.getItem("CCP_REPORT");if(stored){rawMasMenos=JSON.parse(stored);loaded.f1=true;var dt=sessionStorage.getItem("CCP_REPORT_DATE");var dstr=dt?new Date(dt).toLocaleDateString("es-PR",{day:"2-digit",month:"short",year:"numeric"}):"hoy";var uc1=document.getElementById("uc1");var us1=document.getElementById("us1");var ck1=document.getElementById("uchk1");if(uc1){uc1.style.border="2px solid #1D9E75";uc1.style.background="#E8F7F2";}if(us1)us1.textContent="Reporte del "+dstr+" - "+rawMasMenos.length.toLocaleString()+" SKUs";if(ck1)ck1.textContent="OK";var ls=document.getElementById("loadStatus");if(ls)ls.textContent="Reporte cargado del hub. Carga el QTY o continua.";var cb=document.getElementById("continueBtn");if(cb)cb.style.display="block";// Pre-llenar lista de SKUs descontinuados para Config
+preLlenarDiscSkus(rawMasMenos);return;}}catch(e){}var us1=document.getElementById("us1");if(us1)us1.textContent="REPORTE_MAS_MENOS.xlsx";}
 
 // -- FALLBACK: load inventory manually --
 async function handleFileFallback(input){
@@ -973,7 +1038,7 @@ async function handleFile(num, input){
       var wb = XLSX.read(e.target.result, {type:"array", cellDates:true});
       var ws = wb.Sheets[wb.SheetNames[0]];
       var data = XLSX.utils.sheet_to_json(ws, {defval:0, raw:false});
-      if(num===1){ rawMasMenos=data; loaded.f1=true; }
+      if(num===1){ rawMasMenos=data; loaded.f1=true; preLlenarDiscSkus(data); }
       if(num===2){ rawQTY=data; loaded.f2=true; }
       var card = document.getElementById(cardId);
       if(card){ card.style.border="2px solid #1D9E75"; card.style.background="#E8F7F2"; }
@@ -1060,7 +1125,14 @@ function buildSKUData(mm,qty,pos){
   const stdCol=findCol(s0,'Standard Package','StandardPackage','STD PKG','Std Pkg');
   if(!vcCol||!skuCol)return{error:'Columnas no encontradas en Más o Menos. Verifica el archivo.'};
 
-  const pvcRows=mm.filter(r=>String(r[vcCol]).trim()==='51');
+  // Filtrar Vendor 51 excluyendo SKUs ocultos por el usuario
+  const pvcRows=mm.filter(function(r){
+    if(String(r[vcCol]).trim()!=='51') return false;
+    var sku=String(r[skuCol]||'').trim();
+    if(!sku) return false;
+    if((window._hiddenSkus||{})[sku]) return false;
+    return true;
+  });
   if(!pvcRows.length)return{error:'No se encontraron SKUs Vendor 51 en el reporte'};
 
   // QTY: sku -> [{pal,eta}]
@@ -1187,12 +1259,128 @@ function renderEmg(){var criticos=DATA.filter(function(d){if(!d.tasa)return fals
 function openEmg(){var criticos=window._emgCrit||[];if(!criticos.length)return;var now=new Date(),mm=String(now.getMonth()+1).padStart(2,'0'),yyyy=now.getFullYear();var poNum='LAI'+mm+yyyy+'-E1';var etaDate=new Date(now);etaDate.setDate(etaDate.getDate()+EMG_DIAS);var etaStr=etaDate.toLocaleDateString('es-PR',{day:'2-digit',month:'long',year:'numeric'});var palTot=0;var lineas=criticos.map(function(d){var pb=PO_BASE.find(function(p){return p.sku===d.sku;})||{};var std=pb.std||50;var desc=pb.desc||d.sku;var uNeed=Math.max(std,Math.ceil(Math.max(0,d.safety-d.qoh)/std)*std);var pNeed=Math.ceil(uNeed/std);if(palTot+pNeed>18)pNeed=Math.max(0,18-palTot);uNeed=pNeed*std;palTot+=pNeed;return{sku:d.sku,desc:desc,std:std,pNeed:pNeed,uNeed:uNeed};}).filter(function(l){return l.pNeed>0;});var SEP='----------------------------';var partes=['PO de EMERGENCIA','PO#: '+poNum,'ETA requerida: '+etaStr,'',SEP,'SKUs criticos:'];lineas.forEach(function(l){partes.push('  '+l.sku+' '+l.desc.substring(0,18)+': '+l.pNeed+' pal / '+fmt(l.uNeed)+' uni');});partes=partes.concat(['TOTAL: '+palTot+' pal','',SEP,'Favor confirmar disponibilidad.','Gracias,','Caribbean Cabinet Products']);var msg=partes.join('\n');document.getElementById('emgPoLbl').textContent='PO#: '+poNum+' - '+palTot+' pal - ETA '+etaStr;document.getElementById('emgMsg').textContent=msg;document.getElementById('emgFb').textContent='';document.getElementById('emgOv').classList.add('open');var emgStateObj={poNum:poNum,etaStr:etaStr,items:lineas,tp:palTot,tu:lineas.reduce(function(a,l){return a+l.uNeed;},0),isEmg:true};window._emgState=emgStateObj;var emgHTML="<div style=\"font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a\">"+"<div style=\"font-size:20px;font-weight:800;color:#C0392B;margin-bottom:4px\">Caribbean Cabinet Products</div>"+"<div style=\"font-size:12px;color:#888;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #C0392B\">Laiwu PVC Panels - Vendor 51 - ORDEN DE EMERGENCIA</div>"+"<div style=\"background:#fdecea;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px\">"+"<b>PO# "+poNum+"</b> &nbsp;&middot;&nbsp; ETA requerida: <b>"+etaStr+"</b></div>"+"<table style=\"width:100%;border-collapse:collapse\"><thead><tr style=\"background:#C0392B22\">"+"<th style=\"padding:7px 8px;text-align:left;font-size:10px\">SKU</th>"+"<th style=\"padding:7px 8px;text-align:left;font-size:10px\">Descripcion</th>"+"<th style=\"padding:7px 8px;text-align:right;font-size:10px\">Paletas</th>"+"<th style=\"padding:7px 8px;text-align:right;font-size:10px\">Unidades</th></tr></thead><tbody>"+lineas.map(function(l){return "<tr style=\"border-bottom:1px solid #eee\"><td style=\"padding:8px 6px;font-weight:700\">"+l.sku+"</td><td style=\"padding:8px 6px;font-size:11px\">"+l.desc+"</td><td style=\"padding:8px 6px;text-align:right;font-weight:800;color:#C0392B\">"+l.pNeed+"</td><td style=\"padding:8px 6px;text-align:right\">"+fmt(l.uNeed)+"</td></tr>";}).join("")+"</tbody><tfoot><tr style=\"background:#f5f5f5\"><td colspan=\"2\" style=\"padding:8px;font-weight:800\">TOTAL</td>"+"<td style=\"padding:8px;text-align:right;font-weight:800;color:#C0392B\">"+palTot+" pal</td>"+"<td style=\"padding:8px;text-align:right;font-weight:800\">"+fmt(palTot*50)+" uni aprox.</td></tr></tfoot></table>"+"<div style=\"margin-top:20px;font-size:11px;color:#999\">Lead time emergencia: 8 semanas (2 fab + 6 transito)</div>"+"</div>";document.getElementById('poBodyInner').innerHTML='<div style="background:#fff;border-radius:10px;padding:20px;margin:16px;box-shadow:0 2px 12px rgba(0,0,0,.08)">'+emgHTML+'</div>';document.getElementById('poBarTitle').textContent='PO de Emergencia';var cnts=getContactos(),toList=cnts.filter(function(c){return c.rol==="to";});document.getElementById('poHint').textContent=toList.length?'Para: '+toList.map(function(c){return c.nombre||c.email;}).join(', '):'Agrega contactos en Config';document.getElementById('poOv').style.display='block';document.getElementById('poOv').scrollTop=0;}
 function getContactos(){var r=[];for(var i=0;i<4;i++){var blk=document.getElementById('cnt-block-'+i);if(!blk||blk.style.display==='none')continue;var em=(document.getElementById('cnt-email-'+i)||{}).value||'';if(!em)continue;r.push({nombre:(document.getElementById('cnt-nombre-'+i)||{}).value||'',email:em,rol:(document.getElementById('cnt-rol-'+i)||{}).value||'to'});}return r;}
 function buildPOHTML(){var sp=computeSplit();var ac1=PO_BASE.filter(function(p){return(sp[p.sku]||{p1:0}).p1>0;});var ac2=PO_BASE.filter(function(p){return(sp[p.sku]||{p2:0}).p2>0;});var tp1=ac1.reduce(function(a,p){return a+sp[p.sku].p1;},0);var tu1=ac1.reduce(function(a,p){return a+sp[p.sku].p1*p.std;},0);var tp2=ac2.reduce(function(a,p){return a+sp[p.sku].p2;},0);var tu2=ac2.reduce(function(a,p){return a+sp[p.sku].p2*p.std;},0);var fecha=new Date().toLocaleDateString('es-PR',{year:'numeric',month:'long',day:'numeric'});_poState={sp:sp,ac1:ac1,tp1:tp1,tu1:tu1,ac2:ac2,tp2:tp2,tu2:tu2,fecha:fecha,isEmg:false};function trow(p,key,color){var pal=sp[p.sku][key];var uni=fmt(pal*p.std);return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 6px;font-weight:700;font-size:12px;white-space:nowrap">'+p.sku+'</td><td style="padding:8px 6px;font-size:11px;line-height:1.4">'+p.desc+'<br><span style="font-size:10px;color:#888">Std:'+p.std+' · '+uni+' uni</span></td><td style="padding:8px 6px;text-align:right;font-weight:800;font-size:16px;color:'+color+';white-space:nowrap">'+pal+'</td></tr>';}function tsec(id,ship,eta,color,items,key,tp,tu){var rows=items.map(function(p){var pal=sp[p.sku][key];return '<tr style="border-bottom:1px solid #f0f0f0">'+'<td style="padding:5px 4px;font-weight:700;font-size:11px;white-space:nowrap">'+p.sku+'</td>'+'<td style="padding:5px 4px;font-size:10px">'+p.desc+'<br><span style="color:#aaa;font-size:9px">Std:'+p.std+'</span></td>'+'<td style="padding:5px 4px;text-align:right;font-weight:800;font-size:14px;color:'+color+'">'+pal+'</td>'+'<td style="padding:5px 4px;text-align:right;font-size:10px;color:#666">'+fmt(pal*p.std)+'</td>'+'</tr>';}).join('');return '<div style="margin-bottom:14px">'+'<div style="background:'+color+';color:#fff;padding:7px 12px;border-radius:6px 6px 0 0;font-size:13px;font-weight:800">'+id+'</div>'+'<div style="background:#f8f9fa;padding:5px 12px;font-size:10px;border-bottom:1px solid #e5e5e5">'+'Ship: <b>'+ship+'</b> &middot; ETA: <b>'+eta+'</b> &middot; <b>'+Math.ceil(tp/MAX_PAL)+'</b> contenedor'+(Math.ceil(tp/MAX_PAL)!==1?'es':'')+'</div>'+'<table style="width:100%;border-collapse:collapse">'+'<colgroup><col style="width:65px"><col><col style="width:38px"><col style="width:70px"></colgroup>'+'<thead><tr style="background:'+color+'18">'+'<th style="padding:4px;text-align:left;font-size:9px;color:#888">SKU</th>'+'<th style="padding:4px;text-align:left;font-size:9px;color:#888">Descripcion</th>'+'<th style="padding:4px;text-align:right;font-size:9px;color:#888">Pal</th>'+'<th style="padding:4px;text-align:right;font-size:9px;color:#888">Uni</th>'+'</tr></thead>'+'<tbody>'+rows+'</tbody>'+'<tfoot><tr style="background:#f0f0f0;font-weight:800">'+'<td colspan="2" style="padding:5px 4px;font-size:11px">TOTAL</td>'+'<td style="padding:5px 4px;text-align:right;color:'+color+'">'+tp+' pal</td>'+'<td style="padding:5px 4px;text-align:right;font-size:10px">'+fmt(tu)+' uni</td>'+'</tr></tfoot></table></div>';}return '<div style="font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;width:100%;box-sizing:border-box;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px"><div style="font-size:20px;font-weight:800;color:#185FA5">Caribbean Cabinet Products</div><div style="font-size:11px;color:#aaa">'+fecha+'</div></div><div style="font-size:12px;color:#888;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #185FA5">Laiwu PVC Panels - Vendor 51</div>'+tsec((window._poNum||'LAI062026-01'),'15 Ago 2026','~15 Oct 2026','#185FA5',ac1,'p1',tp1,tu1)+(ac2.length?tsec((window._poNum2||'LAI062026-02'),'1 Sep 2026','~1 Nov 2026','#8B5CF6',ac2,'p2',tp2,tu2):'')+'<div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:40px"><div style="border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;text-align:center">Autorizado por</div><div style="border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;text-align:center">Fecha</div></div></div>';}
+function exportExcelPO(){
+  var st=_poState||window._emgState;
+  if(!st){alert("Genera el PO primero.");return;}
+  var poNum=window._poNum||"LAI062026-01";
+  var poNum2=window._poNum2||"LAI062026-02";
+  var rows=[];
+  // Header
+  rows.push(["PO#","SKU","Descripcion","Std","Paletas PO-01","Paletas PO-02","Unidades Total","Ship Date","ETA"]);
+  if(st.isEmg){
+    var pd=st.poData;
+    (pd.items||[]).forEach(function(item){
+      rows.push([pd.poNum,item.sku,item.desc,item.std||"",item.pNeed,"",item.uNeed,"URGENTE",pd.etaStr]);
+    });
+    rows.push(["TOTAL","","","",pd.tp,"",pd.tu,"",""]);
+  }else{
+    (st.ac1||[]).forEach(function(p){
+      var pal=st.sp[p.sku].p1;
+      rows.push([poNum,p.sku,p.desc,p.std,pal,"",pal*p.std,"15 Ago 2026","~15 Oct 2026"]);
+    });
+    if((st.ac2||[]).length){
+      (st.ac2||[]).forEach(function(p){
+        var pal=st.sp[p.sku].p2;
+        rows.push([poNum2,p.sku,p.desc,p.std,"",pal,pal*p.std,"1 Sep 2026","~1 Nov 2026"]);
+      });
+    }
+    rows.push(["TOTAL","","","",st.tp1,st.tp2,st.tu1+st.tu2,"",""]);
+  }
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  // Ancho de columnas
+  ws["!cols"]=[{wch:16},{wch:8},{wch:30},{wch:6},{wch:12},{wch:12},{wch:14},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,"Orden de Compra");
+  var fecha=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,"PO_Laiwu_"+fecha+".xlsx");
+}
+
 function verPO(){try{var now=new Date();var mm=String(now.getMonth()+1).padStart(2,"0");var yyyy=now.getFullYear();var seqEl=document.getElementById("poSeqInput");var seqNum=seqEl?parseInt(seqEl.value)||1:1;window._poNum="LAI"+mm+yyyy+"-"+String(seqNum).padStart(2,"0");window._poNum2="LAI"+mm+yyyy+"-"+String(seqNum+1).padStart(2,"0");var html=buildPOHTML();var inner=document.getElementById("poBodyInner");if(!inner){alert("Error: overlay no encontrado");return;}inner.innerHTML="<div style='padding:10px;background:#fff;margin:8px;border-radius:10px'>"+html+"</div>";document.getElementById("poBarTitle").textContent="Orden de Compra";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var hint=document.getElementById("poHint");if(hint)hint.textContent=toList.length?"Para: "+toList.map(function(c){return c.nombre||c.email;}).join(", "):"Agrega contactos en Config";var ov=document.getElementById("poOv");if(ov){ov.style.display="block";ov.scrollTop=0;}}catch(err){alert("Error al generar PO: "+err.message);}}function doEmail(){var st=_poState||window._emgState;if(!st){alert("Primero presiona Ver / Enviar PO.");return;}var poNum=window._poNum||"LAI062026-01";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var nombre=toList.length?(toList[0].nombre||"Jason"):"Jason";var partes=["Hola "+nombre+",","",st.isEmg?"Adjunto PO de emergencia "+st.poNum+" para su revision inmediata.":"Adjunto orden de compra "+poNum+" para su revision y confirmacion.","",st.isEmg?"PO#: "+st.poNum+" - ETA requerida: "+st.etaStr:"PO#: "+poNum+" - Ship: 15 Ago 2026 - ETA: ~15 Oct 2026","",st.isEmg?"Favor confirmar disponibilidad y fecha de despacho a la brevedad.":"Favor confirmar recibo, disponibilidad y fecha de produccion.","","Gracias,","Caribbean Cabinet Products"];var msg=partes.join("\n");var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);function flash(txt){var h=document.getElementById("poHint");if(!h)return;h.textContent=txt;h.style.color="#86efac";setTimeout(function(){h.textContent=toList.length?"Para: "+toList.map(function(c){return c.nombre||c.email;}).join(", "):"Agrega contactos en Config";h.style.color="";},3500);}function copiar(){if(navigator.clipboard){navigator.clipboard.writeText(msg).then(function(){flash("Mensaje copiado - pegalo en tu email o WhatsApp");}).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);flash("Mensaje copiado");});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);flash("Mensaje copiado");}}if(isMobile&&navigator.share){navigator.share({title:poNum,text:msg}).catch(function(){copiar();});}else if(toList.length){var toStr=toList.map(function(c){return c.email;}).join(",");var ccList=cnts.filter(function(c){return c.rol==="cc";});var ccStr=ccList.length?"&cc="+ccList.map(function(c){return c.email;}).join(","):"";var asunto=st.isEmg?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products":"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);window.open(url);flash("Abriendo cliente de correo...");}else{copiar();}}
 function sendEmailSuplidor(){var st=_poState||window._emgState;if(!st){alert("Primero presiona Ver / Enviar PO.");return;}var poNum=window._poNum||"LAI062026-01";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var ccList=cnts.filter(function(c){return c.rol==="cc";});if(!toList.length){alert("Agrega contactos en la tab Config primero.");return;}var nombre=toList[0].nombre||"Jason";var partes=["Hola "+nombre+",","",st.isEmg?"Adjunto PO de emergencia "+st.poNum+" para su revision inmediata.":"Adjunto orden de compra "+poNum+" para su revision y confirmacion.","",st.isEmg?"PO#: "+st.poNum+" - ETA requerida: "+st.etaStr:"PO#: "+poNum+" - Ship: 15 Ago 2026 - ETA: ~15 Oct 2026","",st.isEmg?"Favor confirmar disponibilidad y fecha de despacho a la brevedad.":"Favor confirmar recibo, disponibilidad y fecha de produccion.","","Gracias,","Caribbean Cabinet Products"];var msg=partes.join("\n");var asunto=st.isEmg?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products":"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";var toStr=toList.map(function(c){return c.email;}).join(",");var ccStr=ccList.length?"&cc="+ccList.map(function(c){return c.email;}).join(","):"";var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(isMobile&&navigator.share){navigator.share({title:asunto,text:msg}).catch(function(){window.open(url);});}else{window.open(url);}}
+function preLlenarDiscSkus(mm){
+  if(!mm||!mm.length) return;
+  var s0=mm[0];
+  var vcCol=findCol(s0,"Vendor Code","VendorCode","VENDOR CODE");
+  var skuCol=findCol(s0,"Item Number","ItemNumber","ITEM NUMBER");
+  var descCol=findCol(s0,"Item Description","ItemDescription","ITEM DESCRIPTION");
+  var discCol=findCol(s0,"Discontinued Item?","Discontinued","DISCONTINUED");
+  if(!vcCol||!skuCol) return;
+  if(!window._hiddenSkus) window._hiddenSkus={};
+  if(!window._userActivated) window._userActivated={};
+  // Llenar lista completa de SKUs Vendor 51
+  window._allV51Skus=[];
+  mm.forEach(function(r){
+    if(String(r[vcCol]||"").trim()!=="51") return;
+    var sku=String(r[skuCol]||"").trim();
+    if(!sku) return;
+    var disc=discCol?String(r[discCol]||"").trim().toUpperCase():"";
+    var desc=String(r[descCol]||"").trim();
+    window._allV51Skus.push({sku:sku,desc:desc,disc:disc==="Y"});
+    // Ocultar descontinuados SALVO que el usuario los haya activado
+    if(disc==="Y" && !window._userActivated[sku]){
+      window._hiddenSkus[sku]=true;
+    }
+  });
+}
+
+
+function renderDiscSkus(){
+  var list = document.getElementById("discSkuList");
+  if(!list) return;
+  var all = window._allV51Skus||[];
+  var disc = all.filter(function(s){return s.disc;});
+  if(!disc.length){
+    list.innerHTML = "<div style='font-size:12px;color:var(--mu);padding:8px'>Carga el reporte primero para ver los SKUs descontinuados.</div>";
+    return;
+  }
+  list.innerHTML = disc.map(function(s){
+    var hidden = !!(window._hiddenSkus||{})[s.sku];
+    var color = hidden ? "#C0392B" : "#1D9E75";
+    var label = hidden ? "Apagado" : "Activo";
+    var bgToggle = hidden ? "#ddd" : "var(--gn)";
+    var dotPos = hidden ? "left:3px" : "left:19px";
+    return "<div style='display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;border-radius:8px;padding:10px;gap:10px;margin-bottom:4px'>"
+      +"<div>"
+        +"<div style='font-size:12px;font-weight:700'>"+s.sku+"</div>"
+        +"<div style='font-size:10px;color:var(--mu)'>"+s.desc+"</div>"
+      +"</div>"
+      +"<div style='display:flex;align-items:center;gap:8px;flex-shrink:0'>"
+        +"<span style='font-size:11px;color:"+color+";font-weight:600'>"+label+"</span>"
+        +"<div class='toggle-wrap' data-sku='"+s.sku+"' "
+          +"style='width:44px;height:24px;border-radius:12px;background:"+bgToggle+";"
+          +"position:relative;cursor:pointer;flex-shrink:0'>"
+          +"<div style='position:absolute;top:4px;"+dotPos+";width:16px;height:16px;"
+            +"border-radius:50%;background:#fff'></div>"
+        +"</div>"
+      +"</div>"
+    +"</div>";
+  }).join("");
+  list.onclick = function(e){
+    var tw = e.target.closest(".toggle-wrap");
+    if(!tw) return;
+    var sku = tw.dataset.sku;
+    if(!window._hiddenSkus) window._hiddenSkus={};
+    if(!window._userActivated) window._userActivated={};
+    if(window._hiddenSkus[sku]){
+      delete window._hiddenSkus[sku];
+      window._userActivated[sku]=true;
+    } else {
+      window._hiddenSkus[sku]=true;
+      delete window._userActivated[sku];
+    }
+    if(rawMasMenos&&rawMasMenos.length){
+      processFiles();
+    }
+    renderDiscSkus();
+  };
+}
+
+
 function updateCfgUI(){var lt=CFG.ltFab+CFG.ltTra+1;var mn=['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];var eta=lt<12?mn[lt]+' 2026':mn[lt-12]+' 2027';var ids={ltFabV:CFG.ltFab,ltTraV:CFG.ltTra,ssV:CFG.ss,mpV:CFG.maxPal};Object.keys(ids).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=ids[id];});var ltEl=document.getElementById('ltTotalV'),etaEl=document.getElementById('ltEtaV');if(ltEl)ltEl.textContent=lt+' meses';if(etaEl)etaEl.textContent=eta;}
 var _origGo=go;go=function(t,el){_origGo(t,el);if(t==="report")renderReport();if(t==="cfg")updateCfgUI();};
 var _origInitApp=initApp;initApp=function(r){_origInitApp(r);setTimeout(renderEmg,100);};
 var _origLoadDemo=loadDemo;loadDemo=function(){_origLoadDemo();setTimeout(renderEmg,100);};
-document.addEventListener("DOMContentLoaded",function(){var bco=document.getElementById("btnCloseOv");if(bco)bco.addEventListener("click",function(){document.getElementById("poOv").style.display="none";});var brp=document.getElementById("btnRefreshPO");if(brp)brp.addEventListener("click",verPO);var bpr=document.getElementById("btnPrint");if(bpr)bpr.addEventListener("click",function(){window.print();});var bse=document.getElementById("btnSendEmail");if(bse)bse.addEventListener("click",sendEmailSuplidor);var bem=document.getElementById("btnEmail");if(bem)bem.addEventListener("click",doEmail);var bge=document.getElementById("btnGenEmg");if(bge)bge.addEventListener("click",openEmg);var bce=document.getElementById("btnCloseEmg");if(bce)bce.addEventListener("click",function(){document.getElementById("emgOv").classList.remove("open");});var eov=document.getElementById("emgOv");if(eov)eov.addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});var bcy=document.getElementById("btnCopyEmg");if(bcy)bcy.addEventListener("click",function(){var msg=document.getElementById("emgMsg").textContent,fb=document.getElementById("emgFb");function done(){fb.textContent="Copiado";setTimeout(function(){fb.textContent="";},2500);}if(navigator.clipboard){navigator.clipboard.writeText(msg).then(done).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();}});var cfgMap=[["ltFabM","ltFabP","ltFabV","ltFab",1,5],["ltTraM","ltTraP","ltTraV","ltTra",1,6],["ssM","ssP","ssV","ss",1,6],["mpM","mpP","mpV","maxPal",10,24]];cfgMap.forEach(function(row){var bm=document.getElementById(row[0]),bp=document.getElementById(row[1]),vEl=document.getElementById(row[2]),key=row[3],mn=row[4],mx=row[5];if(bm)bm.addEventListener("click",function(){CFG[key]=Math.max(mn,CFG[key]-1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});if(bp)bp.addEventListener("click",function(){CFG[key]=Math.min(mx,CFG[key]+1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});});var brc=document.getElementById("btnRecalc");if(brc)brc.addEventListener("click",function(){alert("Recargue el archivo con nuevos parametros.");});var brt=document.getElementById("btnReset");if(brt)brt.addEventListener("click",function(){CFG={ltFab:1,ltTra:2,ss:3,maxPal:18};updateCfgUI();});var bac=document.getElementById("btnAddCnt");if(bac)bac.addEventListener("click",function(){for(var i=1;i<4;i++){var blk=document.getElementById("cnt-block-"+i);if(blk&&blk.style.display==="none"){blk.style.display="block";["cnt-nombre-","cnt-email-"].forEach(function(pfx){var el=document.getElementById(pfx+i);if(el)el.value="";});var rol=document.getElementById("cnt-rol-"+i);if(rol)rol.value="to";break;}}});for(var di=1;di<4;di++){(function(idx){var btn=document.getElementById("cnt-del-"+idx);if(btn)btn.addEventListener("click",function(){var blk=document.getElementById("cnt-block-"+idx);if(blk)blk.style.display="none";});})(di);}document.addEventListener("click",function(e){var td=e.target&&e.target.closest?e.target.closest("td[data-cid]"):null;if(td){showRtt(td,td.getAttribute("data-cid"));return;}var rtt=document.getElementById("rtt");if(rtt&&e.target!==rtt&&!rtt.contains(e.target)){hideTT();}});});
+document.addEventListener("DOMContentLoaded",function(){var bco=document.getElementById("btnCloseOv");if(bco)bco.addEventListener("click",function(){document.getElementById("poOv").style.display="none";});var brp=document.getElementById("btnRefreshPO");if(brp)brp.addEventListener("click",verPO);var bpr=document.getElementById("btnPrint");if(bpr)bpr.addEventListener("click",function(){window.print();});var bse=document.getElementById("btnSendEmail");if(bse)bse.addEventListener("click",sendEmailSuplidor);
+var bxl=document.getElementById("btnExcelPO");if(bxl)bxl.addEventListener("click",exportExcelPO);var bem=document.getElementById("btnEmail");if(bem)bem.addEventListener("click",doEmail);var bge=document.getElementById("btnGenEmg");if(bge)bge.addEventListener("click",openEmg);var bce=document.getElementById("btnCloseEmg");if(bce)bce.addEventListener("click",function(){document.getElementById("emgOv").classList.remove("open");});var eov=document.getElementById("emgOv");if(eov)eov.addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});var bcy=document.getElementById("btnCopyEmg");if(bcy)bcy.addEventListener("click",function(){var msg=document.getElementById("emgMsg").textContent,fb=document.getElementById("emgFb");function done(){fb.textContent="Copiado";setTimeout(function(){fb.textContent="";},2500);}if(navigator.clipboard){navigator.clipboard.writeText(msg).then(done).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();}});var cfgMap=[["ltFabM","ltFabP","ltFabV","ltFab",1,5],["ltTraM","ltTraP","ltTraV","ltTra",1,6],["ssM","ssP","ssV","ss",1,6],["mpM","mpP","mpV","maxPal",10,24]];cfgMap.forEach(function(row){var bm=document.getElementById(row[0]),bp=document.getElementById(row[1]),vEl=document.getElementById(row[2]),key=row[3],mn=row[4],mx=row[5];if(bm)bm.addEventListener("click",function(){CFG[key]=Math.max(mn,CFG[key]-1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});if(bp)bp.addEventListener("click",function(){CFG[key]=Math.min(mx,CFG[key]+1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});});var brc=document.getElementById("btnRecalc");if(brc)brc.addEventListener("click",function(){alert("Recargue el archivo con nuevos parametros.");});var brt=document.getElementById("btnReset");if(brt)brt.addEventListener("click",function(){CFG={ltFab:1,ltTra:2,ss:3,maxPal:18};updateCfgUI();});var bac=document.getElementById("btnAddCnt");if(bac)bac.addEventListener("click",function(){for(var i=1;i<4;i++){var blk=document.getElementById("cnt-block-"+i);if(blk&&blk.style.display==="none"){blk.style.display="block";["cnt-nombre-","cnt-email-"].forEach(function(pfx){var el=document.getElementById(pfx+i);if(el)el.value="";});var rol=document.getElementById("cnt-rol-"+i);if(rol)rol.value="to";break;}}});for(var di=1;di<4;di++){(function(idx){var btn=document.getElementById("cnt-del-"+idx);if(btn)btn.addEventListener("click",function(){var blk=document.getElementById("cnt-block-"+idx);if(blk)blk.style.display="none";});})(di);}document.addEventListener("click",function(e){var td=e.target&&e.target.closest?e.target.closest("td[data-cid]"):null;if(td){showRtt(td,td.getAttribute("data-cid"));return;}var rtt=document.getElementById("rtt");if(rtt&&e.target!==rtt&&!rtt.contains(e.target)){hideTT();}});});
 </script>
 </body></html>
