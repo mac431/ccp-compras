@@ -112,6 +112,40 @@ canvas{width:100%!important}
 .mo-btns{display:flex;gap:8px}
 .mo-btns button{flex:1;padding:12px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer}
 .cfgbtn{width:32px;height:32px;border-radius:8px;border:.5px solid var(--br);background:#f5f5f5;font-size:18px;font-weight:700;cursor:pointer}
+
+/* PANEL IA */
+#aiPanel{position:fixed;top:0;right:-380px;width:360px;height:100vh;background:#fff;
+  z-index:800;box-shadow:-4px 0 20px rgba(0,0,0,.15);display:flex;flex-direction:column;
+  transition:right .3s ease}
+#aiPanel.open{right:0}
+#aiOverlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:799;display:none}
+#aiOverlay.open{display:block}
+.ai-hdr{background:linear-gradient(135deg,#0D3F75,#185FA5);color:#fff;padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ai-hdr h3{font-size:14px;font-weight:700;margin:0}
+.ai-hdr p{font-size:10px;opacity:.7;margin:2px 0 0}
+.ai-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;
+  background:#f8f9fa}
+.ai-msg{max-width:90%;padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.6}
+.ai-msg.user{background:#185FA5;color:#fff;align-self:flex-end;border-radius:12px 12px 2px 12px}
+.ai-msg.ai{background:#fff;color:#1a1a1a;align-self:flex-start;border-radius:12px 12px 12px 2px;
+  box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ai-msg.thinking{color:#888;font-style:italic;background:#fff;align-self:flex-start}
+.ai-input-area{padding:12px;border-top:1px solid #e5e5e5;background:#fff;flex-shrink:0}
+.ai-input-row{display:flex;gap:8px}
+.ai-input-row input{flex:1;padding:10px 12px;border:1.5px solid #e5e5e5;border-radius:20px;
+  font-size:13px;font-family:inherit;outline:none}
+.ai-input-row input:focus{border-color:#185FA5}
+.ai-input-row button{width:38px;height:38px;border-radius:50%;background:#185FA5;color:#fff;
+  border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ai-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ai-chip{padding:5px 10px;background:#EBF3FF;color:#185FA5;border:none;border-radius:20px;
+  font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+/* Boton flotante */
+#aiFab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,#185FA5,#0D3F75);color:#fff;border:none;
+  font-size:22px;cursor:pointer;z-index:700;box-shadow:0 4px 16px rgba(24,95,165,.4);
+  display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -248,6 +282,7 @@ canvas{width:100%!important}
   <div class="tab on" onclick="go('po',this)">📄 Orden</div>
   <div class="tab"    onclick="go('chart',this)">📈 Proyección</div>
   <div class="tab"    onclick="go('report',this)">📋 Reporte</div>
+  <div class="tab"    onclick="go('disc',this)">Desc.</div>
   <div class="tab"    onclick="go('cfg',this)">Config</div>
 </div>
 
@@ -477,6 +512,21 @@ canvas{width:100%!important}
 
   </div>
 </div>
+
+<!-- DESCONTINUADOS TAB -->
+<div id="discSec" class="sec">
+  <div class="card" style="padding:12px">
+    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">
+      SKUs de Vendor 51 marcados como <b>Discontinued=Y</b>. 
+      Apagados por defecto — activa el toggle para incluirlos en la orden.
+    </div>
+    <div id="discTableWrap">
+      <div style="font-size:12px;color:var(--mu);text-align:center;padding:20px">
+        Carga el reporte primero.
+      </div>
+    </div>
+  </div>
+</div>
 </div><!-- end mainApp -->
 
 
@@ -531,6 +581,121 @@ const DATA=[
 DATA.forEach(d=>{
   d.qoh_proj=[];let q=d.qoh;
   for(let i=0;i<12;i++){q=Math.max(0,q+(d.conf[i]||0)+(d.est[i]||0)-d.tasa);d.qoh_proj.push(Math.round(q));}
+
+//  PANEL IA 
+var aiHistory = [];
+
+function getContexto(){
+  // Construir contexto con datos actuales de la app
+  if(!DATA||!DATA.length) return "No hay datos cargados aun.";
+  var ctx = ["=== INVENTARIO LAIWU (Vendor 51) === Fecha: "+new Date().toLocaleDateString('es-PR')];
+  ctx.push("\nSKUs ACTIVOS ("+DATA.filter(function(d){return d.tasa>0;}).length+" SKUs con ventas):");
+  DATA.filter(function(d){return d.tasa>0;}).forEach(function(d){
+    var meses = d.tasa>0 ? Math.round(d.qoh/d.tasa*10)/10 : "N/A";
+    var estado = d.qoh<d.piso?"BAJO PISO":d.qoh<d.safety?"EN BANDA":"SOBRE SAFETY";
+    var confTotal = d.conf.reduce(function(a,b){return a+b;},0);
+    ctx.push("- "+d.sku+" ("+d.desc+"): QoH="+Math.round(d.qoh)+" uni | Tasa="+Math.round(d.tasa)+"/mes | "+meses+" meses cobertura | "+estado+(confTotal>0?" | En transito: "+confTotal+" uni":""));
+  });
+  // SKUs con emergencia
+  var riesgo = DATA.filter(function(d){return d.tasa>0&&d.qoh<d.piso;});
+  if(riesgo.length){
+    ctx.push("\nSKUs BAJO PISO ("+riesgo.length+"): "+riesgo.map(function(d){return d.sku;}).join(", "));
+  }
+  // Orden actual
+  if(PO_BASE&&PO_BASE.length){
+    var totalPal = PO_BASE.reduce(function(a,p){return a+(palAdj[p.sku]||0);},0);
+    ctx.push("\nORDEN ACTUAL: "+totalPal+" paletas totales | "+(window._poNum||"PO pendiente"));
+  }
+  return ctx.join("\n");
+}
+
+function addMsg(role, text){
+  var msgs = document.getElementById("aiMsgs");
+  var div = document.createElement("div");
+  div.className = "ai-msg " + role;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function sendAI(pregunta){
+  if(!pregunta||!pregunta.trim()) return;
+  var input = document.getElementById("aiInput");
+  if(input) input.value = "";
+  addMsg("user", pregunta);
+  var thinkDiv = addMsg("thinking", "Pensando...");
+  aiHistory.push({role:"user", content: pregunta});
+
+  var systemPrompt = "Eres un asistente experto en inventario y suministro para Caribbean Cabinet Products en Puerto Rico. "
+    +"Trabajas con datos de Laiwu (Vendor 51), fabricante de paneles PVC. "
+    +"Responde en espanol, de forma concisa y practica. "
+    +"Usa los datos del contexto para responder con numeros especificos cuando sea posible. "
+    +"Si preguntan sobre fechas de llegada, los embarques confirmados estan en el campo 'En transito'. "
+    +"Si preguntan sobre riesgo, considera que bajo piso es critico y bajo safety es zona de alerta. "
+    +"\n\nCONTEXTO ACTUAL:\n" + getContexto();
+
+  var messages = aiHistory.slice(-8); // ultimos 8 mensajes para contexto
+
+  fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens:1000,
+      system: systemPrompt,
+      messages: messages
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    thinkDiv.remove();
+    var respuesta = (data.content&&data.content[0]&&data.content[0].text)
+      ? data.content[0].text
+      : "No pude obtener respuesta.";
+    addMsg("ai", respuesta);
+    aiHistory.push({role:"assistant", content: respuesta});
+  })
+  .catch(function(err){
+    thinkDiv.remove();
+    addMsg("ai", "Error conectando con el asistente. Verifica tu conexion.");
+  });
+}
+
+// Listeners del panel IA
+var aiFab = document.getElementById("aiFab");
+var aiClose = document.getElementById("aiClose");
+var aiOverlay = document.getElementById("aiOverlay");
+var aiSend = document.getElementById("aiSend");
+var aiInput = document.getElementById("aiInput");
+
+if(aiFab) aiFab.addEventListener("click", function(){
+  document.getElementById("aiPanel").classList.add("open");
+  document.getElementById("aiOverlay").classList.add("open");
+  if(aiInput) setTimeout(function(){aiInput.focus();}, 300);
+});
+if(aiClose) aiClose.addEventListener("click", function(){
+  document.getElementById("aiPanel").classList.remove("open");
+  document.getElementById("aiOverlay").classList.remove("open");
+});
+if(aiOverlay) aiOverlay.addEventListener("click", function(){
+  document.getElementById("aiPanel").classList.remove("open");
+  this.classList.remove("open");
+});
+if(aiSend) aiSend.addEventListener("click", function(){
+  sendAI(document.getElementById("aiInput").value.trim());
+});
+if(aiInput) aiInput.addEventListener("keydown", function(e){
+  if(e.key==="Enter") sendAI(this.value.trim());
+});
+// Chips de preguntas rapidas
+var chips = document.querySelectorAll(".ai-chip");
+chips.forEach(function(chip){
+  chip.addEventListener("click", function(){
+    sendAI(this.getAttribute("data-q"));
+  });
+});
+
 });
 
 const fmt=n=>Math.round(n).toLocaleString('es-PR');
@@ -853,6 +1018,39 @@ ${poBlock((window._poNum||'LAI062026-01'),'15 Agosto 2026','~15 Octubre 2026','#
 ${hasPO2?`<div class="pb"></div>${poBlock((window._poNum2||'LAI062026-02'),'1 Septiembre 2026','~1 Noviembre 2026','#8B5CF6',r2,tp2,tu2,'Segunda entrega · 15 días después del PO-01')}`:''}
 <div class="note">${hasPO2?'PO-01: Ship 15 Ago → ETA ~15 Oct 2026 &nbsp;·&nbsp; PO-02: Ship 1 Sep → ETA ~1 Nov 2026<br>':''}Lead Time: 1 mes fab + 2 meses transito . Banda SSmes . Safety Stock: 3 meses<br>Generado: ${fecha}</div>
 <br><button class="np" onclick="window.print()" style="padding:11px 22px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer"> Imprimir / Guardar PDF</button>
+
+<!-- BOTON FLOTANTE IA -->
+<button id="aiFab" title="Asistente IA"></button>
+
+<!-- OVERLAY -->
+<div id="aiOverlay"></div>
+
+<!-- PANEL LATERAL IA -->
+<div id="aiPanel">
+  <div class="ai-hdr">
+    <div>
+      <h3> Asistente Laiwu</h3>
+      <p>Inventario . Suministro . Ventas</p>
+    </div>
+    <button id="aiClose" style="background:rgba(255,255,255,.2);border:none;color:#fff;
+      border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">Cerrar</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg ai">Hola! Soy tu asistente de inventario Laiwu. Puedes preguntarme sobre niveles de stock, fechas de llegada, SKUs en riesgo, ventas y suministro. Carga el reporte primero para obtener respuestas con datos reales.</div>
+  </div>
+  <div class="ai-input-area">
+    <div class="ai-chips">
+      <button class="ai-chip" data-q="Cuales SKUs estan en riesgo de stockout?">SKUs en riesgo</button>
+      <button class="ai-chip" data-q="Cuando llega el proximo embarque?">Proximos embarques</button>
+      <button class="ai-chip" data-q="Como estamos de inventario general?">Estado inventario</button>
+      <button class="ai-chip" data-q="Cuales SKUs tienen mas de 6 meses de stock?">Stock alto</button>
+    </div>
+    <div class="ai-input-row">
+      <input id="aiInput" type="text" placeholder="Pregunta sobre inventario, ventas...">
+      <button id="aiSend"></button>
+    </div>
+  </div>
+</div>
 </body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -1149,10 +1347,14 @@ function buildSKUData(mm,qty,pos){
         const etaRaw=r[qEta];
         let etaDate=null;
         if(etaRaw){
-          if(typeof etaRaw==="number"){
-            // Numero serial de Excel: dias desde 1/1/1900
+          if(etaRaw instanceof Date){
+            // SheetJS con cellDates:true - ya es un objeto Date
+            etaDate=etaRaw;
+          } else if(typeof etaRaw==="number" && etaRaw>40000){
+            // Numero serial de Excel (>40000 = despues de 2009)
             etaDate=new Date((etaRaw-25569)*86400*1000);
           } else {
+            // String de fecha
             etaDate=new Date(etaRaw);
           }
         }
@@ -1176,9 +1378,10 @@ function buildSKUData(mm,qty,pos){
   // Month index from Jun 2026 base
   const BASE=new Date(2026,5,1);
   function mIdx(d){
-    if(!d||isNaN(new Date(d)))return -1;
-    const dt=new Date(d);
-    const diff=(dt.getFullYear()-2026)*12+(dt.getMonth()-5);
+    if(!d) return -1;
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if(isNaN(dt.getTime())) return -1;
+    var diff=(dt.getFullYear()-2026)*12+(dt.getMonth()-5);
     return diff>=0&&diff<12?diff:-1;
   }
 
@@ -1315,7 +1518,9 @@ function preLlenarDiscSkus(mm){
     if(!sku) return;
     var disc=discCol?String(r[discCol]||"").trim().toUpperCase():"";
     var desc=String(r[descCol]||"").trim();
-    window._allV51Skus.push({sku:sku,desc:desc,disc:disc==="Y"});
+    var qohVal = r["Quantity on Hand"]!=null ? Number(r["Quantity on Hand"])||0 : 0;
+    var l12Val = r["Last 12 Months Sales"]!=null ? Number(r["Last 12 Months Sales"])||0 : 0;
+    window._allV51Skus.push({sku:sku,desc:desc,disc:disc==="Y",qoh:qohVal,l12:l12Val});
     // Ocultar descontinuados SALVO que el usuario los haya activado
     if(disc==="Y" && !window._userActivated[sku]){
       window._hiddenSkus[sku]=true;
@@ -1323,6 +1528,47 @@ function preLlenarDiscSkus(mm){
   });
 }
 
+
+function renderDiscTab(){
+  var wrap = document.getElementById("discTableWrap");
+  if(!wrap) return;
+  var all = window._allV51Skus||[];
+  var disc = all.filter(function(s){return s.disc;});
+  if(!disc.length){
+    wrap.innerHTML = "<div style='font-size:12px;color:var(--mu);text-align:center;padding:20px'>Carga el reporte primero.</div>";
+    return;
+  }
+  var rows = disc.map(function(s){
+    var hidden = !!(window._hiddenSkus||{})[s.sku];
+    var qoh = s.qoh!=null ? s.qoh : 0;
+    var l12 = s.l12!=null ? s.l12 : 0;
+    var qohColor = qoh < 0 ? "color:var(--rd)" : qoh === 0 ? "color:var(--mu)" : "color:var(--tx)";
+    var bgToggle = hidden ? "#ddd" : "var(--gn)";
+    var dotPos = hidden ? "left:3px" : "left:19px";
+    var estadoLabel = hidden ? "Apagado" : "Activo";
+    var estadoColor = hidden ? "var(--rd)" : "var(--gn)";
+    return "<tr style='border-bottom:.5px solid #f0f0f0'>"      +"<td style='padding:10px 8px;font-weight:700;font-size:12px'>"+s.sku+"</td>"      +"<td style='padding:10px 8px;font-size:11px'>"+s.desc+"</td>"      +"<td style='padding:10px 8px;text-align:right;font-size:12px;"+qohColor+"'>"+fmt(qoh)+"</td>"      +"<td style='padding:10px 8px;text-align:right;font-size:12px'>"+fmt(l12)+"</td>"      +"<td style='padding:10px 8px;text-align:center'>"        +"<div style='display:flex;align-items:center;justify-content:center;gap:6px'>"          +"<span style='font-size:10px;font-weight:600;color:"+estadoColor+"'>"+estadoLabel+"</span>"          +"<div class='disc-toggle' data-sku='"+s.sku+"' "            +"style='width:40px;height:22px;border-radius:11px;background:"+bgToggle+";"            +"position:relative;cursor:pointer;flex-shrink:0'>"            +"<div style='position:absolute;top:3px;"+dotPos+";width:16px;height:16px;"            +"border-radius:50%;background:#fff'></div>"          +"</div>"        +"</div>"      +"</td>"    +"</tr>";
+  }).join("");
+  wrap.innerHTML = "<div style='overflow-x:auto'>"    +"<table style='width:100%;border-collapse:collapse;font-size:12px'>"    +"<thead><tr style='background:#f8f9fa'>"    +"<th style='padding:8px;text-align:left;font-size:10px;color:var(--mu);font-weight:600'>SKU</th>"    +"<th style='padding:8px;text-align:left;font-size:10px;color:var(--mu);font-weight:600'>Descripcion</th>"    +"<th style='padding:8px;text-align:right;font-size:10px;color:var(--mu);font-weight:600'>QoH</th>"    +"<th style='padding:8px;text-align:right;font-size:10px;color:var(--mu);font-weight:600'>L12 uni</th>"    +"<th style='padding:8px;text-align:center;font-size:10px;color:var(--mu);font-weight:600'>Estado</th>"    +"</tr></thead>"    +"<tbody>"+rows+"</tbody>"    +"</table></div>";
+  // Delegacion de eventos para los toggles
+  wrap.onclick = function(e){
+    var tog = e.target.closest(".disc-toggle");
+    if(!tog) return;
+    var sku = tog.dataset.sku;
+    if(!window._hiddenSkus) window._hiddenSkus={};
+    if(!window._userActivated) window._userActivated={};
+    if(window._hiddenSkus[sku]){
+      delete window._hiddenSkus[sku];
+      window._userActivated[sku]=true;
+    } else {
+      window._hiddenSkus[sku]=true;
+      delete window._userActivated[sku];
+    }
+    if(rawMasMenos&&rawMasMenos.length) processFiles();
+    renderDiscTab();
+    renderDiscSkus();
+  };
+}
 
 function renderDiscSkus(){
   var list = document.getElementById("discSkuList");
@@ -1383,4 +1629,37 @@ var _origLoadDemo=loadDemo;loadDemo=function(){_origLoadDemo();setTimeout(render
 document.addEventListener("DOMContentLoaded",function(){var bco=document.getElementById("btnCloseOv");if(bco)bco.addEventListener("click",function(){document.getElementById("poOv").style.display="none";});var brp=document.getElementById("btnRefreshPO");if(brp)brp.addEventListener("click",verPO);var bpr=document.getElementById("btnPrint");if(bpr)bpr.addEventListener("click",function(){window.print();});var bse=document.getElementById("btnSendEmail");if(bse)bse.addEventListener("click",sendEmailSuplidor);
 var bxl=document.getElementById("btnExcelPO");if(bxl)bxl.addEventListener("click",exportExcelPO);var bem=document.getElementById("btnEmail");if(bem)bem.addEventListener("click",doEmail);var bge=document.getElementById("btnGenEmg");if(bge)bge.addEventListener("click",openEmg);var bce=document.getElementById("btnCloseEmg");if(bce)bce.addEventListener("click",function(){document.getElementById("emgOv").classList.remove("open");});var eov=document.getElementById("emgOv");if(eov)eov.addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});var bcy=document.getElementById("btnCopyEmg");if(bcy)bcy.addEventListener("click",function(){var msg=document.getElementById("emgMsg").textContent,fb=document.getElementById("emgFb");function done(){fb.textContent="Copiado";setTimeout(function(){fb.textContent="";},2500);}if(navigator.clipboard){navigator.clipboard.writeText(msg).then(done).catch(function(){var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();});}else{var ta=document.createElement("textarea");ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();}});var cfgMap=[["ltFabM","ltFabP","ltFabV","ltFab",1,5],["ltTraM","ltTraP","ltTraV","ltTra",1,6],["ssM","ssP","ssV","ss",1,6],["mpM","mpP","mpV","maxPal",10,24]];cfgMap.forEach(function(row){var bm=document.getElementById(row[0]),bp=document.getElementById(row[1]),vEl=document.getElementById(row[2]),key=row[3],mn=row[4],mx=row[5];if(bm)bm.addEventListener("click",function(){CFG[key]=Math.max(mn,CFG[key]-1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});if(bp)bp.addEventListener("click",function(){CFG[key]=Math.min(mx,CFG[key]+1);if(vEl)vEl.textContent=CFG[key];updateCfgUI();});});var brc=document.getElementById("btnRecalc");if(brc)brc.addEventListener("click",function(){alert("Recargue el archivo con nuevos parametros.");});var brt=document.getElementById("btnReset");if(brt)brt.addEventListener("click",function(){CFG={ltFab:1,ltTra:2,ss:3,maxPal:18};updateCfgUI();});var bac=document.getElementById("btnAddCnt");if(bac)bac.addEventListener("click",function(){for(var i=1;i<4;i++){var blk=document.getElementById("cnt-block-"+i);if(blk&&blk.style.display==="none"){blk.style.display="block";["cnt-nombre-","cnt-email-"].forEach(function(pfx){var el=document.getElementById(pfx+i);if(el)el.value="";});var rol=document.getElementById("cnt-rol-"+i);if(rol)rol.value="to";break;}}});for(var di=1;di<4;di++){(function(idx){var btn=document.getElementById("cnt-del-"+idx);if(btn)btn.addEventListener("click",function(){var blk=document.getElementById("cnt-block-"+idx);if(blk)blk.style.display="none";});})(di);}document.addEventListener("click",function(e){var td=e.target&&e.target.closest?e.target.closest("td[data-cid]"):null;if(td){showRtt(td,td.getAttribute("data-cid"));return;}var rtt=document.getElementById("rtt");if(rtt&&e.target!==rtt&&!rtt.contains(e.target)){hideTT();}});});
 </script>
+
+<!-- BOTON FLOTANTE IA -->
+<button id="aiFab" title="Asistente IA">🤖</button>
+
+<!-- OVERLAY -->
+<div id="aiOverlay"></div>
+
+<!-- PANEL LATERAL IA -->
+<div id="aiPanel">
+  <div class="ai-hdr">
+    <div>
+      <h3>🤖 Asistente Laiwu</h3>
+      <p>Inventario · Suministro · Ventas</p>
+    </div>
+    <button id="aiClose" style="background:rgba(255,255,255,.2);border:none;color:#fff;
+      border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">Cerrar</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg ai">Hola! Soy tu asistente de inventario Laiwu. Puedes preguntarme sobre niveles de stock, fechas de llegada, SKUs en riesgo, ventas y suministro. Carga el reporte primero para obtener respuestas con datos reales.</div>
+  </div>
+  <div class="ai-input-area">
+    <div class="ai-chips">
+      <button class="ai-chip" data-q="Cuales SKUs estan en riesgo de stockout?">SKUs en riesgo</button>
+      <button class="ai-chip" data-q="Cuando llega el proximo embarque?">Proximos embarques</button>
+      <button class="ai-chip" data-q="Como estamos de inventario general?">Estado inventario</button>
+      <button class="ai-chip" data-q="Cuales SKUs tienen mas de 6 meses de stock?">Stock alto</button>
+    </div>
+    <div class="ai-input-row">
+      <input id="aiInput" type="text" placeholder="Pregunta sobre inventario, ventas...">
+      <button id="aiSend">➤</button>
+    </div>
+  </div>
+</div>
 </body></html>
