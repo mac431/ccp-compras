@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>CCP Compras Hub</title>
+<style>
+:root{--bl:#185FA5;--gn:#1D9E75;--rd:#C0392B;--am:#C87A00;--br:#e5e5e5;--mu:#888;--tx:#1a1a1a;--bg:#f0f2f5}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:40px}
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#0D3F75,#185FA5);color:#fff;padding:16px;display:flex;align-items:center;gap:14px}
+.hdr-logo{font-size:32px}
+.hdr h1{font-size:17px;font-weight:800;margin-bottom:2px}
+.hdr p{font-size:11px;opacity:.7}
+/* REPORTE STATUS */
+.rep-bar{background:#fff;border-bottom:1px solid var(--br);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rep-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.rep-dot.ok{background:#1D9E75}
+.rep-dot.warn{background:#C87A00}
+.rep-dot.err{background:#C0392B}
+.rep-dot.loading{background:#185FA5;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.rep-info{flex:1;min-width:0}
+.rep-info b{font-size:12px;font-weight:700;display:block}
+.rep-info span{font-size:11px;color:var(--mu)}
+.rep-actions{display:flex;gap:6px}
+.rep-btn{padding:6px 12px;border:1.5px solid var(--bl);border-radius:6px;background:transparent;color:var(--bl);font-size:11px;font-weight:600;cursor:pointer}
+.rep-btn.solid{background:var(--bl);color:#fff;border-color:var(--bl)}
+/* TABS */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--br);overflow-x:auto}
+.tab{flex:1;min-width:80px;padding:12px 8px;text-align:center;font-size:12px;font-weight:500;color:var(--mu);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap}
+.tab.on{color:var(--bl);border-bottom-color:var(--bl);font-weight:700}
+.sec{display:none;padding:14px}
+.sec.on{display:block}
+/* CARDS SUPLIDORES */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(min-width:600px){.grid{grid-template-columns:repeat(3,1fr)}}
+.tool-card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;border:2px solid transparent;transition:border-color .2s}
+.tool-card:hover{border-color:var(--bl)}
+.tool-card .ico{font-size:26px;margin-bottom:8px}
+.tool-card h3{font-size:13px;font-weight:700;margin-bottom:2px}
+.tool-card p{font-size:11px;color:var(--mu)}
+.tool-card .badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-top:6px}
+.badge.ready{background:#E8F7F2;color:#1D9E75}
+.badge.wip{background:#FFF4E0;color:#C87A00}
+.badge.soon{background:#f0f0f0;color:#999}
+/* TRACKER */
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card h3{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bl)}
+/* PO table */
+.po-table{width:100%;border-collapse:collapse;font-size:12px}
+.po-table th{font-size:10px;font-weight:600;color:var(--mu);padding:6px 8px;border-bottom:1px solid var(--br);text-align:left;white-space:nowrap}
+.po-table td{padding:8px;border-bottom:.5px solid #f0f0f0;vertical-align:middle}
+.po-table tr:last-child td{border-bottom:none}
+/* Estado badges */
+.est{display:inline-block;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.est-0{background:#f0f0f0;color:#888}
+.est-1{background:#EBF3FF;color:#185FA5}
+.est-2{background:#E8F7F2;color:#1D9E75}
+.est-3{background:#F5F3FF;color:#7C3AED}
+.est-4{background:#FFF4E0;color:#C87A00}
+.est-5{background:#E8F7F2;color:#1D9E75}
+/* Checks */
+.chk{display:inline-flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;user-select:none;padding:3px 6px;border-radius:6px;border:1px solid var(--br)}
+.chk input{accent-color:var(--gn)}
+/* Botones */
+.btn{padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-bl{background:var(--bl);color:#fff}
+.btn-gn{background:var(--gn);color:#fff}
+.btn-rd{background:transparent;border:1.5px solid var(--rd);color:var(--rd)}
+.btn-sm{padding:5px 10px;font-size:11px}
+/* Modal nuevo PO */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:15px;font-weight:800;margin-bottom:14px;color:var(--bl)}
+.field{margin-bottom:12px}
+.field label{font-size:11px;font-weight:700;color:var(--mu);display:block;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1.5px solid var(--br);border-radius:8px;font-size:13px;font-family:inherit}
+.field textarea{height:70px;resize:vertical}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns button{flex:1;padding:12px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer}
+/* Search */
+.search-bar{display:flex;gap:8px;margin-bottom:12px}
+.search-bar input{flex:1;padding:9px 12px;border:1.5px solid var(--br);border-radius:8px;font-size:13px;font-family:inherit}
+/* Resumen */
+.summ{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.summ-item{background:#fff;border-radius:8px;padding:10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.summ-item .num{font-size:22px;font-weight:800}
+.summ-item .lbl{font-size:10px;color:var(--mu);margin-top:2px}
+/* Upload hidden */
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">🏢</div>
+  <div>
+    <h1>CCP Compras Hub</h1>
+    <p>Caribbean Cabinet Products · Sistema de Compras</p>
+  </div>
+</div>
+
+<!-- BARRA DE REPORTE -->
+<div class="rep-bar">
+  <div class="rep-dot loading" id="repDot"></div>
+  <div class="rep-info">
+    <b id="repTitle">Cargando reporte de inventario...</b>
+    <span id="repSub">Conectando con Google Drive</span>
+  </div>
+  <div class="rep-actions">
+    <input type="file" id="repFileInput">
+    <button class="rep-btn" onclick="document.getElementById('repFileInput').click()">Cargar manual</button>
+    <button class="rep-btn solid" id="repRefreshBtn" onclick="fetchFromDrive()">Actualizar</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" id="tab-tools" onclick="goTab('tools')">Herramientas</div>
+  <div class="tab" id="tab-tracker" onclick="goTab('tracker')">Tracker POs</div>
+</div>
+
+<!-- TAB: HERRAMIENTAS -->
+<div class="sec on" id="toolsSec">
+  <div class="grid">
+    <div class="tool-card" onclick="launchTool('laiwu')">
+      <div class="ico">🪟</div>
+      <h3>PVC Laiwu</h3>
+      <p>Vendor 51 · Paneles PVC</p>
+      <span class="badge ready">Activo</span>
+    </div>
+    <div class="tool-card" onclick="launchTool('finsa')">
+      <div class="ico">🪵</div>
+      <h3>FINSA</h3>
+      <p>Vendor 33 · Paneles madera</p>
+      <span class="badge wip">En desarrollo</span>
+    </div>
+    <div class="tool-card" onclick="launchTool('dtc')">
+      <div class="ico">🔩</div>
+      <h3>DTC / Dongtai</h3>
+      <p>Vendor 87 · Hardware</p>
+      <span class="badge wip">En desarrollo</span>
+    </div>
+    <div class="tool-card" onclick="launchTool('viefe')">
+      <div class="ico">🎨</div>
+      <h3>VIEFE</h3>
+      <p>Vendor 18</p>
+      <span class="badge soon">Próximamente</span>
+    </div>
+    <div class="tool-card" onclick="launchTool('merino')">
+      <div class="ico">🎭</div>
+      <h3>Merino</h3>
+      <p>Laminados</p>
+      <span class="badge soon">Próximamente</span>
+    </div>
+    <div class="tool-card" onclick="launchTool('tece')">
+      <div class="ico">📏</div>
+      <h3>TECE</h3>
+      <p>Edge banding</p>
+      <span class="badge soon">Próximamente</span>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: TRACKER -->
+<div class="sec" id="trackerSec">
+
+  <!-- Resumen -->
+  <div class="summ">
+    <div class="summ-item">
+      <div class="num" id="sumPend" style="color:var(--am)">0</div>
+      <div class="lbl">Pendientes aprobacion</div>
+    </div>
+    <div class="summ-item">
+      <div class="num" id="sumTransit" style="color:#7C3AED">0</div>
+      <div class="lbl">En transito</div>
+    </div>
+    <div class="summ-item">
+      <div class="num" id="sumTotal" style="color:var(--bl)">0</div>
+      <div class="lbl">Total activos</div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <input type="text" id="trackerSearch" placeholder="Buscar SKU, PO, suplidor..." oninput="renderTracker()">
+    <button class="btn btn-bl btn-sm" onclick="openNewPO()">+ Nuevo PO</button>
+  </div>
+
+  <!-- Tabla de POs -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="po-table">
+        <thead>
+          <tr>
+            <th>PO #</th>
+            <th>Suplidor</th>
+            <th>Fecha</th>
+            <th>ETA</th>
+            <th>Estado</th>
+            <th>Checks</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="trackerBody">
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--mu);font-size:12px">Sin POs registrados. Genera un PO desde una herramienta o agrega uno manualmente.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO PO -->
+<div class="overlay" id="newPOModal">
+  <div class="modal">
+    <h2>Registrar Orden de Compra</h2>
+    <div class="field">
+      <label>Numero de PO</label>
+      <input type="text" id="m-po" placeholder="LAI062026-01">
+    </div>
+    <div class="field">
+      <label>Suplidor</label>
+      <select id="m-sup">
+        <option value="Laiwu">Laiwu (Vendor 51)</option>
+        <option value="FINSA">FINSA (Vendor 33)</option>
+        <option value="DTC">DTC (Vendor 87)</option>
+        <option value="VIEFE">VIEFE (Vendor 18)</option>
+        <option value="Merino">Merino</option>
+        <option value="TECE">TECE</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Fecha de PO</label>
+        <input type="date" id="m-fecha">
+      </div>
+      <div class="field">
+        <label>ETA estimada</label>
+        <input type="date" id="m-eta">
+      </div>
+    </div>
+    <div class="field">
+      <label>Paletas / Contenedores</label>
+      <input type="text" id="m-pal" placeholder="212 pal · 12 cont">
+    </div>
+    <div class="field">
+      <label>SKUs principales</label>
+      <textarea id="m-skus" placeholder="5518, 5518C, 6518..."></textarea>
+    </div>
+    <div class="field">
+      <label>Notas</label>
+      <input type="text" id="m-notas" placeholder="Opcional">
+    </div>
+    <div class="modal-btns">
+      <button style="background:#f0f0f0;color:var(--tx)" onclick="closeNewPO()">Cancelar</button>
+      <button style="background:var(--bl);color:#fff" onclick="savePO()">Guardar PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PO -->
+<div class="overlay" id="detailModal">
+  <div class="modal">
+    <h2 id="det-title">Detalle del PO</h2>
+    <div id="det-body"></div>
+    <div class="modal-btns">
+      <button id="det-del" style="background:transparent;border:1.5px solid var(--rd);color:var(--rd)">Eliminar PO</button>
+      <button style="background:var(--bl);color:#fff" onclick="closeDetail()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+//  CONSTANTES 
+var DRIVE_URL = 'https://script.google.com/macros/s/AKfycbzMcIOhMHvGdmYZDQ4IFDLPtpMoqZG5KF8RBTdZW3ScOjTE2q4kRR8CBOph69SAtoo1Sg/exec';
+var TOOL_URLS = {
+  laiwu:  'laiwu.html',
+  finsa:  'finsa.html',
+  dtc:    'dtc.html',
+  viefe:  'viefe.html',
+  merino: 'merino.html',
+  tece:   'tece.html'
+};
+var ESTADOS = [
+  {cls:'est-0', lbl:'Borrador'},
+  {cls:'est-1', lbl:'Aprobado Samuel'},
+  {cls:'est-2', lbl:'En Epicor'},
+  {cls:'est-3', lbl:'En transito'},
+  {cls:'est-4', lbl:'Parcial'},
+  {cls:'est-5', lbl:'Recibido'}
+];
+
+//  TABS 
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
+  document.querySelectorAll('.sec').forEach(function(el){el.classList.remove('on');});
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById(t+'Sec').classList.add('on');
+  if(t==='tracker') renderTracker();
+}
+
+//  REPORTE: Google Drive 
+function setRepStatus(state, title, sub){
+  var dot = document.getElementById('repDot');
+  var tEl = document.getElementById('repTitle');
+  var sEl = document.getElementById('repSub');
+  dot.className = 'rep-dot ' + state;
+  tEl.textContent = title;
+  sEl.textContent = sub;
+}
+
+function fetchFromDrive(){
+  setRepStatus('loading', 'Descargando reporte...', 'Conectando con Google Drive');
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', DRIVE_URL, true);
+  xhr.timeout = 15000;
+  xhr.onload = function(){
+    if(xhr.status === 200){
+      try{
+        var json = JSON.parse(xhr.responseText);
+        if(json.error){ throw new Error(json.error); }
+        // Decodificar base64 -> XLSX
+        var binary = atob(json.data);
+        var bytes = new Uint8Array(binary.length);
+        for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        var wb = XLSX.read(bytes.buffer, {type:'array', cellDates:true});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var data = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
+        var now = new Date().toISOString();
+        // Guardar en localStorage
+        localStorage.setItem('CCP_REPORT', JSON.stringify(data));
+        localStorage.setItem('CCP_REPORT_DATE', now);
+        localStorage.setItem('CCP_REPORT_NAME', json.name||'REPORTE_MAS_MENOS.xlsx');
+        // Tambien en sessionStorage para sub-herramientas
+        sessionStorage.setItem('CCP_REPORT', JSON.stringify(data));
+        sessionStorage.setItem('CCP_REPORT_DATE', now);
+        var dstr = new Date(now).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        var driveDate = json.updated ? new Date(json.updated).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'fecha desconocida';
+        localStorage.setItem('CCP_REPORT_DRIVE_DATE', json.updated||'');
+        setRepStatus('ok', 'Reporte actualizado', json.name+' · '+data.length+' SKUs · Actualizado en Drive: '+driveDate+' · Descargado: '+dstr);
+      }catch(e){
+        useSavedReport('Error procesando: '+e.message);
+      }
+    } else {
+      useSavedReport('Error de red ('+xhr.status+')');
+    }
+  };
+  xhr.onerror = function(){ useSavedReport('Sin conexion a Drive'); };
+  xhr.ontimeout = function(){ useSavedReport('Tiempo de espera agotado'); };
+  xhr.send();
+}
+
+function useSavedReport(reason){
+  var saved = localStorage.getItem('CCP_REPORT');
+  var savedDate = localStorage.getItem('CCP_REPORT_DATE');
+  var savedName = localStorage.getItem('CCP_REPORT_NAME') || 'REPORTE_MAS_MENOS.xlsx';
+  if(saved){
+    sessionStorage.setItem('CCP_REPORT', saved);
+    sessionStorage.setItem('CCP_REPORT_DATE', savedDate||'');
+    var dstr = savedDate ? new Date(savedDate).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'}) : 'fecha desconocida';
+    var driveDate2 = localStorage.getItem('CCP_REPORT_DRIVE_DATE');
+    var driveDstr = driveDate2 ? ' · Drive: '+new Date(driveDate2).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'}) : '';
+    setRepStatus('warn', 'Usando reporte guardado ('+dstr+')', reason+' · '+savedName+driveDstr);
+  } else {
+    setRepStatus('err', 'Sin reporte disponible', reason+' · Carga uno manualmente');
+  }
+}
+
+function loadRepManual(file){
+  if(!file) return;
+  setRepStatus('loading', 'Cargando '+file.name+'...', '');
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var data = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
+      var now = new Date().toISOString();
+      localStorage.setItem('CCP_REPORT', JSON.stringify(data));
+      localStorage.setItem('CCP_REPORT_DATE', now);
+      localStorage.setItem('CCP_REPORT_NAME', file.name);
+      sessionStorage.setItem('CCP_REPORT', JSON.stringify(data));
+      sessionStorage.setItem('CCP_REPORT_DATE', now);
+      var dstr = new Date(now).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      setRepStatus('ok', 'Reporte cargado manualmente', file.name+' · '+data.length+' SKUs · '+dstr);
+    }catch(e1){
+      var r2 = new FileReader();
+      r2.onload = function(e2){
+        try{
+          var wb2 = XLSX.read(e2.target.result, {type:'binary', cellDates:true});
+          var ws2 = wb2.Sheets[wb2.SheetNames[0]];
+          var data2 = XLSX.utils.sheet_to_json(ws2, {defval:'', raw:true});
+          var now2 = new Date().toISOString();
+          localStorage.setItem('CCP_REPORT', JSON.stringify(data2));
+          localStorage.setItem('CCP_REPORT_DATE', now2);
+          localStorage.setItem('CCP_REPORT_NAME', file.name);
+          sessionStorage.setItem('CCP_REPORT', JSON.stringify(data2));
+          sessionStorage.setItem('CCP_REPORT_DATE', now2);
+          setRepStatus('ok', 'Reporte cargado', file.name+' · '+data2.length+' SKUs');
+        }catch(e3){ setRepStatus('err','Error leyendo archivo',e3.message); }
+      };
+      r2.readAsBinaryString(file);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+//  LANZAR HERRAMIENTA 
+function launchTool(tool){
+  var wip = ['finsa','dtc','viefe','merino','tece'];
+  if(wip.indexOf(tool)>=0){
+    alert('Esta herramienta esta en desarrollo. Estara disponible pronto.');
+    return;
+  }
+  window.location.href = TOOL_URLS[tool];
+}
+
+//  TRACKER 
+function getPOs(){
+  try{ return JSON.parse(localStorage.getItem('CCP_POs')||'[]'); }
+  catch(e){ return []; }
+}
+function savePOs(arr){ localStorage.setItem('CCP_POs', JSON.stringify(arr)); }
+
+function renderTracker(){
+  var pos = getPOs();
+  var q = (document.getElementById('trackerSearch')||{}).value||'';
+  if(q) pos = pos.filter(function(p){
+    var s = (p.po+' '+p.sup+' '+p.skus+' '+p.notas).toLowerCase();
+    return s.indexOf(q.toLowerCase())>=0;
+  });
+
+  // Resumen
+  var pend = getPOs().filter(function(p){return p.estado<2;}).length;
+  var transit = getPOs().filter(function(p){return p.estado===3;}).length;
+  var total = getPOs().filter(function(p){return p.estado<5;}).length;
+  document.getElementById('sumPend').textContent = pend;
+  document.getElementById('sumTransit').textContent = transit;
+  document.getElementById('sumTotal').textContent = total;
+
+  if(!pos.length){
+    document.getElementById('trackerBody').innerHTML =
+      '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--mu);font-size:12px">Sin POs que coincidan.</td></tr>';
+    return;
+  }
+
+  document.getElementById('trackerBody').innerHTML = pos.map(function(p, idx){
+    var est = ESTADOS[p.estado]||ESTADOS[0];
+    var eta = p.etaConf ? p.etaConf : (p.eta||'-');
+    var etaLabel = p.etaConf
+      ? '<span style="color:#1D9E75;font-weight:700">'+fmtDate(eta)+'</span>'
+      : '<span style="color:var(--mu)">~'+fmtDate(eta)+'</span>';
+    return '<tr style="cursor:pointer" onclick="openDetail('+idx+')">'
+      +'<td style="font-weight:700;color:var(--bl)">'+p.po+'</td>'
+      +'<td>'+p.sup+'</td>'
+      +'<td style="color:var(--mu);font-size:11px">'+fmtDate(p.fecha)+'</td>'
+      +'<td>'+etaLabel+'</td>'
+      +'<td><span class="est '+est.cls+'">'+est.lbl+'</span></td>'
+      +'<td style="white-space:nowrap">'
+        +(p.chkSamuel?'<span style="color:#1D9E75;font-size:14px">S</span>':'<span style="color:#ddd;font-size:14px">S</span>')
+        +' '
+        +(p.chkEpicor?'<span style="color:#185FA5;font-size:14px">E</span>':'<span style="color:#ddd;font-size:14px">E</span>')
+      +'</td>'
+      +'<td style="text-align:right"><span style="color:var(--mu);font-size:16px">&rsaquo;</span></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function fmtDate(d){
+  if(!d) return '-';
+  try{
+    var dt = new Date(d+'T12:00:00');
+    return dt.toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'});
+  }catch(e){ return d; }
+}
+
+// -- Nuevo PO --
+function openNewPO(){
+  document.getElementById('m-po').value='';
+  document.getElementById('m-sup').value='Laiwu';
+  document.getElementById('m-fecha').value=new Date().toISOString().slice(0,10);
+  document.getElementById('m-eta').value='';
+  document.getElementById('m-pal').value='';
+  document.getElementById('m-skus').value='';
+  document.getElementById('m-notas').value='';
+  document.getElementById('newPOModal').classList.add('open');
+}
+function closeNewPO(){ document.getElementById('newPOModal').classList.remove('open'); }
+
+function savePO(){
+  var po = document.getElementById('m-po').value.trim();
+  if(!po){ alert('Ingresa el numero de PO.'); return; }
+  var pos = getPOs();
+  pos.unshift({
+    po:     po,
+    sup:    document.getElementById('m-sup').value,
+    fecha:  document.getElementById('m-fecha').value,
+    eta:    document.getElementById('m-eta').value,
+    etaConf: '',
+    pal:    document.getElementById('m-pal').value,
+    skus:   document.getElementById('m-skus').value,
+    notas:  document.getElementById('m-notas').value,
+    estado: 0,
+    chkSamuel: false,
+    chkEpicor: false,
+    creado: new Date().toISOString()
+  });
+  savePOs(pos);
+  closeNewPO();
+  renderTracker();
+}
+
+// -- Detalle PO --
+var _detIdx = -1;
+function openDetail(idx){
+  var pos = getPOs();
+  var p = pos[idx];
+  if(!p) return;
+  _detIdx = idx;
+
+  document.getElementById('det-title').textContent = p.po + ' — ' + p.sup;
+
+  var html = '<div style="font-size:12px;line-height:2">'
+    +'<div><b>Suplidor:</b> '+p.sup+'</div>'
+    +'<div><b>Fecha PO:</b> '+fmtDate(p.fecha)+'</div>'
+    +'<div><b>Paletas/Cont:</b> '+(p.pal||'-')+'</div>'
+    +'<div><b>SKUs:</b> '+(p.skus||'-')+'</div>'
+    +'<div><b>Notas:</b> '+(p.notas||'-')+'</div>'
+    +'</div>'
+
+    // ETA
+    +'<div style="background:#f8f9fa;border-radius:8px;padding:10px;margin:12px 0">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:8px">ETA</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +'<div><div style="font-size:10px;color:var(--mu)">Estimada</div>'
+    +'<input type="date" id="det-eta" value="'+(p.eta||'')+'" style="width:100%;padding:6px;border:1.5px solid var(--br);border-radius:6px;font-size:12px"></div>'
+    +'<div><div style="font-size:10px;color:#1D9E75;font-weight:700">Confirmada</div>'
+    +'<input type="date" id="det-etaConf" value="'+(p.etaConf||'')+'" style="width:100%;padding:6px;border:1.5px solid #1D9E75;border-radius:6px;font-size:12px"></div>'
+    +'</div></div>'
+
+    // Estado
+    +'<div style="margin-bottom:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:6px">Estado</div>'
+    +'<select id="det-estado" style="width:100%;padding:8px;border:1.5px solid var(--br);border-radius:8px;font-size:13px">'
+    +ESTADOS.map(function(e,i){ return '<option value="'+i+'"'+(p.estado===i?' selected':'')+'>'+e.lbl+'</option>'; }).join('')
+    +'</select></div>'
+
+    // Checks
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+    +'<label class="chk"><input type="checkbox" id="det-samuel"'+(p.chkSamuel?' checked':'')+'> Aprobado Samuel</label>'
+    +'<label class="chk"><input type="checkbox" id="det-epicor"'+(p.chkEpicor?' checked':'')+' > En Epicor</label>'
+    +'</div>'
+
+    +'<button onclick="updateDetail()" style="width:100%;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">Guardar cambios</button>';
+
+  document.getElementById('det-body').innerHTML = html;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function updateDetail(){
+  var pos = getPOs();
+  var p = pos[_detIdx];
+  if(!p) return;
+  p.eta      = document.getElementById('det-eta').value;
+  p.etaConf  = document.getElementById('det-etaConf').value;
+  p.estado   = parseInt(document.getElementById('det-estado').value);
+  p.chkSamuel= document.getElementById('det-samuel').checked;
+  p.chkEpicor= document.getElementById('det-epicor').checked;
+  savePOs(pos);
+  closeDetail();
+  renderTracker();
+}
+
+function closeDetail(){ document.getElementById('detailModal').classList.remove('open'); }
+
+function deletePO(){
+  if(!confirm('Eliminar este PO del historial?')) return;
+  var pos = getPOs();
+  pos.splice(_detIdx, 1);
+  savePOs(pos);
+  closeDetail();
+  renderTracker();
+}
+
+//  INIT 
+document.addEventListener('DOMContentLoaded', function(){
+  // File input reporte manual
+  document.getElementById('repFileInput').addEventListener('change', function(){
+    loadRepManual(this.files[0]);
+  });
+  // Boton detalle eliminar
+  document.getElementById('det-del').addEventListener('click', deletePO);
+  // Cerrar modales al tocar fuera
+  document.getElementById('newPOModal').addEventListener('click', function(e){ if(e.target===this) closeNewPO(); });
+  document.getElementById('detailModal').addEventListener('click', function(e){ if(e.target===this) closeDetail(); });
+  // Intentar cargar de Drive
+  fetchFromDrive();
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
