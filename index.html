@@ -38,7 +38,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 @media(min-width:600px){.grid{grid-template-columns:repeat(3,1fr)}}
 .tool-card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;border:2px solid transparent;transition:border-color .2s}
 .tool-card:hover{border-color:var(--bl)}
-.tool-card .ico{font-size:26px;margin-bottom:8px}
+.tool-card .ico{width:44px;height:44px;margin-bottom:8px;object-fit:contain;display:block}
 .tool-card h3{font-size:13px;font-weight:700;margin-bottom:2px}
 .tool-card p{font-size:11px;color:var(--mu)}
 .tool-card .badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-top:6px}
@@ -92,6 +92,142 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 /* Upload hidden */
 input[type=file]{display:none}
 
+/* ══ CHATBOT IA ══ */
+#aiFab{
+  position:fixed;bottom:20px;right:20px;
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--bl),#0D3F75);
+  color:#fff;border:none;font-size:26px;cursor:pointer;
+  box-shadow:0 6px 20px rgba(24,95,165,.4);
+  z-index:400;transition:transform .15s
+}
+#aiFab:hover{transform:scale(1.08)}
+#aiFab:active{transform:scale(.95)}
+
+#aiOverlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:500;display:none
+}
+#aiOverlay.open{display:block}
+
+#aiPanel{
+  position:fixed;bottom:0;left:0;right:0;
+  max-width:520px;margin:0 auto;
+  background:#fff;border-radius:18px 18px 0 0;
+  box-shadow:0 -10px 40px rgba(0,0,0,.25);
+  z-index:600;
+  transform:translateY(100%);transition:transform .3s ease;
+  display:flex;flex-direction:column;
+  height:80vh;max-height:640px
+}
+#aiPanel.open{transform:translateY(0)}
+@media(min-width:700px){
+  #aiPanel{
+    left:auto;right:20px;bottom:20px;
+    width:400px;max-width:400px;border-radius:18px;
+    transform:translateY(calc(100% + 40px))
+  }
+  #aiPanel.open{transform:translateY(0)}
+}
+
+.ai-hdr{
+  background:linear-gradient(135deg,var(--bl),#0D3F75);
+  color:#fff;padding:14px 16px;
+  border-radius:18px 18px 0 0;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex-shrink:0
+}
+.ai-hdr h3{font-size:14px;font-weight:800;margin-bottom:2px}
+.ai-hdr p{font-size:10px;opacity:.8}
+
+.ai-msgs{
+  flex:1;overflow-y:auto;padding:14px;
+  background:#f7f8fa;
+  display:flex;flex-direction:column;gap:8px
+}
+
+.ai-msg{
+  max-width:85%;padding:9px 12px;border-radius:12px;
+  font-size:13px;line-height:1.45;
+  word-wrap:break-word;white-space:pre-wrap
+}
+.ai-msg.ai{
+  background:#fff;border:1px solid #e5e7eb;color:var(--tx);
+  align-self:flex-start;border-bottom-left-radius:4px
+}
+.ai-msg.user{
+  background:var(--bl);color:#fff;
+  align-self:flex-end;border-bottom-right-radius:4px
+}
+.ai-msg.thinking{
+  background:#fff;border:1px solid #e5e7eb;color:var(--mu);
+  font-style:italic;align-self:flex-start;
+  border-bottom-left-radius:4px
+}
+
+.ai-input-area{
+  padding:10px 12px 12px;background:#fff;
+  border-top:1px solid var(--br);flex-shrink:0
+}
+
+.ai-chips{
+  display:flex;gap:6px;overflow-x:auto;
+  padding-bottom:8px;margin-bottom:2px;
+  -webkit-overflow-scrolling:touch
+}
+.ai-chip{
+  flex-shrink:0;padding:5px 10px;
+  background:#EBF3FF;color:var(--bl);
+  border:none;border-radius:14px;
+  font-size:11px;font-weight:600;cursor:pointer;
+  white-space:nowrap
+}
+.ai-chip:hover{background:#d6e6ff}
+
+.ai-input-row{
+  display:flex;gap:8px;align-items:center
+}
+#aiInput{
+  flex:1;padding:10px 14px;
+  border:1.5px solid var(--br);border-radius:22px;
+  font-size:13px;font-family:inherit;outline:none
+}
+#aiInput:focus{border-color:var(--bl)}
+#aiSend{
+  width:40px;height:40px;flex-shrink:0;
+  background:var(--bl);color:#fff;
+  border:none;border-radius:50%;
+  font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center
+}
+#aiSend:hover{background:#0D3F75}
+
+/* Modal API Key */
+.key-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:700;display:none;
+  align-items:center;justify-content:center;padding:16px
+}
+.key-modal.open{display:flex}
+.key-box{
+  background:#fff;border-radius:14px;padding:20px;
+  width:100%;max-width:380px
+}
+.key-box h3{
+  font-size:15px;font-weight:800;
+  margin-bottom:8px;color:var(--bl)
+}
+.key-box input{
+  width:100%;padding:10px 12px;
+  border:1.5px solid var(--br);border-radius:8px;
+  font-size:13px;font-family:monospace;
+  margin-bottom:12px;box-sizing:border-box
+}
+.key-box-btns{display:flex;gap:8px}
+.key-box-btns button{
+  flex:1;padding:11px;border:none;border-radius:8px;
+  font-size:13px;font-weight:700;cursor:pointer
+}
 </style>
 </head>
 <body>
@@ -130,37 +266,37 @@ input[type=file]{display:none}
 <div class="sec on" id="toolsSec">
   <div class="grid">
     <div class="tool-card" onclick="launchTool('laiwu')">
-      <div class="ico">🪟</div>
+      <img class="ico" src="logos/laiwu.png" alt="Laiwu" onerror="this.style.display='none'">
       <h3>PVC Laiwu</h3>
       <p>Vendor 51 · Paneles PVC</p>
       <span class="badge ready">Activo</span>
     </div>
     <div class="tool-card" onclick="launchTool('finsa')">
-      <div class="ico">🪵</div>
+      <img class="ico" src="logos/finsa.png" alt="FINSA" onerror="this.style.display='none'">
       <h3>FINSA</h3>
       <p>Vendor 33 · Paneles madera</p>
       <span class="badge wip">En desarrollo</span>
     </div>
     <div class="tool-card" onclick="launchTool('dtc')">
-      <div class="ico">🔩</div>
+      <img class="ico" src="logos/dtc.png" alt="DTC" onerror="this.style.display='none'">
       <h3>DTC / Dongtai</h3>
       <p>Vendor 87 · Hardware</p>
       <span class="badge wip">En desarrollo</span>
     </div>
     <div class="tool-card" onclick="launchTool('viefe')">
-      <div class="ico">🎨</div>
+      <img class="ico" src="logos/viefe.png" alt="VIEFE" onerror="this.style.display='none'">
       <h3>VIEFE</h3>
       <p>Vendor 18</p>
       <span class="badge soon">Próximamente</span>
     </div>
     <div class="tool-card" onclick="launchTool('merino')">
-      <div class="ico">🎭</div>
+      <img class="ico" src="logos/merino.png" alt="Merino" onerror="this.style.display='none'">
       <h3>Merino</h3>
       <p>Laminados</p>
       <span class="badge soon">Próximamente</span>
     </div>
     <div class="tool-card" onclick="launchTool('tece')">
-      <div class="ico">📏</div>
+      <img class="ico" src="logos/tece.png" alt="TECE" onerror="this.style.display='none'">
       <h3>TECE</h3>
       <p>Edge banding</p>
       <span class="badge soon">Próximamente</span>
@@ -170,8 +306,6 @@ input[type=file]{display:none}
 
 <!-- TAB: TRACKER -->
 <div class="sec" id="trackerSec">
-
-  <!-- Resumen -->
   <div class="summ">
     <div class="summ-item">
       <div class="num" id="sumPend" style="color:var(--am)">0</div>
@@ -187,13 +321,11 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <!-- Search -->
   <div class="search-bar">
     <input type="text" id="trackerSearch" placeholder="Buscar SKU, PO, suplidor..." oninput="renderTracker()">
     <button class="btn btn-bl btn-sm" onclick="openNewPO()">+ Nuevo PO</button>
   </div>
 
-  <!-- Tabla de POs -->
   <div class="card" style="padding:0;overflow:hidden">
     <div style="overflow-x:auto">
       <table class="po-table">
@@ -216,8 +348,8 @@ input[type=file]{display:none}
   </div>
 </div>
 
-<!-- CONFIG SEC -->
-<div class="sec" id="cfgSec" style="padding:14px">
+<!-- TAB: CONFIG -->
+<div class="sec" id="cfgSec">
   <div class="card">
     <div style="font-size:13px;font-weight:700;color:var(--bl);margin-bottom:4px">Asistente IA</div>
     <div style="font-size:11px;color:var(--mu);margin-bottom:12px">API Key de Groq (gratis en <b>console.groq.com</b>). Se aplica a todas las herramientas.</div>
@@ -289,9 +421,61 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- BOTON FLOTANTE IA -->
+<button id="aiFab" title="Asistente CCP">🤖</button>
+
+<!-- OVERLAY IA -->
+<div id="aiOverlay"></div>
+
+<!-- PANEL IA -->
+<div id="aiPanel">
+  <div class="ai-hdr">
+    <div>
+      <h3>🤖 Asistente CCP Compras</h3>
+      <p>Inventario · Suministro · POs · Ventas</p>
+    </div>
+    <button id="aiClose" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">Cerrar</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg ai">Hola! Soy tu asistente de compras CCP. Puedo responder preguntas sobre inventario de todos los suplidores, POs en transito, fechas de llegada y niveles de stock. Carga el reporte primero para obtener respuestas con datos reales.</div>
+  </div>
+  <div class="ai-input-area">
+    <div class="ai-chips" id="aiChips">
+      <button class="ai-chip" data-q="Que suplidores tienen SKUs en riesgo?">SKUs en riesgo</button>
+      <button class="ai-chip" data-q="Cuantos POs tengo en transito?">POs en transito</button>
+      <button class="ai-chip" data-q="Cual es el proximo embarque que llega?">Proximos embarques</button>
+      <button class="ai-chip" data-q="Resume el estado general del inventario">Estado general</button>
+    </div>
+    <div class="ai-input-row">
+      <input id="aiInput" type="text" placeholder="Pregunta sobre inventario, POs...">
+      <button id="aiSend">&#x27A4;</button>
+    </div>
+    <div style="text-align:center;margin-top:6px">
+      <button id="aiBtnKey" style="background:none;border:none;color:#aaa;font-size:10px;cursor:pointer;text-decoration:underline">Configurar API Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL API KEY -->
+<div class="key-modal" id="keyModal">
+  <div class="key-box">
+    <h3>API Key de Groq</h3>
+    <p style="font-size:11px;color:#888;margin-bottom:10px">
+      Obtén tu key gratis en <b>console.groq.com</b>. Se guarda solo en este dispositivo.
+    </p>
+    <input type="password" id="keyInput" placeholder="gsk_...">
+    <div class="key-box-btns">
+      <button onclick="closeKeyModal()" style="background:#f0f0f0;color:#333">Cancelar</button>
+      <button onclick="saveKey()" style="background:var(--bl);color:#fff">Guardar</button>
+    </div>
+    <div id="keyFb" style="text-align:center;font-size:11px;color:var(--gn);margin-top:8px;min-height:16px"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-//  CONSTANTES 
-var DRIVE_URL = 'https://script.google.com/macros/s/AKfycbzMcIOhMHvGdmYZDQ4IFDLPtpMoqZG5KF8RBTdZW3ScOjTE2q4kRR8CBOph69SAtoo1Sg/exec';
+// ══ CONSTANTES ══
+var DRIVE_URL = 'https://script.google.com/macros/s/AKfycbxKG41HYb2X_vikPfsJeB2OrVOrlOZVqqBMfOIpG1OYQyS-E5S3qLMcLXkbXTjVO-et_g/exec';
 var TOOL_URLS = {
   laiwu:  'laiwu.html',
   finsa:  'finsa.html',
@@ -309,7 +493,11 @@ var ESTADOS = [
   {cls:'est-5', lbl:'Recibido'}
 ];
 
-//  TABS 
+// Estado global del agente IA (accesible desde toda la app)
+var _groqKey = '';
+var aiHistory = [];
+
+// ══ TABS ══
 function goTab(t){
   document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
   document.querySelectorAll('.sec').forEach(function(el){el.classList.remove('on');});
@@ -319,14 +507,12 @@ function goTab(t){
   if(t==='cfg') loadHubKeyCfg();
 }
 
-//  REPORTE: Google Drive 
+// ══ REPORTE: Google Drive ══
 function setRepStatus(state, title, sub){
   var dot = document.getElementById('repDot');
-  var tEl = document.getElementById('repTitle');
-  var sEl = document.getElementById('repSub');
+  document.getElementById('repTitle').textContent = title;
+  document.getElementById('repSub').textContent = sub;
   dot.className = 'rep-dot ' + state;
-  tEl.textContent = title;
-  sEl.textContent = sub;
 }
 
 function fetchFromDrive(){
@@ -339,7 +525,6 @@ function fetchFromDrive(){
       try{
         var json = JSON.parse(xhr.responseText);
         if(json.error){ throw new Error(json.error); }
-        // Decodificar base64 -> XLSX
         var binary = atob(json.data);
         var bytes = new Uint8Array(binary.length);
         for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
@@ -347,11 +532,9 @@ function fetchFromDrive(){
         var ws = wb.Sheets[wb.SheetNames[0]];
         var data = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
         var now = new Date().toISOString();
-        // Guardar en localStorage
         localStorage.setItem('CCP_REPORT', JSON.stringify(data));
         localStorage.setItem('CCP_REPORT_DATE', now);
         localStorage.setItem('CCP_REPORT_NAME', json.name||'REPORTE_MAS_MENOS.xlsx');
-        // Tambien en sessionStorage para sub-herramientas
         sessionStorage.setItem('CCP_REPORT', JSON.stringify(data));
         sessionStorage.setItem('CCP_REPORT_DATE', now);
         var dstr = new Date(now).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -425,7 +608,7 @@ function loadRepManual(file){
   reader.readAsArrayBuffer(file);
 }
 
-//  LANZAR HERRAMIENTA 
+// ══ LANZAR HERRAMIENTA ══
 function launchTool(tool){
   var wip = ['finsa','dtc','viefe','merino','tece'];
   if(wip.indexOf(tool)>=0){
@@ -435,7 +618,7 @@ function launchTool(tool){
   window.location.href = TOOL_URLS[tool];
 }
 
-//  TRACKER 
+// ══ TRACKER ══
 function getPOs(){
   try{ return JSON.parse(localStorage.getItem('CCP_POs')||'[]'); }
   catch(e){ return []; }
@@ -450,7 +633,6 @@ function renderTracker(){
     return s.indexOf(q.toLowerCase())>=0;
   });
 
-  // Resumen
   var pend = getPOs().filter(function(p){return p.estado<2;}).length;
   var transit = getPOs().filter(function(p){return p.estado===3;}).length;
   var total = getPOs().filter(function(p){return p.estado<5;}).length;
@@ -494,7 +676,7 @@ function fmtDate(d){
   }catch(e){ return d; }
 }
 
-// -- Nuevo PO --
+// ══ Nuevo PO ══
 function openNewPO(){
   document.getElementById('m-po').value='';
   document.getElementById('m-sup').value='Laiwu';
@@ -530,7 +712,7 @@ function savePO(){
   renderTracker();
 }
 
-// -- Detalle PO --
+// ══ Detalle PO ══
 var _detIdx = -1;
 function openDetail(idx){
   var pos = getPOs();
@@ -548,7 +730,6 @@ function openDetail(idx){
     +'<div><b>Notas:</b> '+(p.notas||'-')+'</div>'
     +'</div>'
 
-    // ETA
     +'<div style="background:#f8f9fa;border-radius:8px;padding:10px;margin:12px 0">'
     +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:8px">ETA</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
@@ -558,14 +739,12 @@ function openDetail(idx){
     +'<input type="date" id="det-etaConf" value="'+(p.etaConf||'')+'" style="width:100%;padding:6px;border:1.5px solid #1D9E75;border-radius:6px;font-size:12px"></div>'
     +'</div></div>'
 
-    // Estado
     +'<div style="margin-bottom:12px">'
     +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:6px">Estado</div>'
     +'<select id="det-estado" style="width:100%;padding:8px;border:1.5px solid var(--br);border-radius:8px;font-size:13px">'
     +ESTADOS.map(function(e,i){ return '<option value="'+i+'"'+(p.estado===i?' selected':'')+'>'+e.lbl+'</option>'; }).join('')
     +'</select></div>'
 
-    // Checks
     +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
     +'<label class="chk"><input type="checkbox" id="det-samuel"'+(p.chkSamuel?' checked':'')+'> Aprobado Samuel</label>'
     +'<label class="chk"><input type="checkbox" id="det-epicor"'+(p.chkEpicor?' checked':'')+' > En Epicor</label>'
@@ -602,55 +781,49 @@ function deletePO(){
   renderTracker();
 }
 
-//  INIT 
-document.addEventListener('DOMContentLoaded', function(){
-  // File input reporte manual
-  document.getElementById('repFileInput').addEventListener('change', function(){
-    loadRepManual(this.files[0]);
-  });
-  // Boton detalle eliminar
-  document.getElementById('det-del').addEventListener('click', deletePO);
-  // Cerrar modales al tocar fuera
-  document.getElementById('newPOModal').addEventListener('click', function(e){ if(e.target===this) closeNewPO(); });
-  document.getElementById('detailModal').addEventListener('click', function(e){ if(e.target===this) closeDetail(); });
-  // Intentar cargar de Drive
-  fetchFromDrive();
-
-  //  AGENTE IA HUB 
-  var aiHistory=[];
-  var _groqKey='';
-
-  // Cargar key guardada
-  var savedKey=localStorage.getItem('CCP_AI_KEY')||'';
-  if(savedKey){_groqKey=savedKey;}
-
-  function openKeyModal(){
-    var ki=document.getElementById('keyInput');
-    if(ki) ki.value=_groqKey;
-    document.getElementById('keyModal').classList.add('open');
+// ══ API KEY (globales para poder llamarlas desde onclick) ══
+function openKeyModal(){
+  var ki=document.getElementById('keyInput');
+  if(ki) ki.value=_groqKey;
+  document.getElementById('keyModal').classList.add('open');
+}
+function closeKeyModal(){
+  document.getElementById('keyModal').classList.remove('open');
+}
+function saveKey(){
+  var k=(document.getElementById('keyInput')||{}).value||'';
+  if(!k.startsWith('gsk_')){
+    alert('La key de Groq debe empezar con gsk_');
+    return;
   }
-  function closeKeyModal(){
-    document.getElementById('keyModal').classList.remove('open');
+  _groqKey=k;
+  localStorage.setItem('CCP_AI_KEY',k);
+  var fb=document.getElementById('keyFb');
+  if(fb){
+    fb.textContent='Key guardada correctamente';
+    setTimeout(function(){ fb.textContent=''; closeKeyModal(); }, 1500);
   }
-  function saveKey(){
-    var k=(document.getElementById('keyInput')||{}).value||'';
-    if(!k.startsWith('gsk_')){
-      alert('La key de Groq debe empezar con gsk_');return;
-    }
-    _groqKey=k;
-    localStorage.setItem('CCP_AI_KEY',k);
-    var fb=document.getElementById('keyFb');
-    if(fb){fb.textContent='Key guardada correctamente';
-      setTimeout(function(){fb.textContent='';closeKeyModal();},1500);}
-  }
+}
 
-  function getContextoHub(){
+function loadHubKeyCfg(){
+  var saved=localStorage.getItem('CCP_AI_KEY')||'';
+  var inp=document.getElementById('hubApiKey');
+  if(inp) inp.value=saved;
+  var fb=document.getElementById('hubKeyFb');
+  if(fb){
+    fb.textContent=saved?'Key activa: '+saved.slice(0,16)+'...':'Sin key configurada';
+    fb.style.color=saved?'var(--gn)':'var(--rd)';
+  }
+}
+
+// ══ AGENTE IA ══
+function getContextoHub(){
   var ctx=['=== CCP COMPRAS HUB === Fecha: '+new Date().toLocaleDateString('es-PR')];
 
-  //  Datos detallados de Laiwu (si estan disponibles) 
+  // Datos detallados de Laiwu si estan disponibles
   var laiwuData=null;
-  try{laiwuData=JSON.parse(localStorage.getItem('CCP_LAIWU_DATA')||'null');}catch(e){}
-  if(laiwuData&&laiwuData.skus&&laiwuData.skus.length){
+  try{ laiwuData=JSON.parse(localStorage.getItem('CCP_LAIWU_DATA')||'null'); }catch(e){}
+  if(laiwuData && laiwuData.skus && laiwuData.skus.length){
     var MN=['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];
     ctx.push('\n=== LAIWU (Vendor 51) - DETALLE COMPLETO ===');
     ctx.push('Fecha datos: '+(laiwuData.fecha||'desconocida'));
@@ -659,24 +832,22 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!d.tasa) return;
       var meses=Math.round(d.qoh/d.tasa*10)/10;
       var estado=d.qoh===0?'STOCKOUT':d.qoh<d.piso?'BAJO PISO':d.qoh<d.safety?'EN BANDA':'OK';
-      var confTotal=d.conf.reduce(function(a,b){return a+b;},0);
       var embarques=[];
-      d.conf.forEach(function(c,i){if(c>0)embarques.push(MN[i]+':+'+c+'uni');});
+      d.conf.forEach(function(c,i){ if(c>0) embarques.push(MN[i]+':+'+c+'uni'); });
       ctx.push('SKU '+d.sku+' ('+d.desc+'): QoH='+Math.round(d.qoh)
         +' | Tasa='+Math.round(d.tasa)+'/mes | Cobertura='+meses+'m | '+estado
         +(embarques.length?' | Llega: '+embarques.join(', '):''));
     });
-    if(laiwuData.po&&laiwuData.po.length){
+    if(laiwuData.po && laiwuData.po.length){
       ctx.push('\nORDEN LAIWU EN PROCESO:');
       laiwuData.po.forEach(function(p){
         ctx.push('SKU '+p.sku+': '+p.pal+' pal ('+p.uni+' uni)');
       });
     }
   } else {
-    // Resumen general del reporte
     var rep=null;
-    try{rep=JSON.parse(localStorage.getItem('CCP_REPORT')||'null');}catch(e){}
-    if(rep&&rep.length){
+    try{ rep=JSON.parse(localStorage.getItem('CCP_REPORT')||'null'); }catch(e){}
+    if(rep && rep.length){
       ctx.push('\nREPORTE INVENTARIO: '+rep.length+' SKUs totales');
       var vendors={};
       rep.forEach(function(r){
@@ -695,9 +866,9 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  //  Tracker POs 
+  // Tracker POs
   var pos=[];
-  try{pos=JSON.parse(localStorage.getItem('CCP_POs')||'[]');}catch(e){}
+  try{ pos=JSON.parse(localStorage.getItem('CCP_POs')||'[]'); }catch(e){}
   if(pos.length){
     var estados=['Borrador','Aprobado Samuel','En Epicor','En transito','Parcial','Recibido'];
     ctx.push('\n=== TRACKER POs ===');
@@ -718,687 +889,93 @@ document.addEventListener('DOMContentLoaded', function(){
   return ctx.join('\n');
 }
 
-  function addMsgHub(role,text){
-    var msgs=document.getElementById('aiMsgs');
-    var div=document.createElement('div');
-    div.className='ai-msg '+role;
-    div.textContent=text;
-    msgs.appendChild(div);
-    msgs.scrollTop=msgs.scrollHeight;
-    return div;
-  }
-
-  function sendAIHub(pregunta){
-    if(!pregunta||!pregunta.trim()) return;
-    var input=document.getElementById('aiInput');
-    if(input) input.value='';
-
-    if(!_groqKey||!_groqKey.startsWith('gsk_')){
-      addMsgHub('ai','Para usar el asistente, toca "Configurar API Key" y agrega tu key de Groq (gratis en console.groq.com).');
-      return;
-    }
-
-    addMsgHub('user',pregunta);
-    var thinkDiv=addMsgHub('thinking','Pensando...');
-    aiHistory.push({role:'user',content:pregunta});
-
-    var systemPrompt='Eres un asistente experto en compras e inventario para Caribbean Cabinet Products en Puerto Rico. '
-      +'Tienes acceso al inventario de todos los suplidores y al tracker de ordenes de compra. '
-      +'Responde en espanol, de forma concisa y con numeros especificos cuando esten disponibles. '
-      +'\n\nCONTEXTO ACTUAL:\n'+getContextoHub();
-
-    var messages=aiHistory.slice(-8);
-
-    fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+_groqKey
-      },
-      body:JSON.stringify({
-        model:'llama-3.3-70b-versatile',
-        max_tokens:1000,
-        messages:[{role:'system',content:systemPrompt}].concat(messages)
-      })
-    })
-    .then(function(r){return r.json();})
-    .then(function(data){
-      thinkDiv.remove();
-      var resp=(data.choices&&data.choices[0]&&data.choices[0].message)
-        ?data.choices[0].message.content
-        :(data.error?data.error.message:'No pude obtener respuesta.');
-      addMsgHub('ai',resp);
-      aiHistory.push({role:'assistant',content:resp});
-    })
-    .catch(function(err){
-      thinkDiv.remove();
-      addMsgHub('ai','Error: '+err.message);
-    });
-  }
-
-  // Listeners
-  var fab=document.getElementById('aiFab');
-  if(fab) fab.addEventListener('click',function(){
-    document.getElementById('aiPanel').classList.add('open');
-    document.getElementById('aiOverlay').classList.add('open');
-    var inp=document.getElementById('aiInput');
-    if(inp) setTimeout(function(){inp.focus();},300);
-  });
-  var aiClose=document.getElementById('aiClose');
-  if(aiClose) aiClose.addEventListener('click',function(){
-    document.getElementById('aiPanel').classList.remove('open');
-    document.getElementById('aiOverlay').classList.remove('open');
-  });
-  var aiOv=document.getElementById('aiOverlay');
-  if(aiOv) aiOv.addEventListener('click',function(){
-    document.getElementById('aiPanel').classList.remove('open');
-    this.classList.remove('open');
-  });
-  var aiSend=document.getElementById('aiSend');
-  if(aiSend) aiSend.addEventListener('click',function(){
-    sendAIHub((document.getElementById('aiInput')||{}).value||'');
-  });
-  var aiInp=document.getElementById('aiInput');
-  if(aiInp) aiInp.addEventListener('keydown',function(e){
-    if(e.key==='Enter') sendAIHub(this.value.trim());
-  });
-  var btnKey=document.getElementById('aiBtnKey');
-  if(btnKey) btnKey.addEventListener('click',openKeyModal);
-
-  // Chips
-  document.querySelectorAll('.ai-chip').forEach(function(chip){
-    chip.addEventListener('click',function(){
-      sendAIHub(this.getAttribute('data-q'));
-    });
-  });
-
-  //  API KEY GLOBAL 
-  function loadHubKey(){
-    var saved=localStorage.getItem("CCP_AI_KEY")||"";
-    var inp=document.getElementById("hubApiKey");
-    if(inp) inp.value=saved;
-    var fb=document.getElementById("hubKeyFb");
-    if(fb) fb.textContent=saved?"Key guardada: "+saved.slice(0,12)+"...":"";
-  }
-  var hubSaveKey=document.getElementById("hubSaveKey");
-  if(hubSaveKey) hubSaveKey.addEventListener("click",function(){
-    var k=(document.getElementById("hubApiKey")||{}).value||"";
-    if(!k.startsWith("gsk_")){alert("La key de Groq debe empezar con gsk_");return;}
-    localStorage.setItem("CCP_AI_KEY",k);
-    // Tambien actualizar el agente del hub
-    _groqKey=k;
-    var fb=document.getElementById("hubKeyFb");
-    if(fb){fb.textContent="Key guardada correctamente";setTimeout(function(){fb.textContent="Key activa: "+k.slice(0,12)+"...";},1500);}
-  });
-  // Cargar key al inicio
-  (function(){var k=localStorage.getItem("CCP_AI_KEY")||"";if(k){_groqKey=k;}}());
-
-  //  API KEY CONFIG 
-  function loadHubKeyCfg(){
-    var saved=localStorage.getItem('CCP_AI_KEY')||'';
-    var inp=document.getElementById('hubApiKey');
-    if(inp) inp.value=saved;
-    var fb=document.getElementById('hubKeyFb');
-    if(fb) fb.textContent=saved?'Key activa: '+saved.slice(0,16)+'...':'Sin key configurada';
-    if(fb) fb.style.color=saved?'var(--gn)':'var(--rd)';
-  }
-  var hsk=document.getElementById('hubSaveKey');
-  if(hsk) hsk.addEventListener('click',function(){
-    var k=(document.getElementById('hubApiKey')||{}).value||'';
-    if(!k.startsWith('gsk_')){alert('La key de Groq debe empezar con gsk_');return;}
-    localStorage.setItem('CCP_AI_KEY',k);
-    _groqKey=k;
-    var fb=document.getElementById('hubKeyFb');
-    if(fb){fb.textContent='Key guardada. Activa en todas las herramientas.';
-      fb.style.color='var(--gn)';}
-  });
-  // Cargar key al inicio
-  (function(){
-    var k=localStorage.getItem('CCP_AI_KEY')||'';
-    if(k) _groqKey=k;
-  }());
-
-});
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-
-
-<!-- MODAL NUEVO PO -->
-<div class="overlay" id="newPOModal">
-  <div class="modal">
-    <h2>Registrar Orden de Compra</h2>
-    <div class="field">
-      <label>Numero de PO</label>
-      <input type="text" id="m-po" placeholder="LAI062026-01">
-    </div>
-    <div class="field">
-      <label>Suplidor</label>
-      <select id="m-sup">
-        <option value="Laiwu">Laiwu (Vendor 51)</option>
-        <option value="FINSA">FINSA (Vendor 33)</option>
-        <option value="DTC">DTC (Vendor 87)</option>
-        <option value="VIEFE">VIEFE (Vendor 18)</option>
-        <option value="Merino">Merino</option>
-        <option value="TECE">TECE</option>
-        <option value="Otro">Otro</option>
-      </select>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field">
-        <label>Fecha de PO</label>
-        <input type="date" id="m-fecha">
-      </div>
-      <div class="field">
-        <label>ETA estimada</label>
-        <input type="date" id="m-eta">
-      </div>
-    </div>
-    <div class="field">
-      <label>Paletas / Contenedores</label>
-      <input type="text" id="m-pal" placeholder="212 pal · 12 cont">
-    </div>
-    <div class="field">
-      <label>SKUs principales</label>
-      <textarea id="m-skus" placeholder="5518, 5518C, 6518..."></textarea>
-    </div>
-    <div class="field">
-      <label>Notas</label>
-      <input type="text" id="m-notas" placeholder="Opcional">
-    </div>
-    <div class="modal-btns">
-      <button style="background:#f0f0f0;color:var(--tx)" onclick="closeNewPO()">Cancelar</button>
-      <button style="background:var(--bl);color:#fff" onclick="savePO()">Guardar PO</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL DETALLE PO -->
-<div class="overlay" id="detailModal">
-  <div class="modal">
-    <h2 id="det-title">Detalle del PO</h2>
-    <div id="det-body"></div>
-    <div class="modal-btns">
-      <button id="det-del" style="background:transparent;border:1.5px solid var(--rd);color:var(--rd)">Eliminar PO</button>
-      <button style="background:var(--bl);color:#fff" onclick="closeDetail()">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-//  CONSTANTES 
-var DRIVE_URL = 'https://script.google.com/macros/s/AKfycbzMcIOhMHvGdmYZDQ4IFDLPtpMoqZG5KF8RBTdZW3ScOjTE2q4kRR8CBOph69SAtoo1Sg/exec';
-var TOOL_URLS = {
-  laiwu:  'laiwu.html',
-  finsa:  'finsa.html',
-  dtc:    'dtc.html',
-  viefe:  'viefe.html',
-  merino: 'merino.html',
-  tece:   'tece.html'
-};
-var ESTADOS = [
-  {cls:'est-0', lbl:'Borrador'},
-  {cls:'est-1', lbl:'Aprobado Samuel'},
-  {cls:'est-2', lbl:'En Epicor'},
-  {cls:'est-3', lbl:'En transito'},
-  {cls:'est-4', lbl:'Parcial'},
-  {cls:'est-5', lbl:'Recibido'}
-];
-
-//  TABS 
-function goTab(t){
-  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
-  document.querySelectorAll('.sec').forEach(function(el){el.classList.remove('on');});
-  document.getElementById('tab-'+t).classList.add('on');
-  document.getElementById(t+'Sec').classList.add('on');
-  if(t==='tracker') renderTracker();
-  if(t==='cfg') loadHubKeyCfg();
+function addMsgHub(role, text){
+  var msgs=document.getElementById('aiMsgs');
+  var div=document.createElement('div');
+  div.className='ai-msg '+role;
+  div.textContent=text;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  return div;
 }
 
-//  REPORTE: Google Drive 
-function setRepStatus(state, title, sub){
-  var dot = document.getElementById('repDot');
-  var tEl = document.getElementById('repTitle');
-  var sEl = document.getElementById('repSub');
-  dot.className = 'rep-dot ' + state;
-  tEl.textContent = title;
-  sEl.textContent = sub;
-}
+function sendAIHub(pregunta){
+  if(!pregunta||!pregunta.trim()) return;
+  var input=document.getElementById('aiInput');
+  if(input) input.value='';
 
-function fetchFromDrive(){
-  setRepStatus('loading', 'Descargando reporte...', 'Conectando con Google Drive');
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', DRIVE_URL, true);
-  xhr.timeout = 15000;
-  xhr.onload = function(){
-    if(xhr.status === 200){
-      try{
-        var json = JSON.parse(xhr.responseText);
-        if(json.error){ throw new Error(json.error); }
-        // Decodificar base64 -> XLSX
-        var binary = atob(json.data);
-        var bytes = new Uint8Array(binary.length);
-        for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-        var wb = XLSX.read(bytes.buffer, {type:'array', cellDates:true});
-        var ws = wb.Sheets[wb.SheetNames[0]];
-        var data = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
-        var now = new Date().toISOString();
-        // Guardar en localStorage
-        localStorage.setItem('CCP_REPORT', JSON.stringify(data));
-        localStorage.setItem('CCP_REPORT_DATE', now);
-        localStorage.setItem('CCP_REPORT_NAME', json.name||'REPORTE_MAS_MENOS.xlsx');
-        // Tambien en sessionStorage para sub-herramientas
-        sessionStorage.setItem('CCP_REPORT', JSON.stringify(data));
-        sessionStorage.setItem('CCP_REPORT_DATE', now);
-        var dstr = new Date(now).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-        var driveDate = json.updated ? new Date(json.updated).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'fecha desconocida';
-        localStorage.setItem('CCP_REPORT_DRIVE_DATE', json.updated||'');
-        setRepStatus('ok', 'Reporte actualizado', json.name+' · '+data.length+' SKUs · Actualizado en Drive: '+driveDate+' · Descargado: '+dstr);
-      }catch(e){
-        useSavedReport('Error procesando: '+e.message);
-      }
-    } else {
-      useSavedReport('Error de red ('+xhr.status+')');
-    }
-  };
-  xhr.onerror = function(){ useSavedReport('Sin conexion a Drive'); };
-  xhr.ontimeout = function(){ useSavedReport('Tiempo de espera agotado'); };
-  xhr.send();
-}
-
-function useSavedReport(reason){
-  var saved = localStorage.getItem('CCP_REPORT');
-  var savedDate = localStorage.getItem('CCP_REPORT_DATE');
-  var savedName = localStorage.getItem('CCP_REPORT_NAME') || 'REPORTE_MAS_MENOS.xlsx';
-  if(saved){
-    sessionStorage.setItem('CCP_REPORT', saved);
-    sessionStorage.setItem('CCP_REPORT_DATE', savedDate||'');
-    var dstr = savedDate ? new Date(savedDate).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'}) : 'fecha desconocida';
-    var driveDate2 = localStorage.getItem('CCP_REPORT_DRIVE_DATE');
-    var driveDstr = driveDate2 ? ' · Drive: '+new Date(driveDate2).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'}) : '';
-    setRepStatus('warn', 'Usando reporte guardado ('+dstr+')', reason+' · '+savedName+driveDstr);
-  } else {
-    setRepStatus('err', 'Sin reporte disponible', reason+' · Carga uno manualmente');
-  }
-}
-
-function loadRepManual(file){
-  if(!file) return;
-  setRepStatus('loading', 'Cargando '+file.name+'...', '');
-  var reader = new FileReader();
-  reader.onload = function(e){
-    try{
-      var wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
-      var ws = wb.Sheets[wb.SheetNames[0]];
-      var data = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
-      var now = new Date().toISOString();
-      localStorage.setItem('CCP_REPORT', JSON.stringify(data));
-      localStorage.setItem('CCP_REPORT_DATE', now);
-      localStorage.setItem('CCP_REPORT_NAME', file.name);
-      sessionStorage.setItem('CCP_REPORT', JSON.stringify(data));
-      sessionStorage.setItem('CCP_REPORT_DATE', now);
-      var dstr = new Date(now).toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-      setRepStatus('ok', 'Reporte cargado manualmente', file.name+' · '+data.length+' SKUs · '+dstr);
-    }catch(e1){
-      var r2 = new FileReader();
-      r2.onload = function(e2){
-        try{
-          var wb2 = XLSX.read(e2.target.result, {type:'binary', cellDates:true});
-          var ws2 = wb2.Sheets[wb2.SheetNames[0]];
-          var data2 = XLSX.utils.sheet_to_json(ws2, {defval:'', raw:true});
-          var now2 = new Date().toISOString();
-          localStorage.setItem('CCP_REPORT', JSON.stringify(data2));
-          localStorage.setItem('CCP_REPORT_DATE', now2);
-          localStorage.setItem('CCP_REPORT_NAME', file.name);
-          sessionStorage.setItem('CCP_REPORT', JSON.stringify(data2));
-          sessionStorage.setItem('CCP_REPORT_DATE', now2);
-          setRepStatus('ok', 'Reporte cargado', file.name+' · '+data2.length+' SKUs');
-        }catch(e3){ setRepStatus('err','Error leyendo archivo',e3.message); }
-      };
-      r2.readAsBinaryString(file);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-//  LANZAR HERRAMIENTA 
-function launchTool(tool){
-  var wip = ['finsa','dtc','viefe','merino','tece'];
-  if(wip.indexOf(tool)>=0){
-    alert('Esta herramienta esta en desarrollo. Estara disponible pronto.');
-    return;
-  }
-  window.location.href = TOOL_URLS[tool];
-}
-
-//  TRACKER 
-function getPOs(){
-  try{ return JSON.parse(localStorage.getItem('CCP_POs')||'[]'); }
-  catch(e){ return []; }
-}
-function savePOs(arr){ localStorage.setItem('CCP_POs', JSON.stringify(arr)); }
-
-function renderTracker(){
-  var pos = getPOs();
-  var q = (document.getElementById('trackerSearch')||{}).value||'';
-  if(q) pos = pos.filter(function(p){
-    var s = (p.po+' '+p.sup+' '+p.skus+' '+p.notas).toLowerCase();
-    return s.indexOf(q.toLowerCase())>=0;
-  });
-
-  // Resumen
-  var pend = getPOs().filter(function(p){return p.estado<2;}).length;
-  var transit = getPOs().filter(function(p){return p.estado===3;}).length;
-  var total = getPOs().filter(function(p){return p.estado<5;}).length;
-  document.getElementById('sumPend').textContent = pend;
-  document.getElementById('sumTransit').textContent = transit;
-  document.getElementById('sumTotal').textContent = total;
-
-  if(!pos.length){
-    document.getElementById('trackerBody').innerHTML =
-      '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--mu);font-size:12px">Sin POs que coincidan.</td></tr>';
+  if(!_groqKey||!_groqKey.startsWith('gsk_')){
+    addMsgHub('ai','Para usar el asistente, toca "Configurar API Key" y agrega tu key de Groq (gratis en console.groq.com).');
     return;
   }
 
-  document.getElementById('trackerBody').innerHTML = pos.map(function(p, idx){
-    var est = ESTADOS[p.estado]||ESTADOS[0];
-    var eta = p.etaConf ? p.etaConf : (p.eta||'-');
-    var etaLabel = p.etaConf
-      ? '<span style="color:#1D9E75;font-weight:700">'+fmtDate(eta)+'</span>'
-      : '<span style="color:var(--mu)">~'+fmtDate(eta)+'</span>';
-    return '<tr style="cursor:pointer" onclick="openDetail('+idx+')">'
-      +'<td style="font-weight:700;color:var(--bl)">'+p.po+'</td>'
-      +'<td>'+p.sup+'</td>'
-      +'<td style="color:var(--mu);font-size:11px">'+fmtDate(p.fecha)+'</td>'
-      +'<td>'+etaLabel+'</td>'
-      +'<td><span class="est '+est.cls+'">'+est.lbl+'</span></td>'
-      +'<td style="white-space:nowrap">'
-        +(p.chkSamuel?'<span style="color:#1D9E75;font-size:14px">S</span>':'<span style="color:#ddd;font-size:14px">S</span>')
-        +' '
-        +(p.chkEpicor?'<span style="color:#185FA5;font-size:14px">E</span>':'<span style="color:#ddd;font-size:14px">E</span>')
-      +'</td>'
-      +'<td style="text-align:right"><span style="color:var(--mu);font-size:16px">&rsaquo;</span></td>'
-      +'</tr>';
-  }).join('');
-}
+  addMsgHub('user',pregunta);
+  var thinkDiv=addMsgHub('thinking','Pensando...');
+  aiHistory.push({role:'user',content:pregunta});
 
-function fmtDate(d){
-  if(!d) return '-';
-  try{
-    var dt = new Date(d+'T12:00:00');
-    return dt.toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'});
-  }catch(e){ return d; }
-}
+  var systemPrompt='Eres un asistente experto en compras e inventario para Caribbean Cabinet Products en Puerto Rico. '
+    +'Tienes acceso al inventario de todos los suplidores y al tracker de ordenes de compra. '
+    +'Responde en espanol, de forma concisa y con numeros especificos cuando esten disponibles. '
+    +'\n\nCONTEXTO ACTUAL:\n'+getContextoHub();
 
-// -- Nuevo PO --
-function openNewPO(){
-  document.getElementById('m-po').value='';
-  document.getElementById('m-sup').value='Laiwu';
-  document.getElementById('m-fecha').value=new Date().toISOString().slice(0,10);
-  document.getElementById('m-eta').value='';
-  document.getElementById('m-pal').value='';
-  document.getElementById('m-skus').value='';
-  document.getElementById('m-notas').value='';
-  document.getElementById('newPOModal').classList.add('open');
-}
-function closeNewPO(){ document.getElementById('newPOModal').classList.remove('open'); }
+  var messages=aiHistory.slice(-8);
 
-function savePO(){
-  var po = document.getElementById('m-po').value.trim();
-  if(!po){ alert('Ingresa el numero de PO.'); return; }
-  var pos = getPOs();
-  pos.unshift({
-    po:     po,
-    sup:    document.getElementById('m-sup').value,
-    fecha:  document.getElementById('m-fecha').value,
-    eta:    document.getElementById('m-eta').value,
-    etaConf: '',
-    pal:    document.getElementById('m-pal').value,
-    skus:   document.getElementById('m-skus').value,
-    notas:  document.getElementById('m-notas').value,
-    estado: 0,
-    chkSamuel: false,
-    chkEpicor: false,
-    creado: new Date().toISOString()
+  fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+_groqKey
+    },
+    body:JSON.stringify({
+      model:'llama-3.3-70b-versatile',
+      max_tokens:1000,
+      messages:[{role:'system',content:systemPrompt}].concat(messages)
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    thinkDiv.remove();
+    var resp=(data.choices&&data.choices[0]&&data.choices[0].message)
+      ?data.choices[0].message.content
+      :(data.error?data.error.message:'No pude obtener respuesta.');
+    addMsgHub('ai',resp);
+    aiHistory.push({role:'assistant',content:resp});
+  })
+  .catch(function(err){
+    thinkDiv.remove();
+    addMsgHub('ai','Error: '+err.message);
   });
-  savePOs(pos);
-  closeNewPO();
-  renderTracker();
 }
 
-// -- Detalle PO --
-var _detIdx = -1;
-function openDetail(idx){
-  var pos = getPOs();
-  var p = pos[idx];
-  if(!p) return;
-  _detIdx = idx;
-
-  document.getElementById('det-title').textContent = p.po + ' — ' + p.sup;
-
-  var html = '<div style="font-size:12px;line-height:2">'
-    +'<div><b>Suplidor:</b> '+p.sup+'</div>'
-    +'<div><b>Fecha PO:</b> '+fmtDate(p.fecha)+'</div>'
-    +'<div><b>Paletas/Cont:</b> '+(p.pal||'-')+'</div>'
-    +'<div><b>SKUs:</b> '+(p.skus||'-')+'</div>'
-    +'<div><b>Notas:</b> '+(p.notas||'-')+'</div>'
-    +'</div>'
-
-    // ETA
-    +'<div style="background:#f8f9fa;border-radius:8px;padding:10px;margin:12px 0">'
-    +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:8px">ETA</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    +'<div><div style="font-size:10px;color:var(--mu)">Estimada</div>'
-    +'<input type="date" id="det-eta" value="'+(p.eta||'')+'" style="width:100%;padding:6px;border:1.5px solid var(--br);border-radius:6px;font-size:12px"></div>'
-    +'<div><div style="font-size:10px;color:#1D9E75;font-weight:700">Confirmada</div>'
-    +'<input type="date" id="det-etaConf" value="'+(p.etaConf||'')+'" style="width:100%;padding:6px;border:1.5px solid #1D9E75;border-radius:6px;font-size:12px"></div>'
-    +'</div></div>'
-
-    // Estado
-    +'<div style="margin-bottom:12px">'
-    +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:6px">Estado</div>'
-    +'<select id="det-estado" style="width:100%;padding:8px;border:1.5px solid var(--br);border-radius:8px;font-size:13px">'
-    +ESTADOS.map(function(e,i){ return '<option value="'+i+'"'+(p.estado===i?' selected':'')+'>'+e.lbl+'</option>'; }).join('')
-    +'</select></div>'
-
-    // Checks
-    +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
-    +'<label class="chk"><input type="checkbox" id="det-samuel"'+(p.chkSamuel?' checked':'')+'> Aprobado Samuel</label>'
-    +'<label class="chk"><input type="checkbox" id="det-epicor"'+(p.chkEpicor?' checked':'')+' > En Epicor</label>'
-    +'</div>'
-
-    +'<button onclick="updateDetail()" style="width:100%;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">Guardar cambios</button>';
-
-  document.getElementById('det-body').innerHTML = html;
-  document.getElementById('detailModal').classList.add('open');
-}
-
-function updateDetail(){
-  var pos = getPOs();
-  var p = pos[_detIdx];
-  if(!p) return;
-  p.eta      = document.getElementById('det-eta').value;
-  p.etaConf  = document.getElementById('det-etaConf').value;
-  p.estado   = parseInt(document.getElementById('det-estado').value);
-  p.chkSamuel= document.getElementById('det-samuel').checked;
-  p.chkEpicor= document.getElementById('det-epicor').checked;
-  savePOs(pos);
-  closeDetail();
-  renderTracker();
-}
-
-function closeDetail(){ document.getElementById('detailModal').classList.remove('open'); }
-
-function deletePO(){
-  if(!confirm('Eliminar este PO del historial?')) return;
-  var pos = getPOs();
-  pos.splice(_detIdx, 1);
-  savePOs(pos);
-  closeDetail();
-  renderTracker();
-}
-
-//  INIT 
+// ══ INIT ══
 document.addEventListener('DOMContentLoaded', function(){
   // File input reporte manual
   document.getElementById('repFileInput').addEventListener('change', function(){
     loadRepManual(this.files[0]);
   });
+
   // Boton detalle eliminar
   document.getElementById('det-del').addEventListener('click', deletePO);
-  // Cerrar modales al tocar fuera
-  document.getElementById('newPOModal').addEventListener('click', function(e){ if(e.target===this) closeNewPO(); });
-  document.getElementById('detailModal').addEventListener('click', function(e){ if(e.target===this) closeDetail(); });
-  // Intentar cargar de Drive
-  fetchFromDrive();
 
-  //  AGENTE IA HUB 
-  var aiHistory=[];
-  var _groqKey='';
+  // Cerrar modales al tocar fuera
+  document.getElementById('newPOModal').addEventListener('click', function(e){
+    if(e.target===this) closeNewPO();
+  });
+  document.getElementById('detailModal').addEventListener('click', function(e){
+    if(e.target===this) closeDetail();
+  });
 
   // Cargar key guardada
   var savedKey=localStorage.getItem('CCP_AI_KEY')||'';
-  if(savedKey){_groqKey=savedKey;}
+  if(savedKey) _groqKey=savedKey;
 
-  function openKeyModal(){
-    var ki=document.getElementById('keyInput');
-    if(ki) ki.value=_groqKey;
-    document.getElementById('keyModal').classList.add('open');
-  }
-  function closeKeyModal(){
-    document.getElementById('keyModal').classList.remove('open');
-  }
-  function saveKey(){
-    var k=(document.getElementById('keyInput')||{}).value||'';
-    if(!k.startsWith('gsk_')){
-      alert('La key de Groq debe empezar con gsk_');return;
-    }
-    _groqKey=k;
-    localStorage.setItem('CCP_AI_KEY',k);
-    var fb=document.getElementById('keyFb');
-    if(fb){fb.textContent='Key guardada correctamente';
-      setTimeout(function(){fb.textContent='';closeKeyModal();},1500);}
-  }
-
-  function getContextoHub(){
-    var ctx=['=== CCP COMPRAS HUB === Fecha: '+new Date().toLocaleDateString('es-PR')];
-
-    // Reporte de inventario
-    var rep=null;
-    try{rep=JSON.parse(localStorage.getItem('CCP_REPORT')||'null');}catch(e){}
-    if(rep&&rep.length){
-      ctx.push('\nREPORTE INVENTARIO: '+rep.length+' SKUs totales cargados');
-      // Resumir por vendor
-      var vendors={};
-      rep.forEach(function(r){
-        var v=String(r['Vendor Code']||r['Vendor_Code']||'').trim();
-        if(!v) return;
-        if(!vendors[v]) vendors[v]={n:0,stockout:0};
-        vendors[v].n++;
-        var qoh=Number(r['Quantity on Hand']||0);
-        if(qoh<=0) vendors[v].stockout++;
-      });
-      Object.keys(vendors).forEach(function(v){
-        var vd=vendors[v];
-        ctx.push('Vendor '+v+': '+vd.n+' SKUs'+(vd.stockout>0?' ('+vd.stockout+' en stockout)':''));
-      });
-    } else {
-      ctx.push('\nREPORTE: No cargado aun');
-    }
-
-    // Tracker de POs
-    var pos=[];
-    try{pos=JSON.parse(localStorage.getItem('CCP_POs')||'[]');}catch(e){}
-    if(pos.length){
-      var estados=['Borrador','Aprobado Samuel','En Epicor','En transito','Parcial','Recibido'];
-      ctx.push('\nTRACKER POs: '+pos.length+' ordenes registradas');
-      pos.forEach(function(p){
-        var est=estados[p.estado]||'Desconocido';
-        var eta=p.etaConf||p.eta||'sin ETA';
-        ctx.push('PO '+p.po+' ('+p.sup+'): '+est+' | ETA: '+eta+(p.pal?' | '+p.pal:''));
-      });
-      var pendientes=pos.filter(function(p){return p.estado<2;});
-      if(pendientes.length){
-        ctx.push('\nPOs PENDIENTES APROBACION ('+pendientes.length+'): '+
-          pendientes.map(function(p){return p.po;}).join(', '));
-      }
-      var transito=pos.filter(function(p){return p.estado===3;});
-      if(transito.length){
-        ctx.push('POs EN TRANSITO ('+transito.length+'): '+
-          transito.map(function(p){return p.po+' ETA:'+( p.etaConf||p.eta||'?');}).join(', '));
-      }
-    } else {
-      ctx.push('\nTRACKER: Sin POs registrados aun');
-    }
-
-    return ctx.join('\n');
-  }
-
-  function addMsgHub(role,text){
-    var msgs=document.getElementById('aiMsgs');
-    var div=document.createElement('div');
-    div.className='ai-msg '+role;
-    div.textContent=text;
-    msgs.appendChild(div);
-    msgs.scrollTop=msgs.scrollHeight;
-    return div;
-  }
-
-  function sendAIHub(pregunta){
-    if(!pregunta||!pregunta.trim()) return;
-    var input=document.getElementById('aiInput');
-    if(input) input.value='';
-
-    if(!_groqKey||!_groqKey.startsWith('gsk_')){
-      addMsgHub('ai','Para usar el asistente, toca "Configurar API Key" y agrega tu key de Groq (gratis en console.groq.com).');
-      return;
-    }
-
-    addMsgHub('user',pregunta);
-    var thinkDiv=addMsgHub('thinking','Pensando...');
-    aiHistory.push({role:'user',content:pregunta});
-
-    var systemPrompt='Eres un asistente experto en compras e inventario para Caribbean Cabinet Products en Puerto Rico. '
-      +'Tienes acceso al inventario de todos los suplidores y al tracker de ordenes de compra. '
-      +'Responde en espanol, de forma concisa y con numeros especificos cuando esten disponibles. '
-      +'\n\nCONTEXTO ACTUAL:\n'+getContextoHub();
-
-    var messages=aiHistory.slice(-8);
-
-    fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+_groqKey
-      },
-      body:JSON.stringify({
-        model:'llama-3.3-70b-versatile',
-        max_tokens:1000,
-        messages:[{role:'system',content:systemPrompt}].concat(messages)
-      })
-    })
-    .then(function(r){return r.json();})
-    .then(function(data){
-      thinkDiv.remove();
-      var resp=(data.choices&&data.choices[0]&&data.choices[0].message)
-        ?data.choices[0].message.content
-        :(data.error?data.error.message:'No pude obtener respuesta.');
-      addMsgHub('ai',resp);
-      aiHistory.push({role:'assistant',content:resp});
-    })
-    .catch(function(err){
-      thinkDiv.remove();
-      addMsgHub('ai','Error: '+err.message);
-    });
-  }
-
-  // Listeners
+  // AI panel listeners
   var fab=document.getElementById('aiFab');
   if(fab) fab.addEventListener('click',function(){
     document.getElementById('aiPanel').classList.add('open');
     document.getElementById('aiOverlay').classList.add('open');
     var inp=document.getElementById('aiInput');
-    if(inp) setTimeout(function(){inp.focus();},300);
+    if(inp) setTimeout(function(){ inp.focus(); }, 300);
   });
   var aiClose=document.getElementById('aiClose');
   if(aiClose) aiClose.addEventListener('click',function(){
@@ -1428,113 +1005,23 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 
-  //  API KEY GLOBAL 
-  function loadHubKey(){
-    var saved=localStorage.getItem("CCP_AI_KEY")||"";
-    var inp=document.getElementById("hubApiKey");
-    if(inp) inp.value=saved;
-    var fb=document.getElementById("hubKeyFb");
-    if(fb) fb.textContent=saved?"Key guardada: "+saved.slice(0,12)+"...":"";
-  }
-  var hubSaveKey=document.getElementById("hubSaveKey");
-  if(hubSaveKey) hubSaveKey.addEventListener("click",function(){
-    var k=(document.getElementById("hubApiKey")||{}).value||"";
-    if(!k.startsWith("gsk_")){alert("La key de Groq debe empezar con gsk_");return;}
-    localStorage.setItem("CCP_AI_KEY",k);
-    // Tambien actualizar el agente del hub
-    _groqKey=k;
-    var fb=document.getElementById("hubKeyFb");
-    if(fb){fb.textContent="Key guardada correctamente";setTimeout(function(){fb.textContent="Key activa: "+k.slice(0,12)+"...";},1500);}
-  });
-  // Cargar key al inicio
-  (function(){var k=localStorage.getItem("CCP_AI_KEY")||"";if(k){_groqKey=k;}}());
-
-  // ── API KEY CONFIG ──
-  function loadHubKeyCfg(){
-    var saved=localStorage.getItem('CCP_AI_KEY')||'';
-    var inp=document.getElementById('hubApiKey');
-    if(inp) inp.value=saved;
-    var fb=document.getElementById('hubKeyFb');
-    if(fb) fb.textContent=saved?'Key activa: '+saved.slice(0,16)+'...':'Sin key configurada';
-    if(fb) fb.style.color=saved?'var(--gn)':'var(--rd)';
-  }
+  // Config: guardar api key
   var hsk=document.getElementById('hubSaveKey');
   if(hsk) hsk.addEventListener('click',function(){
     var k=(document.getElementById('hubApiKey')||{}).value||'';
-    if(!k.startsWith('gsk_')){alert('La key de Groq debe empezar con gsk_');return;}
+    if(!k.startsWith('gsk_')){ alert('La key de Groq debe empezar con gsk_'); return; }
     localStorage.setItem('CCP_AI_KEY',k);
     _groqKey=k;
     var fb=document.getElementById('hubKeyFb');
-    if(fb){fb.textContent='Key guardada. Activa en todas las herramientas.';
-      fb.style.color='var(--gn)';}
+    if(fb){
+      fb.textContent='Key guardada. Activa en todas las herramientas.';
+      fb.style.color='var(--gn)';
+    }
   });
-  // Cargar key al inicio
-  (function(){
-    var k=localStorage.getItem('CCP_AI_KEY')||'';
-    if(k) _groqKey=k;
-  }());
 
+  // Cargar reporte de Drive al arranque
+  fetchFromDrive();
 });
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<!-- BOTON FLOTANTE IA -->
-<button id="aiFab" title="Asistente CCP">🤖</button>
-
-<!-- OVERLAY -->
-<div id="aiOverlay"></div>
-
-<!-- PANEL IA -->
-<div id="aiPanel">
-  <div class="ai-hdr">
-    <div>
-      <h3>🤖 Asistente CCP Compras</h3>
-      <p>Inventario · Suministro · POs · Ventas</p>
-    </div>
-    <button id="aiClose" style="background:rgba(255,255,255,.2);border:none;
-      color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;
-      cursor:pointer">Cerrar</button>
-  </div>
-  <div class="ai-msgs" id="aiMsgs">
-    <div class="ai-msg ai">Hola! Soy tu asistente de compras CCP. Puedo responder preguntas sobre inventario de todos los suplidores, POs en transito, fechas de llegada y niveles de stock. Carga el reporte primero para obtener respuestas con datos reales.</div>
-  </div>
-  <div class="ai-input-area">
-    <div class="ai-chips" id="aiChips">
-      <button class="ai-chip" data-q="Que suplidores tienen SKUs en riesgo?">SKUs en riesgo</button>
-      <button class="ai-chip" data-q="Cuantos POs tengo en transito?">POs en transito</button>
-      <button class="ai-chip" data-q="Cual es el proximo embarque que llega?">Proximos embarques</button>
-      <button class="ai-chip" data-q="Resume el estado general del inventario">Estado general</button>
-    </div>
-    <div class="ai-input-row">
-      <input id="aiInput" type="text" placeholder="Pregunta sobre inventario, POs...">
-      <button id="aiSend">&#x27A4;</button>
-    </div>
-    <div style="text-align:center;margin-top:6px">
-      <button id="aiBtnKey" style="background:none;border:none;color:#aaa;
-        font-size:10px;cursor:pointer;text-decoration:underline">
-        Configurar API Key</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL API KEY -->
-<div class="key-modal" id="keyModal">
-  <div class="key-box">
-    <h3>API Key de Groq</h3>
-    <p style="font-size:11px;color:#888;margin-bottom:10px">
-      Obtén tu key gratis en <b>console.groq.com</b>.
-      Se guarda solo en este dispositivo.
-    </p>
-    <input type="password" id="keyInput" placeholder="gsk_...">
-    <div class="key-box-btns">
-      <button onclick="closeKeyModal()"
-        style="background:#f0f0f0;color:#333">Cancelar</button>
-      <button onclick="saveKey()"
-        style="background:var(--bl);color:#fff">Guardar</button>
-    </div>
-    <div id="keyFb" style="text-align:center;font-size:11px;
-      color:var(--gn);margin-top:8px;min-height:16px"></div>
-  </div>
-</div>
 </body>
 </html>
