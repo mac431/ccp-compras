@@ -12,8 +12,11 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:var(--tx);background:#f0f2f5;padding-bottom:32px}
 .ahdr{background:linear-gradient(135deg,#185FA5,#0D3F75);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .ahdr h1{font-size:15px;font-weight:700;margin-bottom:1px}.ahdr p{font-size:11px;opacity:.7}
-.tabs{display:flex;background:#fff;border-bottom:1px solid var(--br);position:sticky;top:52px;z-index:99;overflow-x:auto}
-.tab{flex:0 0 auto;padding:11px 10px;text-align:center;font-size:11px;font-weight:500;color:var(--mu);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--br);position:sticky;top:52px;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tabs::-webkit-scrollbar{height:3px}
+.tabs::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+.tabs::after{content:'\203A';position:sticky;right:0;background:linear-gradient(to right,transparent,#fff 40%);padding:11px 12px 11px 20px;color:#888;font-size:16px;font-weight:700;pointer-events:none;flex-shrink:0}
+.tab{flex:0 0 auto;padding:11px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--mu);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;user-select:none}
 .tab.on{color:var(--bl);border-bottom-color:var(--bl)}
 .sec{padding:12px;display:none}.sec.on{display:block}
 .card{background:#fff;border-radius:10px;padding:13px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
@@ -549,12 +552,37 @@ function computeData(reportRows){
     var l12m = l12 / 12;
     var tasa = (p3m > l12m && l12m > 0) ? l12m * (1 + 0.5 * (p3m / l12m - 1)) : l12m;
 
+    // Piso por rango (para colores ACTIVOS solo)
+    var anchoNum = parseInt(String(c.ancho||'').replace(/\D/g,''),10) || 0;
+    var rango = 'otro';
+    if(anchoNum >= 22 && anchoNum <= 24) rango = 'r22';
+    else if(anchoNum === 33) rango = 'r33';
+    else if(anchoNum >= 43 && anchoNum <= 50) rango = 'r44';
+    var pisoActivo = 0;
+    if(rango === 'r22' || rango === 'r33') pisoActivo = 24;
+    else if(rango === 'r44') pisoActivo = 4;
+
+    // Compra base por venta L12 (cobertura + safety - stock disponible)
     var lt = Math.ceil((CFG.ltFab + CFG.ltTra) / 4);
     var safety_rollos = Math.round(tasa * CFG.ss);
-    var need_rollos = Math.max(0, safety_rollos + tasa * lt - qoh - qoo);
-    var cajSug = c.rollos_caja > 0 ? Math.ceil(need_rollos / c.rollos_caja) : 0;
-    cajSug = need_rollos > 0 ? Math.max(1, cajSug) : 0;
-    if(c.estado === 'AGOTAR'){ cajSug = 0; }
+    var needL12 = Math.max(0, safety_rollos + tasa * lt - qoh - qoo);
+
+    // Rollos y cajas segun estado del color
+    var rollosSug = 0;
+    var cajSug = 0;
+    if(c.estado === 'AGOTAR'){
+      // Colores descontinuados: solo si hay paneles del color en la orden.
+      // La cantidad se calcula despues en applyPanelCantoRule (necesita palAdj listo).
+      rollosSug = 0;
+      cajSug = 0;
+    } else {
+      // Colores ACTIVOS: MAX(L12, piso). Redondeo a caja completa hacia arriba.
+      var rollosNecesarios = Math.max(needL12, pisoActivo);
+      if(c.rollos_caja > 0){
+        cajSug = Math.ceil(rollosNecesarios / c.rollos_caja);
+        rollosSug = cajSug * c.rollos_caja;
+      }
+    }
 
     CANTO_DATA.push({
       sku: c.sku, desc: c.desc, ancho: c.ancho, largo: c.largo,
@@ -562,7 +590,8 @@ function computeData(reportRows){
       estado: c.estado || 'ACTIVO', nota: c.nota || '', ck: c.ck || '',
       consolida_de: c.consolida_de || [],
       qoh: qoh, qoo: qoo, l12: l12, p3m: p3m, tasa: tasa,
-      cajSug: cajSug, alerta: '',
+      rango: rango, pisoActivo: pisoActivo,
+      rollosSug: rollosSug, cajSug: cajSug, alerta: '',
     });
     cajaAdj[c.sku] = cajSug;
   });
@@ -570,43 +599,140 @@ function computeData(reportRows){
   applyPanelCantoRule();
 }
 
-// === REGLA PANEL-CANTO =========================================
-// Mientras haya stock de panel debe haber canto del mismo color.
-// La cobertura en meses del canto nunca puede ser menor que la del panel,
-// incluso para colores descontinuados (AGOTAR).
+// === REGLA PANEL <-> CANTO ======================================
+// Mapea cada panel de la orden al rango de canto que le corresponde y
+// dispara la compra de canto correspondiente.
+//
+// - Colores ACTIVOS: piso 24 rollos (r22, r33) o 4 rollos (r44). Si por
+//   L12 toca mas se compra mas. Se calcula en el bloque previo.
+// - Colores DESCONTINUADOS: se compra 1 rollo por cada 8 paneles del color
+//   en la orden. Redondeo a rollo entero. Sin caja.
+// - Grip 4x8 16MM Antracita: mapea al canto Gris Gu Balm (41108875).
+// - No aplican: 4x8 8MM, Fintop, 7x9 25MM (pedido especial), canto 64mm.
+
+// SKU del canto de Gris Gu Balm para el Grip
+var CANTO_GRIP_GRIS_GU = '41108875';
+
+// Dado un panel, retorna el rango de canto que le corresponde ('r22', 'r33',
+// 'r44') o null si no aplica.
+function rangoCantoDePanel(d){
+  var esp = String(d.esp||'').replace(/\D/g,'');
+  var espN = parseInt(esp,10) || 0;
+  // 8mm no cuenta
+  if(espN === 8) return null;
+  // Fintop no cuenta
+  if(d.linea && String(d.linea).toUpperCase().indexOf('FINTOP') >= 0) return null;
+  // 7x9 25mm es pedido especial (STUDIO_15_25)
+  if(espN === 25) return null;
+  // Rango por grosor
+  if(espN >= 15 && espN <= 19) return 'r22';
+  if(espN === 30) return 'r33';
+  if(espN === 36) return 'r44';
+  return null;
+}
+
+// Dado un panel, retorna el color key contra el que buscar el canto.
+// El Grip Antracita se mapea a Gris Gu Balm.
+function colorKeyPanelParaCanto(d){
+  if(!d.ck) return null;
+  // Grip Antracita usa el canto Gris Gu
+  if((d.linea && String(d.linea).toUpperCase() === 'GRIP') ||
+     (d.desc && d.desc.toUpperCase().indexOf('GRIP') >= 0)){
+    // Solo el Antracita, no el Pure White
+    if(d.desc && d.desc.toUpperCase().indexOf('ANTRAC') >= 0){
+      return 'GRIS GU';
+    }
+    return null; // Grip Pure White no dispara canto
+  }
+  return d.ck;
+}
+
 function applyPanelCantoRule(){
-  var pk = {};
+  // 1) Agrupar paneles de la orden por (ck, rango)
+  //    key = ck + '|' + rango
+  var demandaPorRango = {};       // {ck|rango: paneles_ordenados}
+  var stockPanelPorCk = {};       // {ck: {q, t}} para chequeo de cobertura
+
   DATA.forEach(function(d){
-    if(!d.ck) return;
-    var o = pk[d.ck] || {q:0, t:0};
-    o.q += Math.max(0, d.qoh) + (d.qoo || 0);
-    o.t += (d.tasa || 0);
-    pk[d.ck] = o;
+    var live = palAdj[d.sku] || 0;
+    var stdPkg = d.std || 0;
+    var panelesOrden = live * stdPkg;
+    var ck = colorKeyPanelParaCanto(d);
+    var rango = rangoCantoDePanel(d);
+
+    // Stock/orden del color (para chequeo de cobertura, incluye TODO el panel del color)
+    if(d.ck){
+      var s = stockPanelPorCk[d.ck] || {q:0, t:0};
+      s.q += Math.max(0, d.qoh) + (d.qoo || 0);
+      s.t += (d.tasa || 0);
+      stockPanelPorCk[d.ck] = s;
+    }
+
+    if(!ck || !rango || panelesOrden <= 0) return;
+    var key = ck + '|' + rango;
+    demandaPorRango[key] = (demandaPorRango[key] || 0) + panelesOrden;
   });
+
+  // 2) Recorrer cada canto y aplicar la regla
   CANTO_DATA.forEach(function(c){
     c.alerta = '';
-    var p = pk[c.ck];
-    if(!p || p.q <= 0) return;
-    var cq = Math.max(0, c.qoh) + (c.qoo || 0);
-    if(cq <= 0){
-      c.alerta = 'SIN CANTO: panel con ' + Math.round(p.q) + ' uds en stock/orden';
-      if(cajaAdj[c.sku] === 0){ cajaAdj[c.sku] = 1; c.cajSug = 1; }
+    // Solo procesamos cantos de rangos 22/33/44 y con ck asignado
+    if(!c.ck || (c.rango !== 'r22' && c.rango !== 'r33' && c.rango !== 'r44')) return;
+
+    // La key del canto para buscar demanda: por norma el ck coincide con el del panel.
+    // Caso especial: canto Gris Gu Balm 41108875 tambien recibe demanda del Grip Antracita.
+    var demandaPaneles = demandaPorRango[c.ck + '|' + c.rango] || 0;
+
+    // ===== COLORES DESCONTINUADOS: regla 1:8 exacta =====
+    if(c.estado === 'AGOTAR'){
+      if(demandaPaneles > 0){
+        // 1 rollo por cada 8 paneles, redondeo hacia arriba a rollo entero
+        var rollosNec = Math.ceil(demandaPaneles / 8);
+        c.rollosSug = rollosNec;
+        // Se piden rollos sueltos (sin caja), pero cajSug se guarda como equivalente
+        // por si el resto del codigo lo usa. Marcamos como -1 para indicar "rollos sueltos"
+        c.cajSug = 0; // no aplica caja
+        c.rollosSueltos = rollosNec;
+        cajaAdj[c.sku] = 0;
+        c.alerta = 'Descontinuado: ' + rollosNec + ' rollo' + (rollosNec===1?'':'s') + ' para ' + demandaPaneles + ' paneles en la orden';
+      } else {
+        c.rollosSug = 0;
+        c.cajSug = 0;
+        c.rollosSueltos = 0;
+        cajaAdj[c.sku] = 0;
+      }
+      // Chequeo de cobertura panel-canto (por si acaso)
+      _chkCobertura(c, stockPanelPorCk);
       return;
     }
-    if(c.tasa > 0 && p.t > 0){
-      var pm = p.q / p.t;
-      var cm = cq / c.tasa;
-      if(cm < pm){
-        c.alerta = 'Canto cubre ' + Math.round(cm) + ' meses vs panel ' + Math.round(pm) + ' meses';
-        var horizonte = Math.min(pm, cm + 12);
-        var faltanRollos = Math.ceil(horizonte * c.tasa - cq);
-        if(faltanRollos > 0){
-          var cajN = Math.ceil(faltanRollos / c.rollos_caja);
-          if(cajN > cajaAdj[c.sku]){ cajaAdj[c.sku] = cajN; c.cajSug = cajN; }
-        }
-      }
-    }
+
+    // ===== COLORES ACTIVOS: piso 24/4 + L12 =====
+    // El piso ya se aplico en el bloque anterior (cajSug ya tiene MAX(L12, piso))
+    // La regla 1:8 NO aplica para activos.
+    // Solo chequeamos cobertura panel-canto como sanity check.
+    _chkCobertura(c, stockPanelPorCk);
   });
+}
+
+function _chkCobertura(c, stockPanelPorCk){
+  var p = stockPanelPorCk[c.ck];
+  if(!p || p.q <= 0) return;
+  var cq = Math.max(0, c.qoh) + (c.qoo || 0);
+  if(cq <= 0 && c.estado !== 'AGOTAR' && cajaAdj[c.sku] === 0){
+    c.alerta = 'SIN CANTO: panel con ' + Math.round(p.q) + ' uds en stock/orden';
+    cajaAdj[c.sku] = 1;
+    c.cajSug = 1;
+    c.rollosSug = c.rollos_caja || 0;
+    return;
+  }
+  if(c.estado === 'AGOTAR') return; // ya calculado por 1:8
+  if(c.tasa > 0 && p.t > 0){
+    var pm = p.q / p.t;
+    var cm = cq / c.tasa;
+    if(cm < pm - 0.5){
+      c.alerta = 'Canto cubre ' + Math.round(cm) + ' meses vs panel ' + Math.round(pm) + ' meses';
+    }
+  }
 }
 
 // === GROUPS ====================================================
