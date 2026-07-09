@@ -79,7 +79,13 @@ canvas{width:100%!important}
 </style>
 </head>
 <body>
-<div class="ahdr"><h1>&#127968; FINSA — Compras &amp; Proyeccion</h1><p>Vendor 6 &middot; FINANCIERA MADERERA, S.A. &middot; Jun 2026</p></div>
+<div class="ahdr" style="display:flex;align-items:center;gap:12px">
+  <button onclick="volverAlHub()" title="Volver al Hub" style="background:rgba(255,255,255,.18);color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:700;flex-shrink:0">&larr; Hub</button>
+  <div style="flex:1;min-width:0">
+    <h1>&#127968; FINSA &mdash; Compras &amp; Proyeccion</h1>
+    <p>Vendor 6 &middot; FINANCIERA MADERERA, S.A.</p>
+  </div>
+</div>
 
 <!-- UPLOAD SCREEN -->
 <div id="uploadSec" style="background:#f0f2f5;padding:16px;min-height:100vh">
@@ -115,6 +121,21 @@ canvas{width:100%!important}
       </div>
     </div>
   </div>
+
+  <!-- Card OPCIONAL: QTY / POs en camino -->
+  <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;border:2px dashed #ddd;cursor:pointer" id="ucQty">
+    <input type="file" id="fQty" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:22px">&#128666;</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;margin-bottom:2px">QTY &mdash; POs en camino <span style="font-size:10px;color:#888;font-weight:500">(opcional)</span></div>
+        <div style="font-size:11px;color:#888" id="usQty">Si no lo cargas, se usa QoO del reporte</div>
+      </div>
+      <div style="font-size:22px" id="uchkQty"></div>
+    </div>
+  </div>
+
+  <button id="btnContinuar" style="width:100%;padding:12px;background:#185FA5;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;display:none">Continuar a la herramienta</button>
   <button id="btnReset2" style="width:100%;padding:10px;background:transparent;border:.5px solid #ccc;border-radius:10px;font-size:12px;color:var(--rd);cursor:pointer;margin-top:6px">Recargar archivos</button>
 </div>
 
@@ -312,6 +333,12 @@ canvas{width:100%!important}
 
 <!-- CONFIG -->
 <div id="cfgSec" class="sec">
+<div class="card" style="margin-bottom:12px">
+  <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Archivos cargados</div>
+  <div id="estadoReporte" style="font-size:12px;margin-bottom:6px">&mdash;</div>
+  <div id="estadoQty" style="font-size:12px;margin-bottom:10px">&mdash;</div>
+  <button onclick="recargarArchivos()" style="width:100%;padding:10px;background:transparent;border:1.5px solid #C87A00;color:#C87A00;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Recargar archivos (reporte y QTY)</button>
+</div>
   <div class="card">
     <div style="font-size:13px;font-weight:800;color:var(--bl);margin-bottom:12px">Parametros FINSA</div>
     <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Lead Time</div>
@@ -1459,16 +1486,64 @@ function go(tabId, secId){
   if(secId==='bdpSec') renderBDPaneles();
   if(secId==='bdcSec') renderBDCantos();
   if(secId==='descSec') renderDesc();
-  if(secId==='cfgSec'){ updateCfgUI(); renderMin4List(); loadContactos(); }
+  if(secId==='cfgSec'){ updateCfgUI(); renderMin4List(); loadContactos(); actualizarEstadoArchivos(); }
+}
+
+// === NAVEGACION ============================================
+function actualizarEstadoArchivos(){
+  var r = document.getElementById('estadoReporte');
+  var q = document.getElementById('estadoQty');
+  if(!r || !q) return;
+  var hubReport=null;
+  try{ hubReport = sessionStorage.getItem('CCP_REPORT') || localStorage.getItem('CCP_REPORT'); }catch(e){}
+  if(hubReport){
+    try{
+      var arr = JSON.parse(hubReport);
+      r.innerHTML = '<span style="color:#1D9E75;font-weight:700">&#10003;</span> Reporte inventario: ' + arr.length + ' SKUs';
+    }catch(e){ r.textContent = 'Reporte inventario: presente pero corrupto'; }
+  } else {
+    r.innerHTML = '<span style="color:#C0392B">&#10007;</span> Reporte inventario: no cargado';
+  }
+  var qty=null;
+  try{ qty = sessionStorage.getItem('CCP_FINSA_QTY') || localStorage.getItem('CCP_FINSA_QTY'); }catch(e){}
+  if(qty){
+    try{
+      var q2 = JSON.parse(qty);
+      q.innerHTML = '<span style="color:#1D9E75;font-weight:700">&#10003;</span> QTY (POs en camino): ' + q2.length + ' filas';
+    }catch(e){ q.textContent = 'QTY: presente pero corrupto'; }
+  } else {
+    q.innerHTML = '<span style="color:#888">&#8212;</span> QTY (POs en camino): no cargado &middot; se usa QoO del reporte';
+  }
+}
+
+function volverAlHub(){
+  window.location.href = 'index.html';
+}
+function recargarArchivos(){
+  if(!confirm('Recargar archivos? Se pierden los ajustes manuales de la orden actual.')) return;
+  try{ sessionStorage.removeItem('CCP_REPORT'); }catch(e){}
+  location.reload();
 }
 
 // === DOMContentLoaded ==========================================
 document.addEventListener('DOMContentLoaded', function(){
   loadCFG();
 
-  // Try hub sessionStorage first
+  // Autoload desde el hub: primero sessionStorage (misma pestana), luego localStorage
   var hubReport = null;
   try{ hubReport = sessionStorage.getItem('CCP_REPORT'); }catch(e){}
+  if(!hubReport){
+    try{ hubReport = localStorage.getItem('CCP_REPORT'); }catch(e){}
+  }
+  // QTY opcional (POs en camino) - similar cascada
+  var qtyRaw = null;
+  try{ qtyRaw = sessionStorage.getItem('CCP_FINSA_QTY'); }catch(e){}
+  if(!qtyRaw){
+    try{ qtyRaw = localStorage.getItem('CCP_FINSA_QTY'); }catch(e){}
+  }
+  if(qtyRaw){
+    try{ window._FINSA_QTY = JSON.parse(qtyRaw); }catch(e){ window._FINSA_QTY = null; }
+  }
 
   if(hubReport){
     try{
@@ -1479,7 +1554,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }catch(e){}
   }
 
-  // No hub - show upload
+  // No hay reporte - mostrar pantalla de carga
   document.getElementById('fallbackDiv').style.display = '';
 
   // File input
@@ -1618,6 +1693,37 @@ document.addEventListener('DOMContentLoaded', function(){
     saveCFG();
     updateCfgUI();
   });
+  // --- QTY upload (opcional) ---
+  var fQty = document.getElementById('fQty');
+  var ucQty = document.getElementById('ucQty');
+  ucQty.addEventListener('click', function(){ fQty.click(); });
+  fQty.addEventListener('change', function(){
+    var file = this.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var wb = XLSX.read(e.target.result, {type:'array', cellDates:true, raw:true});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
+        window._FINSA_QTY = rows;
+        try{
+          sessionStorage.setItem('CCP_FINSA_QTY', JSON.stringify(rows));
+          localStorage.setItem('CCP_FINSA_QTY', JSON.stringify(rows));
+        }catch(e){}
+        document.getElementById('usQty').textContent = file.name + ' - ' + rows.length + ' filas';
+        document.getElementById('usQty').style.color = '#1D9E75';
+        document.getElementById('uchkQty').textContent = '\u2705';
+        ucQty.style.borderColor = '#1D9E75';
+      }catch(err){
+        alert('Error leyendo QTY: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  // Si el reporte del hub ya cargo, dar opcion de continuar sin QTY
+  // (esta pantalla solo se muestra cuando NO hay reporte del hub, o cuando se recarga)
+
   document.getElementById('btnReset2').addEventListener('click', function(){
     try{ sessionStorage.removeItem('CCP_REPORT'); }catch(e){}
     location.reload();
