@@ -275,7 +275,7 @@ input[type=file]{display:none}
       <img class="ico" src="logos/finsa.png" alt="FINSA" onerror="this.style.display='none'">
       <h3>FINSA</h3>
       <p>Vendor 33 · Paneles madera</p>
-      <span class="badge wip">En desarrollo</span>
+      <span class="badge ready">Activo</span>
     </div>
     <div class="tool-card" onclick="launchTool('dtc')">
       <img class="ico" src="logos/dtc.png" alt="DTC" onerror="this.style.display='none'">
@@ -609,13 +609,85 @@ function loadRepManual(file){
 }
 
 // ══ LANZAR HERRAMIENTA ══
+var TOOL_STATUS_KEY = 'CCP_TOOL_STATUS';
+var TOOL_STATUS_TTL = 60 * 60 * 1000; // 1 hora
+
 function launchTool(tool){
-  var wip = ['finsa','dtc','viefe','merino','tece'];
-  if(wip.indexOf(tool)>=0){
-    alert('Esta herramienta esta en desarrollo. Estara disponible pronto.');
+  var url = TOOL_URLS[tool];
+  if(!url) return;
+  // Si ya sabemos que el archivo NO existe (cacheado), bloqueamos con alerta
+  if(window._TOOL_AVAILABLE && window._TOOL_AVAILABLE[tool] === false){
+    alert('Esta herramienta aun no esta disponible. Estamos trabajando en ella.');
     return;
   }
-  window.location.href = TOOL_URLS[tool];
+  window.location.href = url;
+}
+
+function checkToolAvailability(){
+  // Intentar leer cache no expirado
+  try{
+    var raw = localStorage.getItem(TOOL_STATUS_KEY);
+    if(raw){
+      var cached = JSON.parse(raw);
+      if(Date.now() - cached.time < TOOL_STATUS_TTL){
+        applyToolStatus(cached.status);
+        return;
+      }
+    }
+  }catch(e){}
+
+  // Sin cache o expirado: HEAD paralelo a cada herramienta
+  var status = {};
+  var keys = Object.keys(TOOL_URLS);
+  var pending = keys.length;
+
+  function done(){
+    localStorage.setItem(TOOL_STATUS_KEY, JSON.stringify({time: Date.now(), status: status}));
+    applyToolStatus(status);
+  }
+
+  keys.forEach(function(key){
+    var xhr = new XMLHttpRequest();
+    xhr.open('HEAD', TOOL_URLS[key], true);
+    xhr.timeout = 5000;
+    xhr.onload = function(){
+      status[key] = (xhr.status >= 200 && xhr.status < 400);
+      if(--pending === 0) done();
+    };
+    xhr.onerror = function(){
+      status[key] = false;
+      if(--pending === 0) done();
+    };
+    xhr.ontimeout = function(){
+      status[key] = false;
+      if(--pending === 0) done();
+    };
+    xhr.send();
+  });
+}
+
+function applyToolStatus(status){
+  window._TOOL_AVAILABLE = status;
+  // Recorrer cards y ajustar badge según disponibilidad
+  document.querySelectorAll('.tool-card').forEach(function(card){
+    var onclick = card.getAttribute('onclick') || '';
+    var m = onclick.match(/launchTool\(['"]([^'"]+)['"]\)/);
+    if(!m) return;
+    var key = m[1];
+    var available = !!status[key];
+    var badge = card.querySelector('.badge');
+    if(!badge) return;
+    if(available){
+      badge.className = 'badge ready';
+      badge.textContent = 'Activo';
+      card.style.opacity = '';
+    } else {
+      // Si no existe, dejar como "En desarrollo" ambar
+      badge.className = 'badge wip';
+      badge.textContent = 'En desarrollo';
+      card.style.opacity = '.6';
+    }
+  });
 }
 
 // ══ TRACKER ══
@@ -1021,6 +1093,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Cargar reporte de Drive al arranque
   fetchFromDrive();
+
+  // Detectar herramientas disponibles y actualizar badges automaticamente
+  checkToolAvailability();
 });
 </script>
 </body>
