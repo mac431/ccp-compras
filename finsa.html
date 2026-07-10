@@ -1083,6 +1083,7 @@ function renderCantoTable(){
 }
 
 function updateHeroTotals(){
+  try{ guardarSnapshotHub(); }catch(e){}
   var totalPal = DATA.reduce(function(a,d){ return a + palAdj[d.sku]; }, 0);
   var totalCont = Math.ceil(totalPal / CFG.maxPal);
   var totalCajas = CANTO_DATA.reduce(function(a,c){ return a + cajaAdj[c.sku]; }, 0);
@@ -1824,7 +1825,7 @@ function launch(){
   updateCfgUI();
   renderMin4List();
   loadContactos();
-  try{ localStorage.setItem('CCP_FINSA_DATA', JSON.stringify({fecha:new Date().toISOString(),skus:DATA.length,cantos:CANTO_DATA.length})); }catch(e){}
+  guardarSnapshotHub();
 }
 
 // === TABS ======================================================
@@ -2134,6 +2135,58 @@ function actualizarNumeroHero(){
   var h = document.getElementById('heroSeqInput');
   var p = document.getElementById('poSeqInput');
   if(h && p && h.value !== p.value) h.value = p.value;
+}
+
+// === SNAPSHOT PARA EL HUB ==================================
+// Guarda un resumen de la data actual en localStorage para que el chatbot
+// del hub pueda contestar preguntas sobre FINSA sin necesidad de abrirlo.
+function guardarSnapshotHub(){
+  try{
+    var snap = {
+      fecha: new Date().toISOString(),
+      totalPaneles: DATA.length,
+      totalCantos: CANTO_DATA.length,
+      skus: [],
+      grupos: [],
+      descontinuados: [],
+      cantosOrden: []
+    };
+    DATA.forEach(function(d){
+      if((d.tasa > 0) || (palAdj[d.sku] || 0) > 0){
+        var cob = d.tasa > 0 ? Math.round(Math.max(0,d.qoh)/d.tasa*10)/10 : -1;
+        snap.skus.push({
+          sku: d.sku, desc: d.desc, linea: d.linea, esp: d.esp,
+          qoh: Math.max(0, d.qoh), qoo: d.qoo, l12: d.l12, tasa: Math.round(d.tasa*10)/10,
+          cob: cob, estado: d.estado, palAdj: palAdj[d.sku] || 0, std: d.std,
+          grupo: d.mix || ''
+        });
+      }
+      if(d.estado === 'AGOTAR' || d.estado === 'AGOTANDO'){
+        snap.descontinuados.push({sku: d.sku, desc: d.desc, estado: d.estado, qoh: Math.max(0,d.qoh)});
+      }
+    });
+    GROUPS.forEach(function(g){
+      var containers = CONTAINER_ASSIGN[g.id] || [];
+      var total = 0;
+      containers.forEach(function(c){
+        c.items.forEach(function(d){ total += palAdj[d.sku] || 0; });
+      });
+      if(total > 0 || containers.length > 0){
+        snap.grupos.push({id: g.id, label: g.label, contenedores: containers.length, paletas: total});
+      }
+    });
+    CANTO_DATA.forEach(function(c){
+      var cajas = cajaAdj[c.sku] || 0;
+      var rollos = c.rollosSueltos || 0;
+      if(cajas > 0 || rollos > 0){
+        snap.cantosOrden.push({
+          sku: c.sku, desc: c.desc, ancho: c.ancho, cajas: cajas, rollos: rollos,
+          estado: c.estado, qoh: Math.max(0,c.qoh), l12: c.l12
+        });
+      }
+    });
+    localStorage.setItem('CCP_FINSA_DATA', JSON.stringify(snap));
+  }catch(e){ /* silent */ }
 }
 
 // === NAVEGACION ============================================
