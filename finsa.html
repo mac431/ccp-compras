@@ -183,12 +183,28 @@ canvas{width:100%!important}
   <!-- SUMMARY HERO -->
   <div class="hero">
     <div class="lbl">Orden FINSA</div>
-    <div class="num" id="heroPoNum">F062026-1</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <div class="num" id="heroPoNum" style="margin-bottom:0">F072026-1</div>
+      <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:8px;padding:4px 6px 4px 10px">
+        <span style="font-size:10px;opacity:.75">Sec</span>
+        <button id="heroSeqDown" style="background:rgba(255,255,255,.25);border:none;color:#fff;width:24px;height:24px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">-</button>
+        <input id="heroSeqInput" type="number" min="1" max="99" value="1" style="width:38px;padding:3px 4px;border-radius:5px;border:none;font-size:13px;font-weight:700;text-align:center;color:#1a1a1a">
+        <button id="heroSeqUp" style="background:rgba(255,255,255,.25);border:none;color:#fff;width:24px;height:24px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">+</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+      <button id="heroSendPan" style="padding:9px 8px;background:#fff;color:#185FA5;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
+        <span style="font-size:14px">&#128231;</span> Enviar PO Paneles
+      </button>
+      <button id="heroSendCan" style="padding:9px 8px;background:#fff;color:#C87A00;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">
+        <span style="font-size:14px">&#128231;</span> Enviar PO Cantos
+      </button>
+    </div>
     <div class="dg">
-      <div class="db"><div class="dl">Paneles</div><div class="dv" id="heroTotalPal">— pal</div></div>
-      <div class="db"><div class="dl">Contenedores</div><div class="dv" id="heroTotalCont">—</div></div>
+      <div class="db"><div class="dl">Paneles</div><div class="dv" id="heroTotalPal">&mdash; pal</div></div>
+      <div class="db"><div class="dl">Contenedores</div><div class="dv" id="heroTotalCont">&mdash;</div></div>
       <div class="db"><div class="dl">ETA estimada</div><div class="dv" id="heroEta">Ago 2026</div></div>
-      <div class="db"><div class="dl">Cantos PO-C</div><div class="dv" id="heroCantoCajas">— cajas</div></div>
+      <div class="db"><div class="dl">Cantos PO-C</div><div class="dv" id="heroCantoCajas">&mdash; cajas</div></div>
     </div>
   </div>
 
@@ -1650,6 +1666,62 @@ function go(tabId, secId){
   if(secId==='cfgSec'){ updateCfgUI(); renderMin4List(); loadContactos(); actualizarEstadoArchivos(); }
 }
 
+// === PO ENVIO/SEQ HELPERS ==================================
+function _finsaBuildPo(isCanto){
+  var seq = parseInt(document.getElementById('poSeqInput').value)||1;
+  var now = new Date();
+  var mm = String(now.getMonth()+1).padStart(2,'0');
+  var yyyy = now.getFullYear();
+  var poNum = 'F' + mm + yyyy + (isCanto ? '-C' : '-') + seq;
+  var cnts = getContactos();
+  var toList = cnts.filter(function(c){ return c.rol==='to'; });
+  var ccList = cnts.filter(function(c){ return c.rol==='cc'; });
+  var nombre = (toList.length && toList[0].nombre) ? toList[0].nombre : 'Alan';
+  var eta_idx = (now.getMonth() + Math.round((CFG.ltFab+CFG.ltTra)/4))%12;
+  var totalPal = 0;
+  if(isCanto){
+    CANTO_DATA.forEach(function(c){ totalPal += (cajaAdj[c.sku]||0); });
+  } else {
+    DATA.forEach(function(d){ totalPal += (palAdj[d.sku]||0); });
+  }
+  var unidad = isCanto ? ' cajas' : ' paletas';
+  var body = ['Hola ' + nombre + ',','',
+    'Adjunto orden de compra ' + poNum + ' para su revision y confirmacion.',
+    '','PO#: ' + poNum + ' | ' + totalPal + unidad + ' | ETA estimada: ' + MN[eta_idx] + ' ' + yyyy,
+    '','Favor confirmar recibo, disponibilidad y fecha de produccion.','','Gracias,',
+    'Caribbean Cabinet Products'].join('\n');
+  var asunto = 'Orden de Compra ' + poNum + ' - Caribbean Cabinet Products - FINSA';
+  var toStr = toList.map(function(c){ return c.email; }).join(',');
+  var ccStr = ccList.length ? '&cc=' + ccList.map(function(c){ return c.email; }).join(',') : '';
+  var url = 'mailto:' + toStr + '?subject=' + encodeURIComponent(asunto) + ccStr + '&body=' + encodeURIComponent(body);
+  return {poNum:poNum, asunto:asunto, body:body, url:url};
+}
+
+function enviarPO(isCanto){
+  var po = _finsaBuildPo(isCanto);
+  var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(isMobile && navigator.share){
+    navigator.share({title: po.asunto, text: po.body}).catch(function(){
+      try{ window.open(po.url, '_blank'); }catch(e){ window.location.href = po.url; }
+    });
+  } else {
+    try{ window.open(po.url, '_blank'); }catch(e){ window.location.href = po.url; }
+  }
+}
+
+function actualizarNumeroHero(){
+  var seq = parseInt(document.getElementById('poSeqInput').value)||1;
+  var now = new Date();
+  var mm = String(now.getMonth()+1).padStart(2,'0');
+  var yyyy = now.getFullYear();
+  var el = document.getElementById('heroPoNum');
+  if(el) el.textContent = 'F' + mm + yyyy + '-' + seq;
+  // sincronizar tambien el input del hero
+  var h = document.getElementById('heroSeqInput');
+  var p = document.getElementById('poSeqInput');
+  if(h && p && h.value !== p.value) h.value = p.value;
+}
+
 // === NAVEGACION ============================================
 function cargarQtyDesdeArchivo(file){
   if(!file) return;
@@ -1791,6 +1863,37 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('tab-ia').addEventListener('click',     function(){ go('tab-ia','iaSec'); });
   document.getElementById('tab-cfg').addEventListener('click',    function(){ go('tab-cfg','cfgSec'); });
 
+  // Sincronizar heroSeqInput <-> poSeqInput
+  var heroSeq = document.getElementById('heroSeqInput');
+  var poSeq = document.getElementById('poSeqInput');
+  if(heroSeq && poSeq){
+    heroSeq.value = poSeq.value;
+    heroSeq.addEventListener('input', function(){
+      poSeq.value = this.value;
+      actualizarNumeroHero();
+    });
+    poSeq.addEventListener('input', function(){
+      heroSeq.value = this.value;
+      actualizarNumeroHero();
+    });
+    document.getElementById('heroSeqDown').addEventListener('click', function(){
+      var v = Math.max(1, (parseInt(heroSeq.value)||1) - 1);
+      heroSeq.value = v; poSeq.value = v; actualizarNumeroHero();
+    });
+    document.getElementById('heroSeqUp').addEventListener('click', function(){
+      var v = Math.min(99, (parseInt(heroSeq.value)||1) + 1);
+      heroSeq.value = v; poSeq.value = v; actualizarNumeroHero();
+    });
+  }
+  // Botones de envio directo desde el hero
+  var heroSendP = document.getElementById('heroSendPan');
+  var heroSendC = document.getElementById('heroSendCan');
+  if(heroSendP) heroSendP.addEventListener('click', function(){ enviarPO(false); });
+  if(heroSendC) heroSendC.addEventListener('click', function(){ enviarPO(true); });
+
+  // Actualizar el numero del hero al arrancar
+  actualizarNumeroHero();
+
   // PO Overlay
   document.getElementById('btnVerPO').addEventListener('click', function(){
     var html = makePOHtml();
@@ -1831,24 +1934,41 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   document.getElementById('btnSendEmail').addEventListener('click', function(){
     var seq = parseInt(document.getElementById('poSeqInput').value)||1;
-    var poNum = 'F062026-' + seq;
+    var now = new Date();
+    var mm = String(now.getMonth()+1).padStart(2,'0');
+    var yyyy = now.getFullYear();
+    var isCanto = document.getElementById('poBarTitle').textContent.indexOf('Canto') >= 0;
+    var poNum = 'F' + mm + yyyy + (isCanto ? '-C' : '-') + seq;
     var cnts = getContactos();
     var toList = cnts.filter(function(c){ return c.rol==='to'; });
     var ccList = cnts.filter(function(c){ return c.rol==='cc'; });
-    if(!toList.length){ alert('Agrega contactos en Config primero.'); return; }
-    var nombre = toList[0].nombre || 'Alan';
-    var eta_idx = (new Date().getMonth() + Math.round((CFG.ltFab+CFG.ltTra)/4))%12;
-    var totalPal = DATA.reduce(function(a,d){ return a+palAdj[d.sku]; },0);
+    var nombre = (toList.length && toList[0].nombre) ? toList[0].nombre : 'Alan';
+    var eta_idx = (now.getMonth() + Math.round((CFG.ltFab+CFG.ltTra)/4))%12;
+    var totalPal = 0;
+    if(isCanto){
+      CANTO_DATA.forEach(function(c){ totalPal += (cajaAdj[c.sku]||0); });
+    } else {
+      DATA.forEach(function(d){ totalPal += (palAdj[d.sku]||0); });
+    }
+    var unidad = isCanto ? ' cajas' : ' paletas';
     var body = ['Hola ' + nombre + ',','',
       'Adjunto orden de compra ' + poNum + ' para su revision y confirmacion.',
-      '','PO#: ' + poNum + ' | ' + totalPal + ' paletas | ETA estimada: ' + MN[eta_idx] + ' 2026',
+      '','PO#: ' + poNum + ' | ' + totalPal + unidad + ' | ETA estimada: ' + MN[eta_idx] + ' ' + yyyy,
       '','Favor confirmar recibo, disponibilidad y fecha de produccion.','','Gracias,',
       'Caribbean Cabinet Products'].join('\n');
     var asunto = 'Orden de Compra ' + poNum + ' - Caribbean Cabinet Products - FINSA';
     var toStr = toList.map(function(c){ return c.email; }).join(',');
     var ccStr = ccList.length ? '&cc=' + ccList.map(function(c){ return c.email; }).join(',') : '';
     var url = 'mailto:' + toStr + '?subject=' + encodeURIComponent(asunto) + ccStr + '&body=' + encodeURIComponent(body);
-    window.location.href = url;
+    // Patron Laiwu: navigator.share() primero (mobile), window.open como fallback
+    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if(isMobile && navigator.share){
+      navigator.share({title: asunto, text: body}).catch(function(){
+        try{ window.open(url, '_blank'); }catch(e){ window.location.href = url; }
+      });
+    } else {
+      try{ window.open(url, '_blank'); }catch(e){ window.location.href = url; }
+    }
   });
   document.getElementById('btnRefreshPO').addEventListener('click', function(){
     var html = document.getElementById('poBarTitle').textContent.indexOf('Canto') >= 0
