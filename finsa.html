@@ -12,10 +12,9 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:var(--tx);background:#f0f2f5;padding-bottom:32px}
 .ahdr{background:linear-gradient(135deg,#185FA5,#0D3F75);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .ahdr h1{font-size:15px;font-weight:700;margin-bottom:1px}.ahdr p{font-size:11px;opacity:.7}
-.tabs{display:flex;background:#fff;border-bottom:1px solid var(--br);position:sticky;top:52px;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
-.tabs::-webkit-scrollbar{height:3px}
-.tabs::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
-.tabs::after{content:'\203A';position:sticky;right:0;background:linear-gradient(to right,transparent,#fff 40%);padding:11px 12px 11px 20px;color:#888;font-size:16px;font-weight:700;pointer-events:none;flex-shrink:0}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--br);position:sticky;top:52px;z-index:99;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{height:2px}
+.tabs::-webkit-scrollbar-thumb{background:#ccc}
 .tab{flex:0 0 auto;padding:11px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--mu);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;user-select:none}
 .tab.on{color:var(--bl);border-bottom-color:var(--bl)}
 .sec{padding:12px;display:none}.sec.on{display:block}
@@ -340,7 +339,10 @@ canvas{width:100%!important}
   <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Archivos cargados</div>
   <div id="estadoReporte" style="font-size:12px;margin-bottom:6px">&mdash;</div>
   <div id="estadoQty" style="font-size:12px;margin-bottom:10px">&mdash;</div>
-  <button onclick="recargarArchivos()" style="width:100%;padding:10px;background:transparent;border:1.5px solid #C87A00;color:#C87A00;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Recargar archivos (reporte y QTY)</button>
+  <input type="file" id="fQtyCfg" style="display:none" accept=".xlsx,.xls">
+  <button onclick="document.getElementById('fQtyCfg').click()" style="width:100%;padding:10px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px">Cargar archivo QTY (POs en camino)</button>
+  <button onclick="borrarQty()" id="btnBorrarQty" style="width:100%;padding:8px;background:transparent;border:1px solid #ddd;color:#888;border-radius:8px;font-size:11px;cursor:pointer;margin-bottom:6px;display:none">Borrar QTY cargado</button>
+  <button onclick="recargarArchivos()" style="width:100%;padding:10px;background:transparent;border:1.5px solid #C87A00;color:#C87A00;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Recargar todo (reporte y QTY)</button>
 </div>
   <div class="card">
     <div style="font-size:13px;font-weight:800;color:var(--bl);margin-bottom:12px">Parametros FINSA</div>
@@ -750,6 +752,7 @@ var GROUPS = [
 
 // === RENDER PO (panels) ========================================
 function renderGrupos(){
+  rebuildContainerAssignment(); // recalcular contenedores segun palAdj live
   var html = '';
   var totalPal = 0;
   var gpTotal = 0;
@@ -1557,8 +1560,11 @@ function handleFile(file){
 }
 
 // Asignacion estable de SKU -> contenedor.
-// Se calcula una vez tras computeData; los clicks +/- NO la recalculan
-// para que la fila del SKU no salte de lugar.
+// Contenedores dinamicos: se recalculan segun palAdj LIVE (no palSug).
+// El orden de los SKUs es estable (por palSug desc + desc alfabetica), pero
+// la cantidad de contenedores y su distribucion se ajusta al total live.
+// Ejemplo: si un grupo tiene 44 pal originales en 3 conts y bajas a 15 pal,
+// se colapsa a 1 solo contenedor con los SKUs restantes.
 var CONTAINER_ASSIGN = {};
 
 function rebuildContainerAssignment(){
@@ -1566,19 +1572,48 @@ function rebuildContainerAssignment(){
   GROUPS.forEach(function(g){
     var skus = DATA.filter(function(d){ return d.mix === g.id && d.palSug > 0; });
     if(!skus.length){ CONTAINER_ASSIGN[g.id] = []; return; }
-    var byPal = skus.slice().sort(function(a, b){ return b.palSug - a.palSug; });
-    var containers = [];
-    var cur = {items:[], sugSum:0};
-    containers.push(cur);
-    byPal.forEach(function(d){
-      // Un SKU no se parte: si no cabe entero, abrir nuevo contenedor
-      if(cur.sugSum + d.palSug > CFG.maxPal && cur.sugSum > 0){
-        cur = {items:[], sugSum:0};
-        containers.push(cur);
-      }
-      cur.items.push(d);
-      cur.sugSum += d.palSug;
+
+    // Orden estable por palSug desc (no cambia al ajustar +/-)
+    var ordenados = skus.slice().sort(function(a, b){
+      if(b.palSug !== a.palSug) return b.palSug - a.palSug;
+      return (a.desc || '').localeCompare(b.desc || '');
     });
+
+    // Separar los SKUs con paletas > 0 (activos) de los que estan en 0
+    var activos = [];
+    var ceros = [];
+    ordenados.forEach(function(d){
+      if((palAdj[d.sku] || 0) > 0) activos.push(d);
+      else ceros.push(d);
+    });
+
+    // Calcular cuantos contenedores necesitamos basado en palAdj LIVE
+    var totalLive = activos.reduce(function(a, d){ return a + palAdj[d.sku]; }, 0);
+    var numContainers = Math.max(1, Math.ceil(totalLive / CFG.maxPal));
+
+    // Inicializar contenedores vacios
+    var containers = [];
+    for(var i = 0; i < numContainers; i++){
+      containers.push({items:[], liveSum:0});
+    }
+
+    // Fill greedy respetando el orden estable
+    var cur = 0;
+    activos.forEach(function(d){
+      var qty = palAdj[d.sku];
+      // Si no cabe entero en el actual, avanzar al siguiente
+      if(containers[cur].liveSum + qty > CFG.maxPal && cur < containers.length - 1){
+        cur++;
+      }
+      containers[cur].items.push(d);
+      containers[cur].liveSum += qty;
+    });
+
+    // Los SKUs en 0 van al ultimo contenedor (visibles con opacidad para poder restaurar)
+    ceros.forEach(function(d){
+      containers[containers.length - 1].items.push(d);
+    });
+
     CONTAINER_ASSIGN[g.id] = containers;
   });
 }
@@ -1616,6 +1651,38 @@ function go(tabId, secId){
 }
 
 // === NAVEGACION ============================================
+function cargarQtyDesdeArchivo(file){
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var wb = XLSX.read(e.target.result, {type:'array', cellDates:true, raw:true});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true});
+      window._FINSA_QTY = rows;
+      try{
+        sessionStorage.setItem('CCP_FINSA_QTY', JSON.stringify(rows));
+        localStorage.setItem('CCP_FINSA_QTY', JSON.stringify(rows));
+      }catch(e){}
+      alert('QTY cargado: ' + rows.length + ' filas');
+      actualizarEstadoArchivos();
+    }catch(err){
+      alert('Error leyendo QTY: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function borrarQty(){
+  if(!confirm('Borrar el archivo QTY cargado?')) return;
+  try{
+    sessionStorage.removeItem('CCP_FINSA_QTY');
+    localStorage.removeItem('CCP_FINSA_QTY');
+  }catch(e){}
+  window._FINSA_QTY = null;
+  actualizarEstadoArchivos();
+}
+
 function actualizarEstadoArchivos(){
   var r = document.getElementById('estadoReporte');
   var q = document.getElementById('estadoQty');
@@ -1632,13 +1699,16 @@ function actualizarEstadoArchivos(){
   }
   var qty=null;
   try{ qty = sessionStorage.getItem('CCP_FINSA_QTY') || localStorage.getItem('CCP_FINSA_QTY'); }catch(e){}
+  var btnBorrar = document.getElementById('btnBorrarQty');
   if(qty){
     try{
       var q2 = JSON.parse(qty);
       q.innerHTML = '<span style="color:#1D9E75;font-weight:700">&#10003;</span> QTY (POs en camino): ' + q2.length + ' filas';
     }catch(e){ q.textContent = 'QTY: presente pero corrupto'; }
+    if(btnBorrar) btnBorrar.style.display = '';
   } else {
     q.innerHTML = '<span style="color:#888">&#8212;</span> QTY (POs en camino): no cargado &middot; se usa QoO del reporte';
+    if(btnBorrar) btnBorrar.style.display = 'none';
   }
 }
 
@@ -1671,17 +1741,20 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ window._FINSA_QTY = JSON.parse(qtyRaw); }catch(e){ window._FINSA_QTY = null; }
   }
 
+  var reporteAutocargado = false;
   if(hubReport){
     try{
       var arr = JSON.parse(hubReport);
       computeData(arr);
       launch();
-      return;
+      reporteAutocargado = true;
     }catch(e){}
   }
 
-  // No hay reporte - mostrar pantalla de carga
-  document.getElementById('fallbackDiv').style.display = '';
+  // Solo mostrar la pantalla de carga si no logramos autocargar
+  if(!reporteAutocargado){
+    document.getElementById('fallbackDiv').style.display = '';
+  }
 
   // File input
   document.getElementById('f1').addEventListener('change', function(){
@@ -1819,6 +1892,15 @@ document.addEventListener('DOMContentLoaded', function(){
     saveCFG();
     updateCfgUI();
   });
+  // --- QTY upload desde Config tab ---
+  var fQtyCfg = document.getElementById('fQtyCfg');
+  if(fQtyCfg){
+    fQtyCfg.addEventListener('change', function(){
+      if(this.files[0]) cargarQtyDesdeArchivo(this.files[0]);
+      this.value = ''; // permitir cargar el mismo archivo de nuevo
+    });
+  }
+
   // --- QTY upload (opcional) ---
   var fQty = document.getElementById('fQty');
   var ucQty = document.getElementById('ucQty');
