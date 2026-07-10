@@ -892,6 +892,53 @@ function loadHubKeyCfg(){
 function getContextoHub(){
   var ctx=['=== CCP COMPRAS HUB === Fecha: '+new Date().toLocaleDateString('es-PR')];
 
+  // Datos detallados de FINSA si estan disponibles
+  var finsaData=null;
+  try{ finsaData=JSON.parse(localStorage.getItem('CCP_FINSA_DATA')||'null'); }catch(e){}
+  if(finsaData && finsaData.skus && finsaData.skus.length){
+    ctx.push('\n=== FINSA (Vendor 33) - DETALLE COMPLETO ===');
+    ctx.push('Fecha datos: '+(finsaData.fecha||'desconocida'));
+    ctx.push('Total SKUs paneles: '+finsaData.totalPaneles+' | cantos: '+finsaData.totalCantos);
+    ctx.push('SKUs activos con ventas o en orden: '+finsaData.skus.length);
+    // Grupos con orden
+    if(finsaData.grupos && finsaData.grupos.length){
+      ctx.push('\nORDEN FINSA POR GRUPO:');
+      finsaData.grupos.forEach(function(g){
+        if(g.paletas > 0){
+          ctx.push('  ' + g.label + ': ' + g.paletas + ' paletas en ' + g.contenedores + ' contenedor(es)');
+        }
+      });
+    }
+    // SKUs con orden actual
+    var enOrden = finsaData.skus.filter(function(d){ return d.palAdj > 0; });
+    if(enOrden.length){
+      ctx.push('\nPANELES EN ORDEN ACTUAL (' + enOrden.length + '):');
+      enOrden.forEach(function(d){
+        ctx.push('  ' + d.sku + ' ' + d.desc + ': ' + d.palAdj + ' pal (' + (d.palAdj * d.std) + ' uds) | QoH=' + d.qoh + ' | L12=' + d.l12 + ' | cob=' + d.cob + 'mo');
+      });
+    }
+    // Cantos en orden
+    if(finsaData.cantosOrden && finsaData.cantosOrden.length){
+      ctx.push('\nCANTOS EN ORDEN (' + finsaData.cantosOrden.length + '):');
+      finsaData.cantosOrden.slice(0,30).forEach(function(c){
+        var qty = c.cajas > 0 ? c.cajas + ' cajas' : c.rollos + ' rollos sueltos';
+        ctx.push('  ' + c.sku + ' ' + c.desc + ': ' + qty + ' | QoH=' + c.qoh);
+      });
+      if(finsaData.cantosOrden.length > 30) ctx.push('  ... y ' + (finsaData.cantosOrden.length-30) + ' cantos mas');
+    }
+    // SKUs criticos (bajo piso o sobre-stock)
+    var bajoStock = finsaData.skus.filter(function(d){ return d.cob >= 0 && d.cob < 1 && d.tasa > 0; });
+    if(bajoStock.length){
+      ctx.push('\nFINSA - SKUs CRITICOS (cobertura < 1 mes):');
+      bajoStock.slice(0,15).forEach(function(d){ ctx.push('  ' + d.sku + ' ' + d.desc + ': QoH=' + d.qoh + ' cob=' + d.cob + 'mo (L12=' + d.l12 + ')'); });
+    }
+    var descActivos = finsaData.descontinuados ? finsaData.descontinuados.filter(function(d){ return d.qoh > 0; }) : [];
+    if(descActivos.length){
+      ctx.push('\nFINSA - DESCONTINUADOS CON STOCK (' + descActivos.length + '):');
+      descActivos.slice(0,10).forEach(function(d){ ctx.push('  ' + d.sku + ' ' + d.desc + ' [' + d.estado + '] QoH=' + d.qoh); });
+    }
+  }
+
   // Datos detallados de Laiwu si estan disponibles
   var laiwuData=null;
   try{ laiwuData=JSON.parse(localStorage.getItem('CCP_LAIWU_DATA')||'null'); }catch(e){}
