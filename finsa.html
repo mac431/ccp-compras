@@ -73,6 +73,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 #poBodyInner table{width:100%!important;table-layout:fixed!important;word-break:break-word}
 #poBodyInner td,#poBodyInner th{overflow:hidden;text-overflow:ellipsis;white-space:normal}
 @media print{body>*{display:none!important}#poOv{display:block!important;position:static!important;overflow:visible!important}#poBar{display:none!important}#poBodyInner{display:block!important;padding:0}}
+.cfgH{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--bl);text-transform:uppercase;letter-spacing:.5px;background:#EBF3FF;border-left:4px solid var(--bl);border-radius:6px;padding:9px 11px;margin:20px 0 10px}
 .cfgbtn{width:32px;height:32px;border-radius:8px;border:.5px solid var(--br);background:#f5f5f5;font-size:18px;font-weight:700;cursor:pointer}
 .sec-lbl{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
 .canto-sep{background:#FFF4E0;border-left:3px solid var(--am);border-radius:8px;padding:10px 12px;margin:14px 0 10px;font-size:12px;font-weight:700;color:var(--am)}
@@ -389,7 +390,7 @@ canvas{width:100%!important}
 </div>
   <div class="card">
     <div style="font-size:13px;font-weight:800;color:var(--bl);margin-bottom:12px">Parametros FINSA</div>
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Lead Time</div>
+    <div class="cfgH">&#128666; Lead Time</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:#f8f9fa;border-radius:8px;padding:10px">
         <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Semanas fabricacion</div>
@@ -411,7 +412,7 @@ canvas{width:100%!important}
     <div style="background:#EBF3FF;border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--bl)">
       Lead time total: <b id="ltTotalV">~2 meses</b> &mdash; ETA estimada: <b id="ltEtaV">Ago 2026</b>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Stock minimo de paneles por categoria (paletas)</div>
+    <div class="cfgH">&#128230; Pisos de Paneles por Categoria (paletas)</div>
     <div style="background:#FFF4E0;border-radius:8px;padding:10px;margin-bottom:14px">
       <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Si stock+ruta del SKU baja del piso de su categoria, la reposicion entra en la orden. Fintop y Sinatra 15/25 (especiales) no tienen piso.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">
@@ -481,7 +482,7 @@ canvas{width:100%!important}
         </div>
       </div>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Safety Stock</div>
+    <div class="cfgH">&#128737;&#65039; Safety Stock y Contenedor</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:#f8f9fa;border-radius:8px;padding:10px">
         <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Meses safety</div>
@@ -500,7 +501,7 @@ canvas{width:100%!important}
         </div>
       </div>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Reglas de Cantos</div>
+    <div class="cfgH">&#128207; Reglas de Cantos</div>
     <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Piso de compra segun movimiento de los paneles del color. Un color es MOVIDO si sus paneles venden al menos el umbral en 12 meses.</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div style="background:#f8f9fa;border-radius:8px;padding:10px">
@@ -543,7 +544,7 @@ canvas{width:100%!important}
         <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso MOVIDO rango 33mm (rollos)</div>
         <div style="display:flex;align-items:center;gap:8px">
           <button class="cfgbtn" id="cPm33M">-</button>
-          <span id="cPm33V" style="font-size:20px;font-weight:800;color:#1D9E75;min-width:28px;text-align:center">24</span>
+          <span id="cPm33V" style="font-size:20px;font-weight:800;color:#1D9E75;min-width:28px;text-align:center">12</span>
           <button class="cfgbtn" id="cPm33P">+</button>
         </div>
       </div>
@@ -574,11 +575,11 @@ canvas{width:100%!important}
         </div>
       </div>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Colores con Minimo 4 Paletas</div>
+    <div class="cfgH">&#11088; Colores con Minimo 4 Paletas</div>
     <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Acabado Caribbean diferente al preferente de FINSA</div>
     <div id="min4List" style="margin-bottom:14px"></div>
     <hr style="border:none;border-top:1px solid var(--br);margin-bottom:14px">
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Contactos del Suplidor</div>
+    <div class="cfgH">&#128231; Contactos del Suplidor</div>
     <div id="cnt-block-0" style="background:#f8f9fa;border-radius:8px;padding:10px;margin-bottom:6px">
       <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">Contacto 1</div>
       <input id="cnt-nombre-0" type="text" placeholder="Nombre (ej: Alan)" style="width:100%;padding:8px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:13px;margin-bottom:5px;display:block;box-sizing:border-box">
@@ -598,6 +599,11 @@ canvas{width:100%!important}
       <select id="cnt-rol-2" style="width:100%;padding:8px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:13px;display:block;box-sizing:border-box"><option value="to">Para (To)</option><option value="cc">Copia (CC)</option></select>
     </div>
     <button id="btnAddCnt" style="width:100%;padding:10px;background:transparent;border:1.5px dashed var(--bl);color:var(--bl);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px">+ Agregar contacto</button>
+    <div class="cfgH">&#9729;&#65039; Sincronizacion</div>
+    <div style="background:#f8f9fa;border-radius:8px;padding:10px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--mu);margin-bottom:4px">La configuracion se guarda automaticamente en este dispositivo y en la nube (Google), para que cualquier dispositivo que abra la herramienta use los mismos valores.</div>
+      <div id="syncStatus" style="font-size:12px;font-weight:700;color:#C87A00">Verificando...</div>
+    </div>
     <button id="btnRecalc" style="width:100%;padding:13px;background:var(--bl);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">Recalcular</button>
     <button id="btnReset" style="width:100%;padding:10px;background:transparent;border:1.5px solid var(--br);border-radius:10px;font-size:12px;color:var(--mu);cursor:pointer">Restaurar valores por defecto</button>
   </div>
@@ -619,9 +625,48 @@ const fmt = n => Math.round(n).toLocaleString('es-PR');
 // === CONFIG ====================================================
 var CFG = {ltFab:3, ltTra:5, ss:3, maxPal:16,
   msP8:2, msP1516:3, msP18:3, msP19:3, msTM:3, msS19:2, msS30:2, msS36:2,
-  cUmbral:80, cPisoMov:24, cPisoLen:12, cPisoMov33:24, cPisoLen33:12,
+  cUmbral:80, cPisoMov:24, cPisoLen:12, cPisoMov33:12, cPisoLen33:12,
   cPisoR44Pan:12, cPisoR44Solo:4, cRatioDesc:8};
 const CFG_KEY = 'CCP_FINSA_CFG';
+// URL del Apps Script (mismo que descarga el reporte). Se usa para sincronizar
+// la configuracion entre dispositivos (requiere las acciones getcfg/savecfg en el script).
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxKG41HYb2X_vikPfsJeB2OrVOrlOZVqqBMfOIpG1OYQyS-E5S3qLMcLXkbXTjVO-et_g/exec';
+
+var _cfgPushTimer = null;
+function setSyncStatus(txt, ok){
+  var el = document.getElementById('syncStatus');
+  if(el){ el.textContent = txt; el.style.color = ok ? '#1D9E75' : '#C87A00'; }
+}
+function pushCFGRemote(){
+  try{
+    clearTimeout(_cfgPushTimer);
+    _cfgPushTimer = setTimeout(function(){
+      setSyncStatus('Sincronizando...', false);
+      fetch(GAS_URL + '?action=savecfg&tool=finsa&cfg=' + encodeURIComponent(JSON.stringify(CFG)))
+        .then(function(r){ return r.json(); })
+        .then(function(){ setSyncStatus('Config sincronizada en la nube', true); })
+        .catch(function(){ setSyncStatus('Sin conexion: guardada solo en este dispositivo', false); });
+    }, 900);
+  }catch(e){}
+}
+function syncCFGRemote(cb){
+  try{
+    fetch(GAS_URL + '?action=getcfg&tool=finsa')
+      .then(function(r){ return r.json(); })
+      .then(function(remote){
+        if(remote && remote._ts && (!CFG._ts || remote._ts > CFG._ts)){
+          CFG = Object.assign(CFG, remote);
+          try{ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }catch(e){}
+          setSyncStatus('Config actualizada desde la nube', true);
+          if(cb) cb(true);
+        } else {
+          setSyncStatus('Config sincronizada en la nube', true);
+          if(cb) cb(false);
+        }
+      })
+      .catch(function(){ setSyncStatus('Sin conexion: usando config de este dispositivo', false); if(cb) cb(false); });
+  }catch(e){ if(cb) cb(false); }
+}
 const CNT_KEY = 'CCP_FINSA_CONTACTS';
 
 function loadCFG(){
@@ -643,7 +688,9 @@ function loadCFG(){
   }catch(e){}
 }
 function saveCFG(){
+  CFG._ts = Date.now();
   try{localStorage.setItem(CFG_KEY,JSON.stringify(CFG));}catch(e){}
+  pushCFGRemote();
 }
 
 // === COMPUTED DATA =============================================
@@ -671,10 +718,14 @@ function minPalCategoria(p){
   return 0; // formatos fuera de categoria: sin piso
 }
 
+var LAST_ROWS = [];
 function computeData(reportRows){
+  // Cache: recalcular con [] reusa el ultimo reporte cargado (no pierde datos)
+  if(reportRows && reportRows.length){ LAST_ROWS = reportRows; }
+  var rowsSrc = (reportRows && reportRows.length) ? reportRows : LAST_ROWS;
   // Build lookup from report: sku -> row
   var rLookup = {};
-  reportRows.forEach(function(r){ rLookup[r.sku] = r; });
+  rowsSrc.forEach(function(r){ rLookup[r.sku] = r; });
 
   // Indice inverso: destino -> [viejos que consolidan hacia el]
   var CONSOLIDA_HACIA = {};
@@ -1137,7 +1188,7 @@ function renderGrupos(){
       html += '</tbody></table></div></div>';
     });
 
-    // Mini-buscador para añadir SKUs a este grupo
+    // Mini-buscador para agregar SKUs a este grupo
     html += '<div style="background:#fff;border-radius:8px;padding:8px 10px;margin-top:4px;border:1px dashed #ccc;position:relative">';
     html += '<div style="font-size:10px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Añadir SKU al grupo</div>';
     html += '<input type="text" class="grp-search" data-group="' + g.id + '" placeholder="Buscar por nombre o SKU..." style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:11px;box-sizing:border-box" autocomplete="off">';
@@ -1990,7 +2041,7 @@ var CONTAINER_ASSIGN = {};
 function rebuildContainerAssignment(){
   CONTAINER_ASSIGN = {};
   GROUPS.forEach(function(g){
-    // Incluir SKUs con sugerencia inicial > 0 O añadidos manualmente por el usuario
+    // Incluir SKUs con sugerencia inicial > 0 O agregados manualmente por el usuario
     var skus = DATA.filter(function(d){
       return d.mix === g.id && (d.palSug > 0 || (palAdj[d.sku] || 0) > 0);
     });
@@ -2493,6 +2544,19 @@ function recargarArchivos(){
 // === DOMContentLoaded ==========================================
 document.addEventListener('DOMContentLoaded', function(){
   loadCFG();
+  // Sincronizar config desde la nube: si hay una version mas nueva de otro
+  // dispositivo, se aplica y se recalcula (LAST_ROWS conserva el reporte).
+  syncCFGRemote(function(changed){
+    if(changed){
+      updateCfgUI();
+      if(typeof DATA !== 'undefined' && DATA && DATA.length){
+        computeData([]);
+        renderGrupos();
+        renderCantoTable();
+        updateHeroTotals();
+      }
+    }
+  });
 
   // Autoload desde el hub: primero sessionStorage (misma pestana), luego localStorage
   var hubReport = null;
@@ -2740,7 +2804,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btnReset').addEventListener('click', function(){
     CFG = {ltFab:3,ltTra:5,ss:3,maxPal:16,
       msP8:2,msP1516:3,msP18:3,msP19:3,msTM:3,msS19:2,msS30:2,msS36:2,
-      cUmbral:80,cPisoMov:24,cPisoLen:12,cPisoMov33:24,cPisoLen33:12,
+      cUmbral:80,cPisoMov:24,cPisoLen:12,cPisoMov33:12,cPisoLen33:12,
       cPisoR44Pan:12,cPisoR44Solo:4,cRatioDesc:8};
     saveCFG();
     updateCfgUI();
