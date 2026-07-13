@@ -1020,6 +1020,61 @@ var STOP_CHAT = ('cuanto cuanta cuantos cuantas cuando cual cuales que como dond
  + ' proximo proximos proxima proximas pendiente pendientes resumen resumenes aprobado aprobados borrador borradores recibido recibidos siguiente siguientes ultimo ultimos tracker general activo activos activa activas registrado registrados'
  + ' sku skus codigo color dime dame muestra busca buscar ver info informacion estado').split(' ');
 
+var _lastChatItems = [];
+
+function llegadasConfirmadas(sku){
+  // Llegadas por mes desde el snapshot de Laiwu (archivo QTY cargado en la herramienta).
+  // El indice i del array conf es relativo al mes en que se genero el snapshot.
+  var res = [];
+  var ML = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  try{
+    var l = JSON.parse(localStorage.getItem('CCP_LAIWU_DATA')||'null');
+    if(l && l.skus){
+      var base = new Date();
+      if(l.fecha){ var bf = new Date(l.fecha); if(!isNaN(bf)) base = bf; }
+      l.skus.forEach(function(s){
+        if(String(s.sku) !== String(sku) || !s.conf) return;
+        s.conf.forEach(function(c, i){
+          if(c > 0){
+            var d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+            res.push({mes: ML[d.getMonth()] + ' ' + d.getFullYear(), uni: c});
+          }
+        });
+      });
+    }
+  }catch(e){}
+  return res;
+}
+
+function respLlegadasItem(it){
+  var h = '<b>Llegadas de ' + escH(it.desc) + '</b> (SKU ' + escH(it.sku) + ')<br><br>';
+  var algo = false;
+  var conf = llegadasConfirmadas(it.sku);
+  if(conf.length){
+    algo = true;
+    h += '&#128666; <b>Confirmado (archivo QTY):</b><br>';
+    conf.forEach(function(c){ h += '&middot; ' + escH(c.mes) + ': +' + fmtN(c.uni) + ' unidades<br>'; });
+  }
+  var enPos = posConSku(it.sku);
+  if(enPos.length){
+    algo = true;
+    h += (conf.length ? '<br>' : '') + '&#128203; <b>En el tracker:</b><br>';
+    enPos.forEach(function(p){
+      h += '&middot; <b>' + escH(p.po) + '</b>: ' + p.qty + ' ' + escH(p.unidad) + ' &middot; ' + escH(p.estado) + (p.eta ? ' &middot; ETA ' + escH(fmtDate(p.eta)) : '') + '<br>';
+    });
+  }
+  var prep = ordenEnPreparacion(it.sku);
+  if(prep.length){ algo = true; h += (algo?'<br>':'') + '&#128221; ' + prep.map(escH).join('<br>') + '<br>'; }
+  if(!algo){
+    if(it.qoo > 0){
+      h += 'Hay <b>' + fmtN(it.qoo) + '</b> unidades en camino (QoO de Epicor), pero sin fecha detallada. Para ver fechas: carga el archivo QTY en la herramienta del vendor, o registra el PO en el tracker.';
+    } else {
+      h += 'No hay nada en camino para este SKU (QoO = 0) ni ordenes en el tracker.';
+    }
+  }
+  return h;
+}
+
 function chatIndex(){
   if(window._CHAT_IDX && (Date.now() - (window._CHAT_IDX_T||0)) < 60000) return window._CHAT_IDX;
   var idx = [];
@@ -1149,6 +1204,12 @@ function fichaItem(it){
     h += '&#9203; Sin ventas recientes &mdash; no se proyecta agotamiento';
   }
 
+  // Llegadas confirmadas del QTY (snapshot Laiwu)
+  var confQ = llegadasConfirmadas(it.sku);
+  if(confQ.length){
+    h += '<br>&#128666; <b>Llegadas confirmadas (QTY):</b> ' + confQ.map(function(c){ return escH(c.mes) + ' +' + fmtN(c.uni); }).join(' &middot; ');
+  }
+
   // Ordenes del tracker
   var enPos = posConSku(it.sku);
   if(enPos.length){
@@ -1276,16 +1337,31 @@ function motorLocal(qn){
         return respLlegaMes(mi, anio, mes + ' ' + anio);
       }
     }
-    if(!terms.length) return respProximosEmbarques();
+    if(!terms.length){
+      if(_lastChatItems.length && !/proximo|embarque|tracker/.test(qn)) return respLlegadasItem(_lastChatItems[0]);
+      return respProximosEmbarques();
+    }
+  }
+
+  // 3.5) Seguimiento sin entidad: usar el ultimo item consultado
+  if(!tieneSkuTok && !terms.length && _lastChatItems.length){
+    var ult = _lastChatItems[0];
+    if(/llega|eta|viene|embarque|qty|camino|fecha/.test(qn)) return respLlegadasItem(ult);
+    if(/acaba|agota|termina|dura|alcanza|cobertura|stock|disponible|ritmo|venta|vende|orden|po\b/.test(qn)) return fichaItem(ult);
   }
 
   // 4) Busqueda de items
   var res = buscarItems(qn);
   if(res.sinReporte) return 'No hay reporte cargado. Dale a "Actualizar" arriba para descargarlo de Drive.';
-  if(!res.items.length) return 'No encontre ningun SKU que coincida con "' + escH(qn) + '". Prueba con el numero de SKU o parte del nombre del color (ej: "gris coco 19MM").';
+  if(!res.items.length){
+    if(_lastChatItems.length && /llega|qty|camino|fecha|eta|encuentra|embarque/.test(qn)) return respLlegadasItem(_lastChatItems[0]);
+    if(_lastChatItems.length && /acaba|agota|stock|disponible|ritmo|venta|cobertura/.test(qn)) return fichaItem(_lastChatItems[0]);
+    return 'No encontre ningun SKU que coincida con "' + escH(qn) + '". Prueba con el numero de SKU o parte del nombre del color (ej: "gris coco 19MM").';
+  }
 
-  if(res.items.length === 1){ return fichaItem(res.items[0]); }
+  if(res.items.length === 1){ _lastChatItems = res.items; return fichaItem(res.items[0]); }
   if(res.items.length <= 3 && !res.parcial){
+    _lastChatItems = res.items;
     return res.items.map(fichaItem).join('<br><br><hr style="border:none;border-top:1px solid #eee">');
   }
   // Muchos resultados: listar para que precise
