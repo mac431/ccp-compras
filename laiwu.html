@@ -115,12 +115,10 @@ canvas{width:100%!important}
 </style>
 </head>
 <body>
-<div class="ahdr" style="position:relative"><button onclick="location.href='index.html'" style="position:absolute;left:10px;top:10px;background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">&larr; Hub</button><h1>🏭 PVC Laiwu — Compras &amp; Proyección</h1><p>Vendor 51 · Banda SS±½mes · Reposición mensual</p></div>
+<div class="ahdr" style="display:flex;align-items:center;gap:12px"><button onclick="location.href='index.html'" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0">&larr; Hub</button><div style="flex:1;min-width:0"><h1>🏭 PVC Laiwu — Compras &amp; Proyección</h1><p>Vendor 51 · Banda SS±½mes · Reposición mensual</p></div></div>
 
 <!-- ══ UPLOAD SCREEN ══ -->
 <div id="uploadSec" style="background:#f0f2f5;padding:16px;min-height:100vh">
-
-  <button onclick="location.href='index.html'" style="background:#185FA5;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px">&larr; Volver al Hub</button>
 
   <!-- HEADER COMPACT -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-top:4px">
@@ -1474,7 +1472,7 @@ function loadDemo(){
 }
 
 // Hide header until app loads
-document.querySelector('.ahdr').style.display='none';
+// Header siempre visible (incluye el boton para volver al Hub, clave en modo app)
 var CFG={ltFab:1,ltTra:2,ss:3,maxPal:18};var _poState=null,RTT_DATA={},rttTimer=null,EMG_DIAS=56;
 // === CONFIG PERSISTENTE + SYNC EN LA NUBE (mismo mecanismo que finsa.html) ===
 var CFG_KEY='CCP_LAIWU_CFG';
