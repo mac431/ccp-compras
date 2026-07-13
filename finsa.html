@@ -411,13 +411,74 @@ canvas{width:100%!important}
     <div style="background:#EBF3FF;border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--bl)">
       Lead time total: <b id="ltTotalV">~2 meses</b> &mdash; ETA estimada: <b id="ltEtaV">Ago 2026</b>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Stock minimo por color</div>
+    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Stock minimo de paneles por categoria (paletas)</div>
     <div style="background:#FFF4E0;border-radius:8px;padding:10px;margin-bottom:14px">
-      <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Paletas minimas para acabados NO-8mm (los 8mm siempre 2 paletas). Si stock+ruta baja, la reposicion entra en la orden.</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="cfgbtn" id="msM">-</button>
-        <span id="msV" style="font-size:20px;font-weight:800;color:#C87A00;min-width:28px;text-align:center">3</span>
-        <button class="cfgbtn" id="msP">+</button>
+      <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Si stock+ruta del SKU baja del piso de su categoria, la reposicion entra en la orden. Fintop y Sinatra 15/25 (especiales) no tienen piso.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Duo 8MM</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="ms8M">-</button>
+            <span id="ms8V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">2</span>
+            <button class="cfgbtn" id="ms8P">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Duo 15/16MM + Grip</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="ms1516M">-</button>
+            <span id="ms1516V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">3</span>
+            <button class="cfgbtn" id="ms1516P">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Duo 18MM</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="ms18M">-</button>
+            <span id="ms18V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">3</span>
+            <button class="cfgbtn" id="ms18P">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Duo 19MM</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="ms19M">-</button>
+            <span id="ms19V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">3</span>
+            <button class="cfgbtn" id="ms19P">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Tech Matt</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="msTMM">-</button>
+            <span id="msTMV" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">3</span>
+            <button class="cfgbtn" id="msTMP">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Studio 19MM (7x9)</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="msS19M">-</button>
+            <span id="msS19V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">2</span>
+            <button class="cfgbtn" id="msS19P">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Studio 30MM</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="msS30M">-</button>
+            <span id="msS30V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">2</span>
+            <button class="cfgbtn" id="msS30P">+</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:8px">
+          <div style="font-size:11px;color:var(--mu);margin-bottom:4px">Studio 36MM</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="cfgbtn" id="msS36M">-</button>
+            <span id="msS36V" style="font-size:18px;font-weight:800;color:#C87A00;min-width:24px;text-align:center">2</span>
+            <button class="cfgbtn" id="msS36P">+</button>
+          </div>
+        </div>
       </div>
     </div>
     <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Safety Stock</div>
@@ -436,6 +497,80 @@ canvas{width:100%!important}
           <button class="cfgbtn" id="mpM">-</button>
           <span id="mpV" style="font-size:20px;font-weight:800;color:var(--bl);min-width:28px;text-align:center">16</span>
           <button class="cfgbtn" id="mpP">+</button>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Reglas de Cantos</div>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Piso de compra segun movimiento de los paneles del color. Un color es MOVIDO si sus paneles venden al menos el umbral en 12 meses.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="background:#f8f9fa;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Umbral color movido (paneles L12)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="cUmM">-</button>
+          <span id="cUmV" style="font-size:20px;font-weight:800;color:var(--bl);min-width:36px;text-align:center">80</span>
+          <button class="cfgbtn" id="cUmP">+</button>
+        </div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Descontinuados: paneles por rollo (1:N)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="cRdM">-</button>
+          <span id="cRdV" style="font-size:20px;font-weight:800;color:#C0392B;min-width:28px;text-align:center">8</span>
+          <button class="cfgbtn" id="cRdP">+</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="background:#E8F7F2;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso MOVIDO rango 22mm (rollos)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="cPmM">-</button>
+          <span id="cPmV" style="font-size:20px;font-weight:800;color:#1D9E75;min-width:28px;text-align:center">24</span>
+          <button class="cfgbtn" id="cPmP">+</button>
+        </div>
+      </div>
+      <div style="background:#FFF4E0;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso LENTO rango 22mm (rollos)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="cPlM">-</button>
+          <span id="cPlV" style="font-size:20px;font-weight:800;color:#C87A00;min-width:28px;text-align:center">12</span>
+          <button class="cfgbtn" id="cPlP">+</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="background:#E8F7F2;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso MOVIDO rango 33mm (rollos)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="cPm33M">-</button>
+          <span id="cPm33V" style="font-size:20px;font-weight:800;color:#1D9E75;min-width:28px;text-align:center">24</span>
+          <button class="cfgbtn" id="cPm33P">+</button>
+        </div>
+      </div>
+      <div style="background:#FFF4E0;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso LENTO rango 33mm (rollos)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="cPl33M">-</button>
+          <span id="cPl33V" style="font-size:20px;font-weight:800;color:#C87A00;min-width:28px;text-align:center">12</span>
+          <button class="cfgbtn" id="cPl33P">+</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:#f8f9fa;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso 44mm CON panel 36MM (rollos)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="c4pM">-</button>
+          <span id="c4pV" style="font-size:20px;font-weight:800;color:var(--bl);min-width:28px;text-align:center">12</span>
+          <button class="cfgbtn" id="c4pP">+</button>
+        </div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:8px;padding:10px">
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">Piso 44mm SOLO canto (rollos)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="cfgbtn" id="c4sM">-</button>
+          <span id="c4sV" style="font-size:20px;font-weight:800;color:var(--bl);min-width:28px;text-align:center">4</span>
+          <button class="cfgbtn" id="c4sP">+</button>
         </div>
       </div>
     </div>
@@ -482,12 +617,30 @@ const MN = ['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','M
 const fmt = n => Math.round(n).toLocaleString('es-PR');
 
 // === CONFIG ====================================================
-var CFG = {ltFab:3, ltTra:5, ss:3, maxPal:16, minStockPal:3};
+var CFG = {ltFab:3, ltTra:5, ss:3, maxPal:16,
+  msP8:2, msP1516:3, msP18:3, msP19:3, msTM:3, msS19:2, msS30:2, msS36:2,
+  cUmbral:80, cPisoMov:24, cPisoLen:12, cPisoMov33:24, cPisoLen33:12,
+  cPisoR44Pan:12, cPisoR44Solo:4, cRatioDesc:8};
 const CFG_KEY = 'CCP_FINSA_CFG';
 const CNT_KEY = 'CCP_FINSA_CONTACTS';
 
 function loadCFG(){
-  try{var s=localStorage.getItem(CFG_KEY);if(s)CFG=Object.assign(CFG,JSON.parse(s));}catch(e){}
+  try{
+    var s=localStorage.getItem(CFG_KEY);
+    if(s){
+      var old=JSON.parse(s);
+      // Migracion: el viejo minStockPal unico pasa a las categorias 4x8 y Tech Matt
+      if(old.minStockPal && old.msP19 === undefined){
+        old.msP1516 = old.minStockPal; old.msP18 = old.minStockPal;
+        old.msP19 = old.minStockPal; old.msTM = old.minStockPal;
+      }
+      // Migracion: el viejo msP79 unico pasa a las tres categorias Studio
+      if(old.msP79 !== undefined && old.msS19 === undefined){
+        old.msS19 = old.msP79; old.msS30 = old.msP79; old.msS36 = old.msP79;
+      }
+      CFG=Object.assign(CFG,old);
+    }
+  }catch(e){}
 }
 function saveCFG(){
   try{localStorage.setItem(CFG_KEY,JSON.stringify(CFG));}catch(e){}
@@ -498,6 +651,25 @@ var DATA = [];      // computed panel data
 var CANTO_DATA = []; // computed canto data
 var palAdj = {};    // mutable pallet adjustments for panels
 var cajaAdj = {};   // mutable box adjustments for cantos
+
+function minPalCategoria(p){
+  var lin = String(p.linea || '').toUpperCase();
+  var esp = String(p.esp || '').toUpperCase();
+  var fmt = String(p.fmt || '').toUpperCase();
+  if(lin.indexOf('FINTOP') >= 0) return 0;           // pedido especial, sin piso
+  if(lin.indexOf('TECH') >= 0) return CFG.msTM;      // Tech Matt: categoria propia
+  if(lin === 'STUDIO' || fmt.indexOf('7X9') >= 0){   // Studio 7x9 por espesor
+    if(esp === '30MM') return CFG.msS30;
+    if(esp === '36MM') return CFG.msS36;
+    if(esp === '15MM' || esp === '25MM') return 0;   // Sinatra 15/25: especiales
+    return CFG.msS19;
+  }
+  if(esp === '8MM') return CFG.msP8;
+  if(esp === '15MM' || esp === '16MM') return CFG.msP1516; // Duo + Grip
+  if(esp === '18MM') return CFG.msP18;
+  if(esp === '19MM') return CFG.msP19;
+  return 0; // formatos fuera de categoria: sin piso
+}
 
 function computeData(reportRows){
   // Build lookup from report: sku -> row
@@ -550,12 +722,13 @@ function computeData(reportRows){
     var palSug = p.std > 0 ? Math.ceil(need / p.std) : 0;
     palSug = (need > 0 && palSug > 0) ? Math.max(p.min_pal, palSug) : 0;
 
-    // Regla stock minimo: los 8mm solo necesitan mantener mas de un paquete
-    // (min 2 paletas); los demas ACTIVOS usan CFG.minStockPal (default 3).
+    // Regla stock minimo POR CATEGORIA (paletas, configurable en el tab Config):
+    // 8MM / 15-16MM / 18MM / 19MM (4x8 y 4x9) / 7X9. Formatos fuera de estas
+    // categorias (Fintop, etc.) no tienen piso.
     if(p.estado === 'ACTIVO' && p.std > 1){
-      var palMinNeed = (p.esp === '8MM') ? 2 : (CFG.minStockPal || 3);
+      var palMinNeed = minPalCategoria(p);
       var minU = palMinNeed * p.std;
-      if((qoh + qoo) < minU){
+      if(palMinNeed > 0 && (qoh + qoo) < minU){
         var palMin = Math.ceil((minU - qoh - qoo) / p.std);
         if(palMin > palSug){ palSug = palMin; }
       }
@@ -579,6 +752,7 @@ function computeData(reportRows){
   // Regla: color "movido" (paneles L12 >= 80 en el rango) -> piso 24 rollos;
   // color lento (paneles L12 < 80) -> piso 12 rollos. Solo r22 y r33.
   var panelL12PorCkRango = {};
+  var panelExistePorCkRango = {};
   DATA.forEach(function(d){
     var rg = rangoCantoDePanel(d);
     if(!rg) return;
@@ -586,6 +760,7 @@ function computeData(reportRows){
     if(!ckc) return;
     var k = ckc + '|' + rg;
     panelL12PorCkRango[k] = (panelL12PorCkRango[k] || 0) + (d.l12 || 0);
+    if(d.estado !== 'AGOTAR'){ panelExistePorCkRango[k] = true; }
   });
 
   DB_CANTOS.forEach(function(c){
@@ -621,9 +796,14 @@ function computeData(reportRows){
     var l12PanRango = 0;
     if(rango === 'r22' || rango === 'r33'){
       l12PanRango = panelL12PorCkRango[(c.ck || '') + '|' + rango] || 0;
-      pisoActivo = (l12PanRango >= 80) ? 24 : 12;
+      var esMovido = l12PanRango >= CFG.cUmbral;
+      if(rango === 'r22'){ pisoActivo = esMovido ? CFG.cPisoMov : CFG.cPisoLen; }
+      else { pisoActivo = esMovido ? CFG.cPisoMov33 : CFG.cPisoLen33; }
     }
-    else if(rango === 'r44') pisoActivo = 4;
+    else if(rango === 'r44'){
+      l12PanRango = panelL12PorCkRango[(c.ck || '') + '|r44'] || 0;
+      pisoActivo = panelExistePorCkRango[(c.ck || '') + '|r44'] ? CFG.cPisoR44Pan : CFG.cPisoR44Solo;
+    }
 
     // Compra base por venta L12 (cobertura + safety - stock disponible)
     var lt = Math.ceil((CFG.ltFab + CFG.ltTra) / 4);
@@ -668,7 +848,7 @@ function computeData(reportRows){
 //
 // - Colores ACTIVOS: piso segun movimiento del panel del color:
 //   * r22/r33: paneles L12 >= 80 -> piso 24 rollos; L12 < 80 -> piso 12 rollos.
-//   * r44: piso 4 rollos.
+//   * r44: existe panel 36MM del color (no AGOTAR) -> piso 12; solo-canto -> piso 4.
 //   Si por L12 del canto toca mas, se compra mas. Se calcula en el bloque previo.
 // - Colores DESCONTINUADOS: se compra 1 rollo por cada 8 paneles del color
 //   en la orden. Redondeo a rollo entero. Sin caja.
@@ -751,15 +931,16 @@ function applyPanelCantoRule(){
     // ===== COLORES DESCONTINUADOS: regla 1:8 exacta =====
     if(c.estado === 'AGOTAR'){
       if(demandaPaneles > 0){
-        // 1 rollo por cada 8 paneles, redondeo hacia arriba a rollo entero
-        var rollosNec = Math.ceil(demandaPaneles / 8);
+        // 1 rollo por cada N paneles (CFG.cRatioDesc), redondeo hacia arriba a rollo entero
+        var ratioD = CFG.cRatioDesc || 8;
+        var rollosNec = Math.ceil(demandaPaneles / ratioD);
         c.rollosSug = rollosNec;
         // Se piden rollos sueltos (sin caja), pero cajSug se guarda como equivalente
         // por si el resto del codigo lo usa. Marcamos como -1 para indicar "rollos sueltos"
         c.cajSug = 0; // no aplica caja
         c.rollosSueltos = rollosNec;
         cajaAdj[c.sku] = 0;
-        c.alerta = 'Descontinuado: ' + rollosNec + ' rollo' + (rollosNec===1?'':'s') + ' para ' + demandaPaneles + ' paneles en la orden';
+        c.alerta = 'Descontinuado: ' + rollosNec + ' rollo' + (rollosNec===1?'':'s') + ' para ' + demandaPaneles + ' paneles en la orden (1:' + ratioD + ')';
       } else {
         c.rollosSug = 0;
         c.cajSug = 0;
@@ -1071,10 +1252,15 @@ function renderCantoTable(){
     html += '<td><strong style="font-size:11px">' + c.sku + '</strong></td>';
     var badges = '';
     if(c.estado === 'AGOTAR'){ badges += ' <span style="background:#C0392B;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">DESC</span>'; }
-    else if(c.rango === 'r22' || c.rango === 'r33'){
-      var pisoBg = (c.pisoActivo === 24) ? '#E8F7F2' : '#FFF4E0';
-      var pisoCo = (c.pisoActivo === 24) ? '#1D9E75' : '#C87A00';
-      badges += ' <span style="background:' + pisoBg + ';color:' + pisoCo + ';font-size:9px;padding:1px 4px;border-radius:3px">PISO ' + c.pisoActivo + ' &middot; PAN L12: ' + fmt(c.l12PanRango || 0) + '</span>';
+    else if(c.rango === 'r22' || c.rango === 'r33' || c.rango === 'r44'){
+      var pisoMovRef = (c.rango === 'r22') ? CFG.cPisoMov : (c.rango === 'r33' ? CFG.cPisoMov33 : CFG.cPisoR44Pan);
+      var esMov = (c.pisoActivo === pisoMovRef);
+      var pisoBg = esMov ? '#E8F7F2' : '#FFF4E0';
+      var pisoCo = esMov ? '#1D9E75' : '#C87A00';
+      var pisoTxt = 'PISO ' + c.pisoActivo;
+      if(c.rango === 'r44'){ pisoTxt += esMov ? ' &middot; CON PANEL 36MM' : ' &middot; SOLO CANTO'; }
+      else { pisoTxt += ' &middot; PAN L12: ' + fmt(c.l12PanRango || 0); }
+      badges += ' <span style="background:' + pisoBg + ';color:' + pisoCo + ';font-size:9px;padding:1px 4px;border-radius:3px">' + pisoTxt + '</span>';
     }
     if(c.alerta){ badges += '<div style="color:#C0392B;font-size:9px;font-weight:bold">' + c.alerta + '</div>'; }
     html += '<td style="font-size:10px">' + c.desc + badges + '</td>';
@@ -1624,7 +1810,14 @@ function updateCfgUI(){
   document.getElementById('ltTraV').textContent = CFG.ltTra;
   document.getElementById('ssV').textContent = CFG.ss;
   document.getElementById('mpV').textContent = CFG.maxPal;
-  var msEl = document.getElementById('msV'); if(msEl){ msEl.textContent = (CFG.minStockPal || 3); }
+  var cSpans = [
+    ['ms8V','msP8'],['ms1516V','msP1516'],['ms18V','msP18'],['ms19V','msP19'],
+    ['msTMV','msTM'],['msS19V','msS19'],['msS30V','msS30'],['msS36V','msS36'],
+    ['cUmV','cUmbral'],['cRdV','cRatioDesc'],
+    ['cPmV','cPisoMov'],['cPlV','cPisoLen'],['cPm33V','cPisoMov33'],['cPl33V','cPisoLen33'],
+    ['c4pV','cPisoR44Pan'],['c4sV','cPisoR44Solo']
+  ];
+  cSpans.forEach(function(s){ var el = document.getElementById(s[0]); if(el){ el.textContent = CFG[s[1]]; } });
   var totalWeeks = CFG.ltFab + CFG.ltTra;
   var months = Math.round(totalWeeks / 4);
   var eta_idx = (new Date().getMonth() + months) % 12;
@@ -2491,23 +2684,45 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('poBodyInner').innerHTML = html;
   });
 
-  // CFG buttons
+  // CFG buttons: [btnMenos, btnMas, span, campo, min, max, step]
+  // Cada cambio se GUARDA automaticamente en localStorage (saveCFG).
   var cfgMap = [
-    ['ltFabM','ltFabP','ltFabV','ltFab',1,12],
-    ['ltTraM','ltTraP','ltTraV','ltTra',1,16],
-    ['ssM','ssP','ssV','ss',1,6],
-    ['mpM','mpP','mpV','maxPal',8,24],
-    ['msM','msP','msV','minStockPal',0,8],
+    ['ltFabM','ltFabP','ltFabV','ltFab',1,12,1],
+    ['ltTraM','ltTraP','ltTraV','ltTra',1,16,1],
+    ['ssM','ssP','ssV','ss',1,6,1],
+    ['mpM','mpP','mpV','maxPal',8,24,1],
+    ['ms8M','ms8P','ms8V','msP8',0,8,1],
+    ['ms1516M','ms1516P','ms1516V','msP1516',0,8,1],
+    ['ms18M','ms18P','ms18V','msP18',0,8,1],
+    ['ms19M','ms19P','ms19V','msP19',0,8,1],
+    ['msTMM','msTMP','msTMV','msTM',0,8,1],
+    ['msS19M','msS19P','msS19V','msS19',0,8,1],
+    ['msS30M','msS30P','msS30V','msS30',0,8,1],
+    ['msS36M','msS36P','msS36V','msS36',0,8,1],
+    ['cUmM','cUmP','cUmV','cUmbral',10,500,10],
+    ['cRdM','cRdP','cRdV','cRatioDesc',1,20,1],
+    ['cPmM','cPmP','cPmV','cPisoMov',0,60,6],
+    ['cPlM','cPlP','cPlV','cPisoLen',0,60,6],
+    ['cPm33M','cPm33P','cPm33V','cPisoMov33',0,60,6],
+    ['cPl33M','cPl33P','cPl33V','cPisoLen33',0,60,6],
+    ['c4pM','c4pP','c4pV','cPisoR44Pan',0,30,1],
+    ['c4sM','c4sP','c4sV','cPisoR44Solo',0,30,1],
   ];
   cfgMap.forEach(function(m){
-    document.getElementById(m[0]).addEventListener('click', function(){
-      CFG[m[3]] = Math.max(m[4], CFG[m[3]]-1);
+    var step = m[6] || 1;
+    var elM = document.getElementById(m[0]);
+    var elP = document.getElementById(m[1]);
+    if(!elM || !elP) return;
+    elM.addEventListener('click', function(){
+      CFG[m[3]] = Math.max(m[4], CFG[m[3]]-step);
       document.getElementById(m[2]).textContent = CFG[m[3]];
+      saveCFG();
       updateCfgUI();
     });
-    document.getElementById(m[1]).addEventListener('click', function(){
-      CFG[m[3]] = Math.min(m[5], CFG[m[3]]+1);
+    elP.addEventListener('click', function(){
+      CFG[m[3]] = Math.min(m[5], CFG[m[3]]+step);
       document.getElementById(m[2]).textContent = CFG[m[3]];
+      saveCFG();
       updateCfgUI();
     });
   });
@@ -2523,7 +2738,10 @@ document.addEventListener('DOMContentLoaded', function(){
     alert('Recalculado y guardado.');
   });
   document.getElementById('btnReset').addEventListener('click', function(){
-    CFG = {ltFab:3,ltTra:5,ss:3,maxPal:16};
+    CFG = {ltFab:3,ltTra:5,ss:3,maxPal:16,
+      msP8:2,msP1516:3,msP18:3,msP19:3,msTM:3,msS19:2,msS30:2,msS36:2,
+      cUmbral:80,cPisoMov:24,cPisoLen:12,cPisoMov33:24,cPisoLen33:12,
+      cPisoR44Pan:12,cPisoR44Solo:4,cRatioDesc:8};
     saveCFG();
     updateCfgUI();
   });
