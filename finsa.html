@@ -2512,7 +2512,18 @@ function actualizarEstadoArchivos(){
   if(hubReport){
     try{
       var arr = JSON.parse(hubReport);
-      r.innerHTML = '<span style="color:#1D9E75;font-weight:700">&#10003;</span> Reporte inventario: ' + arr.length + ' SKUs';
+      var fDrive = '';
+      var fDesc = '';
+      try{
+        var dd = localStorage.getItem('CCP_REPORT_DRIVE_DATE');
+        if(dd){ fDrive = new Date(dd).toLocaleDateString('es-PR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}); }
+        var rd = sessionStorage.getItem('CCP_REPORT_DATE') || localStorage.getItem('CCP_REPORT_DATE');
+        if(rd){ fDesc = new Date(rd).toLocaleDateString('es-PR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}); }
+      }catch(e2){}
+      var det = '';
+      if(fDrive){ det = '<div style="font-size:10px;color:#888;margin-top:2px">Archivo en Drive del ' + fDrive + (fDesc ? ' &middot; descargado ' + fDesc : '') + '</div>'; }
+      else if(fDesc){ det = '<div style="font-size:10px;color:#888;margin-top:2px">Descargado ' + fDesc + '</div>'; }
+      r.innerHTML = '<span style="color:#1D9E75;font-weight:700">&#10003;</span> Reporte inventario: ' + arr.length + ' SKUs (auto-cargado desde el hub)' + det;
     }catch(e){ r.textContent = 'Reporte inventario: presente pero corrupto'; }
   } else {
     r.innerHTML = '<span style="color:#C0392B">&#10007;</span> Reporte inventario: no cargado';
