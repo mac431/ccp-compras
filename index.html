@@ -351,12 +351,8 @@ input[type=file]{display:none}
 <!-- TAB: CONFIG -->
 <div class="sec" id="cfgSec">
   <div class="card">
-    <div style="font-size:13px;font-weight:700;color:var(--bl);margin-bottom:4px">Asistente IA</div>
-    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">API Key de Groq (gratis en <b>console.groq.com</b>). Se aplica a todas las herramientas.</div>
-    <input type="password" id="hubApiKey" placeholder="gsk_..."
-      style="width:100%;padding:9px 12px;border:1.5px solid var(--br);border-radius:8px;font-size:13px;font-family:monospace;box-sizing:border-box;margin-bottom:8px">
-    <button id="hubSaveKey" style="width:100%;padding:12px;background:var(--bl);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:6px">Guardar API Key</button>
-    <div id="hubKeyFb" style="font-size:12px;color:var(--gn);min-height:18px;text-align:center"></div>
+    <div style="font-size:13px;font-weight:700;color:var(--bl);margin-bottom:4px">Asistente CCP (motor local)</div>
+    <div style="font-size:11px;color:var(--mu)">El asistente responde directamente con los datos del reporte, los snapshots de las herramientas y el tracker de POs. No usa servicios externos ni requiere API key. Respuestas exactas, funciona sin internet.</div>
   </div>
 </div>
 
@@ -432,43 +428,25 @@ input[type=file]{display:none}
   <div class="ai-hdr">
     <div>
       <h3>🤖 Asistente CCP Compras</h3>
-      <p>Inventario · Suministro · POs · Ventas</p>
+      <p>Motor local &middot; respuestas exactas de tus datos &middot; sin IA externa</p>
     </div>
     <button id="aiClose" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">Cerrar</button>
   </div>
   <div class="ai-msgs" id="aiMsgs">
-    <div class="ai-msg ai">Hola! Soy tu asistente de compras CCP. Puedo responder preguntas sobre inventario de todos los suplidores, POs en transito, fechas de llegada y niveles de stock. Carga el reporte primero para obtener respuestas con datos reales.</div>
+    <div class="ai-msg ai">Hola Miguel. Pregunta por cualquier SKU o color y te doy: disponible, ritmo de venta, fecha proyectada de agotamiento, que hay en camino y en que ordenes esta. Ejemplos: "gris coco 19", "cuando llega 41087744", "POs en transito", "que llega en agosto". Escribe "ayuda" para ver mas.</div>
   </div>
   <div class="ai-input-area">
     <div class="ai-chips" id="aiChips">
-      <button class="ai-chip" data-q="Que suplidores tienen SKUs en riesgo?">SKUs en riesgo</button>
-      <button class="ai-chip" data-q="Cuantos POs tengo en transito?">POs en transito</button>
-      <button class="ai-chip" data-q="Cual es el proximo embarque que llega?">Proximos embarques</button>
-      <button class="ai-chip" data-q="Resume el estado general del inventario">Estado general</button>
+      <button class="ai-chip" data-q="POs en transito">POs en transito</button>
+      <button class="ai-chip" data-q="que llega este mes">Llega este mes</button>
+      <button class="ai-chip" data-q="resumen del tracker">Resumen tracker</button>
+      <button class="ai-chip" data-q="ayuda">Ayuda</button>
     </div>
     <div class="ai-input-row">
-      <input id="aiInput" type="text" placeholder="Pregunta sobre inventario, POs...">
+      <input id="aiInput" type="text" placeholder="Ej: gris coco, cuando llega 41087744, POs en transito...">
       <button id="aiSend">&#x27A4;</button>
     </div>
-    <div style="text-align:center;margin-top:6px">
-      <button id="aiBtnKey" style="background:none;border:none;color:#aaa;font-size:10px;cursor:pointer;text-decoration:underline">Configurar API Key</button>
-    </div>
-  </div>
-</div>
 
-<!-- MODAL API KEY -->
-<div class="key-modal" id="keyModal">
-  <div class="key-box">
-    <h3>API Key de Groq</h3>
-    <p style="font-size:11px;color:#888;margin-bottom:10px">
-      Obtén tu key gratis en <b>console.groq.com</b>. Se guarda solo en este dispositivo.
-    </p>
-    <input type="password" id="keyInput" placeholder="gsk_...">
-    <div class="key-box-btns">
-      <button onclick="closeKeyModal()" style="background:#f0f0f0;color:#333">Cancelar</button>
-      <button onclick="saveKey()" style="background:var(--bl);color:#fff">Guardar</button>
-    </div>
-    <div id="keyFb" style="text-align:center;font-size:11px;color:var(--gn);margin-top:8px;min-height:16px"></div>
   </div>
 </div>
 
@@ -494,8 +472,6 @@ var ESTADOS = [
 ];
 
 // Estado global del agente IA (accesible desde toda la app)
-var _groqKey = '';
-var aiHistory = [];
 
 // == TABS ==
 function goTab(t){
@@ -504,7 +480,6 @@ function goTab(t){
   document.getElementById('tab-'+t).classList.add('on');
   document.getElementById(t+'Sec').classList.add('on');
   if(t==='tracker') renderTracker();
-  if(t==='cfg') loadHubKeyCfg();
 }
 
 // == REPORTE: Google Drive ==
@@ -887,40 +862,6 @@ function deletePO(){
   renderTracker();
 }
 
-// == API KEY (globales para poder llamarlas desde onclick) ==
-function openKeyModal(){
-  var ki=document.getElementById('keyInput');
-  if(ki) ki.value=_groqKey;
-  document.getElementById('keyModal').classList.add('open');
-}
-function closeKeyModal(){
-  document.getElementById('keyModal').classList.remove('open');
-}
-function saveKey(){
-  var k=(document.getElementById('keyInput')||{}).value||'';
-  if(!k.startsWith('gsk_')){
-    alert('La key de Groq debe empezar con gsk_');
-    return;
-  }
-  _groqKey=k;
-  localStorage.setItem('CCP_AI_KEY',k);
-  var fb=document.getElementById('keyFb');
-  if(fb){
-    fb.textContent='Key guardada correctamente';
-    setTimeout(function(){ fb.textContent=''; closeKeyModal(); }, 1500);
-  }
-}
-
-function loadHubKeyCfg(){
-  var saved=localStorage.getItem('CCP_AI_KEY')||'';
-  var inp=document.getElementById('hubApiKey');
-  if(inp) inp.value=saved;
-  var fb=document.getElementById('hubKeyFb');
-  if(fb){
-    fb.textContent=saved?'Key activa: '+saved.slice(0,16)+'...':'Sin key configurada';
-    fb.style.color=saved?'var(--gn)':'var(--rd)';
-  }
-}
 
 // == AGENTE IA ==
 function getContextoHub(){
@@ -1052,52 +993,323 @@ function addMsgHub(role, text){
   return div;
 }
 
-function sendAIHub(pregunta){
-  if(!pregunta||!pregunta.trim()) return;
-  var input=document.getElementById('aiInput');
-  if(input) input.value='';
+// ============================================================
+// MOTOR LOCAL DEL ASISTENTE - sin IA externa, respuestas exactas
+// Fuentes: CCP_REPORT (reporte maestro), CCP_POs (tracker),
+// CCP_FINSA_DATA / CCP_LAIWU_DATA (snapshots de herramientas).
+// ============================================================
 
-  if(!_groqKey||!_groqKey.startsWith('gsk_')){
-    addMsgHub('ai','Para usar el asistente, toca "Configurar API Key" y agrega tu key de Groq (gratis en console.groq.com).');
-    return;
+function escH(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function normTxt(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/ +/g,' ').trim();
+}
+function fmtN(n){ return Math.round(n).toLocaleString('es-PR'); }
+function fmtFechaD(d){ return d.toLocaleDateString('es-PR',{day:'2-digit',month:'short',year:'numeric'}); }
+
+var ESTADOS_LBL = ['Borrador','Aprobado Samuel','En Epicor','En transito','Parcial','Recibido'];
+var MESES_MAP = {enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,setiembre:8,octubre:9,noviembre:10,diciembre:11};
+
+var STOP_CHAT = ('cuanto cuanta cuantos cuantas cuando cual cuales que como donde quien el la los las un una unos unas de del al a y o u en con por para sin sobre este esta estos estas ese esa mi tu su es son esta estan hay tiene tienen tengo queda quedan me te se lo le nos'
+ + ' stock disponible disponibles inventario existencia existencias unidades unidad paneles panel cajas caja rollos rollo paletas paleta'
+ + ' llega llegan llegada llegadas eta viene vienen embarque embarques transito camino'
+ + ' orden ordenes po pos pedido pedidos compra compras'
+ + ' venta ventas vende venden ritmo tasa promedio movimiento'
+ + ' mes meses dia dias fecha fechas año'
+ + ' acaba acaban agota agotan termina terminan dura duran alcanza proyecta proyectado stockout'
+ + ' proximo proximos proxima proximas pendiente pendientes resumen resumenes aprobado aprobados borrador borradores recibido recibidos siguiente siguientes ultimo ultimos tracker general activo activos activa activas registrado registrados'
+ + ' sku skus codigo color dime dame muestra busca buscar ver info informacion estado').split(' ');
+
+function chatIndex(){
+  if(window._CHAT_IDX && (Date.now() - (window._CHAT_IDX_T||0)) < 60000) return window._CHAT_IDX;
+  var idx = [];
+  var rep = [];
+  try{ rep = JSON.parse(localStorage.getItem('CCP_REPORT')||'[]'); }catch(e){}
+  rep.forEach(function(r){
+    var sku = String(r['Item Number']||'').trim();
+    if(!sku) return;
+    idx.push({
+      sku: sku,
+      skuN: normTxt(sku).replace(/ /g,''),
+      desc: String(r['Item Description']||''),
+      dn: normTxt(r['Item Description']),
+      qoh: Number(r['Quantity on Hand']||0)||0,
+      qoo: Number(r['Quantity on Order']||0)||0,
+      l12: Number(r['Last 12 Months Sales']||0)||0,
+      p3m: Number(r['PROMEDI ULTIMO 3 MESES']||0)||0,
+      std: Number(r['Standard Package']||0)||0,
+      desco: String(r['Discontinued Item?']||'').toUpperCase()==='Y',
+      vendor: String(r['Vendor Name']||'').trim(),
+      vcode: String(r['Vendor Code']||'').trim()
+    });
+  });
+  window._CHAT_IDX = idx;
+  window._CHAT_IDX_T = Date.now();
+  return idx;
+}
+
+function buscarItems(qn){
+  var idx = chatIndex();
+  if(!idx.length) return {items:[], sinReporte:true};
+  var toks = qn.split(' ').filter(function(t){ return t.length >= 2; });
+
+  // 1) match por numero/codigo de SKU (token con digitos, largo >= 5)
+  var skuToks = toks.filter(function(t){ return t.length >= 5 && /\d/.test(t); });
+  if(skuToks.length){
+    var hitsSku = [];
+    idx.forEach(function(it){
+      for(var i = 0; i < skuToks.length; i++){
+        if(it.skuN.indexOf(skuToks[i]) >= 0){ hitsSku.push(it); return; }
+      }
+    });
+    if(hitsSku.length) return {items: hitsSku.slice(0, 12)};
   }
 
-  addMsgHub('user',pregunta);
-  var thinkDiv=addMsgHub('thinking','Pensando...');
-  aiHistory.push({role:'user',content:pregunta});
-
-  var systemPrompt='Eres un asistente experto en compras e inventario para Caribbean Cabinet Products en Puerto Rico. '
-    +'Tienes acceso al inventario de todos los suplidores y al tracker de ordenes de compra. '
-    +'Responde en espanol, de forma concisa y con numeros especificos cuando esten disponibles. '
-    +'\n\nCONTEXTO ACTUAL:\n'+getContextoHub();
-
-  var messages=aiHistory.slice(-8);
-
-  fetch('https://api.groq.com/openai/v1/chat/completions',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':'Bearer '+_groqKey
-    },
-    body:JSON.stringify({
-      model:'llama-3.3-70b-versatile',
-      max_tokens:1000,
-      messages:[{role:'system',content:systemPrompt}].concat(messages)
-    })
-  })
-  .then(function(r){return r.json();})
-  .then(function(data){
-    thinkDiv.remove();
-    var resp=(data.choices&&data.choices[0]&&data.choices[0].message)
-      ?data.choices[0].message.content
-      :(data.error?data.error.message:'No pude obtener respuesta.');
-    addMsgHub('ai',resp);
-    aiHistory.push({role:'assistant',content:resp});
-  })
-  .catch(function(err){
-    thinkDiv.remove();
-    addMsgHub('ai','Error: '+err.message);
+  // 2) match por descripcion: todos los terminos presentes
+  var terms = toks.filter(function(t){ return t.length >= 3 && STOP_CHAT.indexOf(t) < 0; });
+  if(!terms.length) return {items: []};
+  var full = [], parcial = [];
+  idx.forEach(function(it){
+    var sc = 0;
+    terms.forEach(function(t){ if(it.dn.indexOf(t) >= 0 || it.skuN.indexOf(t) >= 0) sc++; });
+    if(sc === terms.length) full.push(it);
+    else if(sc > 0) parcial.push({it: it, sc: sc});
   });
+  if(full.length){
+    full.sort(function(a,b){ return b.l12 - a.l12; });
+    return {items: full.slice(0, 12)};
+  }
+  parcial.sort(function(a,b){ return b.sc - a.sc || b.it.l12 - a.it.l12; });
+  return {items: parcial.slice(0, 8).map(function(p){ return p.it; }), parcial: true};
+}
+
+function posDelTracker(){
+  try{ return JSON.parse(localStorage.getItem('CCP_POs')||'[]'); }catch(e){ return []; }
+}
+
+function posConSku(sku){
+  var res = [];
+  posDelTracker().forEach(function(p){
+    if(!p.items || !p.items.length) return;
+    p.items.forEach(function(it){
+      if(String(it.sku) === String(sku)){
+        res.push({po: p.po, sup: p.sup, qty: it.qty, unidad: it.unidad||'', estado: ESTADOS_LBL[p.estado]||'?', eta: p.etaConf||p.eta||''});
+      }
+    });
+  });
+  return res;
+}
+
+function ordenEnPreparacion(sku){
+  // Busca el SKU en las ordenes que se estan armando en las herramientas (snapshots)
+  var res = [];
+  try{
+    var f = JSON.parse(localStorage.getItem('CCP_FINSA_DATA')||'null');
+    if(f && f.skus){ f.skus.forEach(function(s){ if(String(s.sku)===String(sku) && s.palAdj>0) res.push('FINSA: '+s.palAdj+' paletas en la orden en preparacion'); }); }
+    if(f && f.cantosOrden){ f.cantosOrden.forEach(function(c){ if(String(c.sku)===String(sku) && (c.cajas>0||c.rollos>0)) res.push('FINSA: '+(c.cajas>0?c.cajas+' cajas':c.rollos+' rollos')+' de canto en la orden en preparacion'); }); }
+    var l = JSON.parse(localStorage.getItem('CCP_LAIWU_DATA')||'null');
+    if(l && l.po){ l.po.forEach(function(p){ if(String(p.sku)===String(sku)) res.push('Laiwu: '+p.pal+' paletas ('+p.uni+' uni) en la orden en preparacion'); }); }
+  }catch(e){}
+  return res;
+}
+
+function fichaItem(it){
+  var tasa12 = it.l12 / 12;
+  var tasaProj = Math.max(tasa12, it.p3m);
+  var h = '<b>' + escH(it.desc) + '</b><br>';
+  h += '<span style="color:#888;font-size:11px">SKU ' + escH(it.sku) + (it.vendor ? ' &middot; ' + escH(it.vendor) : '') + (it.desco ? ' &middot; <span style="color:#C0392B;font-weight:700">DESCONTINUADO</span>' : '') + '</span><br><br>';
+
+  // Disponible y en camino
+  if(it.qoh <= 0){
+    h += '&#128680; Disponible: <b style="color:#C0392B">' + fmtN(it.qoh) + '</b> &mdash; STOCKOUT<br>';
+  } else {
+    h += '&#128230; Disponible: <b>' + fmtN(it.qoh) + '</b> unidades<br>';
+  }
+  h += '&#128666; En camino (QoO): <b>' + fmtN(it.qoo) + '</b><br>';
+
+  // Ritmo
+  h += '&#128200; Ritmo de venta: <b>' + (Math.round(tasa12*10)/10) + '/mes</b> (L12: ' + fmtN(it.l12) + ') &middot; P3M: ' + (Math.round(it.p3m*10)/10) + '/mes<br>';
+
+  // Proyeccion de agotamiento
+  if(tasaProj > 0.05){
+    if(it.qoh > 0){
+      var meses = it.qoh / tasaProj;
+      var f = new Date(Date.now() + meses * 30.44 * 86400000);
+      h += '&#9203; Cobertura: <b>' + (Math.round(meses*10)/10) + ' meses</b> &mdash; se proyecta agotar ~<b>' + fmtFechaD(f) + '</b>';
+      if(it.qoo > 0){
+        var m2 = (it.qoh + it.qoo) / tasaProj;
+        var f2 = new Date(Date.now() + m2 * 30.44 * 86400000);
+        h += '<br>&#10133; Contando el QoO: cubre hasta ~<b>' + fmtFechaD(f2) + '</b>';
+      }
+      h += '<br><span style="color:#888;font-size:10px">Proyeccion con el ritmo mayor entre L12/12 y P3M</span>';
+    } else if(it.qoo > 0){
+      h += '&#9203; Sin stock; el QoO de ' + fmtN(it.qoo) + ' cubriria ~<b>' + (Math.round(it.qoo/tasaProj*10)/10) + ' meses</b> al llegar';
+    }
+  } else {
+    h += '&#9203; Sin ventas recientes &mdash; no se proyecta agotamiento';
+  }
+
+  // Ordenes del tracker
+  var enPos = posConSku(it.sku);
+  if(enPos.length){
+    h += '<br><br>&#128203; <b>En ordenes del tracker:</b>';
+    enPos.forEach(function(p){
+      h += '<br>&middot; <b>' + escH(p.po) + '</b>: ' + p.qty + ' ' + escH(p.unidad) + ' &middot; ' + escH(p.estado) + (p.eta ? ' &middot; ETA ' + escH(fmtDate(p.eta)) : '');
+    });
+  }
+  // Ordenes en preparacion (snapshots)
+  var prep = ordenEnPreparacion(it.sku);
+  if(prep.length){
+    h += '<br><br>&#128221; ' + prep.map(escH).join('<br>');
+  }
+  if(!enPos.length && !prep.length && it.qoo > 0){
+    h += '<br><br><span style="color:#888;font-size:11px">El QoO viene de Epicor; no hay detalle de ese PO en el tracker.</span>';
+  }
+  return h;
+}
+
+function respTrackerResumen(){
+  var pos = posDelTracker();
+  if(!pos.length) return 'El tracker esta vacio. Los POs se registran automaticamente al enviarlos desde las herramientas, o manual con "+ Nuevo PO".';
+  var h = '<b>Tracker: ' + pos.length + ' ordenes</b><br><br>';
+  var porEstado = {};
+  pos.forEach(function(p){ var e = ESTADOS_LBL[p.estado]||'?'; porEstado[e] = (porEstado[e]||0)+1; });
+  h += Object.keys(porEstado).map(function(e){ return e + ': <b>' + porEstado[e] + '</b>'; }).join(' &middot; ') + '<br><br>';
+  pos.slice(0, 15).forEach(function(p){
+    var eta = p.etaConf || p.eta;
+    h += '&middot; <b>' + escH(p.po) + '</b> (' + escH(p.sup) + '): ' + escH(ESTADOS_LBL[p.estado]||'?') + (eta ? ' &middot; ETA ' + escH(fmtDate(eta)) : '') + (p.pal ? ' &middot; ' + escH(p.pal) : '') + '<br>';
+  });
+  if(pos.length > 15) h += '... y ' + (pos.length-15) + ' mas (ver tab Tracker)';
+  return h;
+}
+
+function respPosPorEstado(estados, titulo){
+  var pos = posDelTracker().filter(function(p){ return estados.indexOf(p.estado) >= 0; });
+  if(!pos.length) return 'No hay POs ' + titulo + ' en el tracker.';
+  var h = '<b>' + pos.length + ' PO' + (pos.length===1?'':'s') + ' ' + titulo + ':</b><br><br>';
+  pos.forEach(function(p){
+    var eta = p.etaConf || p.eta;
+    h += '&middot; <b>' + escH(p.po) + '</b> (' + escH(p.sup) + ')' + (eta ? ' &middot; ETA ' + escH(fmtDate(eta)) + (p.etaConf?' (confirmada)':' (estimada)') : '') + (p.pal ? ' &middot; ' + escH(p.pal) : '');
+    if(p.skus) h += '<br><span style="color:#888;font-size:10px">' + escH(String(p.skus).slice(0,90)) + '</span>';
+    h += '<br>';
+  });
+  return h;
+}
+
+function respLlegaMes(mesIdx, anio, etiqueta){
+  var pos = posDelTracker().filter(function(p){
+    var eta = p.etaConf || p.eta;
+    if(!eta) return false;
+    var d = new Date(eta + 'T12:00:00');
+    return d.getMonth() === mesIdx && d.getFullYear() === anio && p.estado < 5;
+  });
+  if(!pos.length) return 'No hay POs con ETA en ' + etiqueta + ' en el tracker.';
+  var h = '<b>Llega en ' + etiqueta + ' (' + pos.length + ' PO' + (pos.length===1?'':'s') + '):</b><br><br>';
+  pos.sort(function(a,b){ return String(a.etaConf||a.eta).localeCompare(String(b.etaConf||b.eta)); });
+  pos.forEach(function(p){
+    var eta = p.etaConf || p.eta;
+    h += '&middot; <b>' + escH(p.po) + '</b> (' + escH(p.sup) + ') &middot; ' + escH(fmtDate(eta)) + (p.etaConf?' (confirmada)':' (estimada)') + ' &middot; ' + escH(ESTADOS_LBL[p.estado]||'?') + (p.pal ? ' &middot; ' + escH(p.pal) : '') + '<br>';
+    if(p.items && p.items.length){
+      h += '<span style="color:#888;font-size:10px">' + p.items.slice(0,6).map(function(it){ return escH(it.sku) + ' x' + it.qty; }).join(', ') + (p.items.length>6 ? ' +' + (p.items.length-6) + ' mas' : '') + '</span><br>';
+    }
+  });
+  return h;
+}
+
+function respProximosEmbarques(){
+  var hoy = new Date().toISOString().slice(0,10);
+  var pos = posDelTracker().filter(function(p){
+    var eta = p.etaConf || p.eta;
+    return eta && eta >= hoy && p.estado < 5;
+  });
+  if(!pos.length) return 'No hay POs con ETA futura en el tracker.';
+  pos.sort(function(a,b){ return String(a.etaConf||a.eta).localeCompare(String(b.etaConf||b.eta)); });
+  var h = '<b>Proximas llegadas:</b><br><br>';
+  pos.slice(0,8).forEach(function(p){
+    var eta = p.etaConf || p.eta;
+    h += '&middot; <b>' + escH(fmtDate(eta)) + '</b> &mdash; ' + escH(p.po) + ' (' + escH(p.sup) + ')' + (p.pal ? ' &middot; ' + escH(p.pal) : '') + '<br>';
+  });
+  return h;
+}
+
+function respAyuda(){
+  return '<b>Puedo responder con datos exactos:</b><br><br>'
+    + '&#128230; <b>Disponible / stock</b>: "gris coco", "stock de 41087744"<br>'
+    + '&#128200; <b>Ritmo de ventas</b>: "cuanto vende cashmere"<br>'
+    + '&#9203; <b>Cuando se acaba</b>: "cuando se agota espiga sal 19"<br>'
+    + '&#128666; <b>Llegadas</b>: "cuando llega 41087744", "que llega en agosto", "proximos embarques"<br>'
+    + '&#128203; <b>Ordenes</b>: "en que po esta gris gu", "POs en transito", "POs pendientes", "resumen del tracker"<br><br>'
+    + 'Busca en el reporte maestro (todos los suplidores), el tracker de POs y las ordenes en preparacion de las herramientas. Entre mas especifico el nombre o SKU, mejor el resultado.';
+}
+
+function motorLocal(qn){
+  // 1) Ayuda
+  if(qn === 'ayuda' || qn === 'help' || qn === 'que puedes hacer'){ return respAyuda(); }
+
+  // 2) Preguntas del tracker (sin item)
+  var esTracker = /\b(po|pos|orden|ordenes|pedido|pedidos|tracker)\b/.test(qn);
+  var terms = qn.split(' ').filter(function(t){ return t.length >= 3 && STOP_CHAT.indexOf(t) < 0; });
+  var tieneSkuTok = qn.split(' ').some(function(t){ return t.length >= 5 && /\d/.test(t); });
+
+  if(!tieneSkuTok && !terms.length){
+    if(/transito/.test(qn)) return respPosPorEstado([3],'en transito');
+    if(/pendiente|aprobar|aprobacion|borrador/.test(qn)) return respPosPorEstado([0,1],'pendientes de proceso');
+    if(/epicor/.test(qn)) return respPosPorEstado([2],'en Epicor');
+    if(/recibid/.test(qn)) return respPosPorEstado([5],'recibidos');
+    if(esTracker || /resumen/.test(qn)) return respTrackerResumen();
+  }
+
+  // 3) Que llega en [mes] / este mes / proximo mes / proximos embarques
+  if(/llega|embarque|eta|viene|arrib/.test(qn) && !tieneSkuTok){
+    var hoy = new Date();
+    if(/este mes/.test(qn)) return respLlegaMes(hoy.getMonth(), hoy.getFullYear(), 'este mes');
+    if(/proximo mes|mes que viene/.test(qn)){
+      var pm = new Date(hoy.getFullYear(), hoy.getMonth()+1, 1);
+      return respLlegaMes(pm.getMonth(), pm.getFullYear(), 'el proximo mes');
+    }
+    for(var mes in MESES_MAP){
+      if(qn.indexOf(mes) >= 0){
+        var mi = MESES_MAP[mes];
+        var anio = hoy.getFullYear() + (mi < hoy.getMonth() ? 1 : 0);
+        var anioM = qn.match(/20\d\d/);
+        if(anioM) anio = parseInt(anioM[0]);
+        return respLlegaMes(mi, anio, mes + ' ' + anio);
+      }
+    }
+    if(!terms.length) return respProximosEmbarques();
+  }
+
+  // 4) Busqueda de items
+  var res = buscarItems(qn);
+  if(res.sinReporte) return 'No hay reporte cargado. Dale a "Actualizar" arriba para descargarlo de Drive.';
+  if(!res.items.length) return 'No encontre ningun SKU que coincida con "' + escH(qn) + '". Prueba con el numero de SKU o parte del nombre del color (ej: "gris coco 19MM").';
+
+  if(res.items.length === 1){ return fichaItem(res.items[0]); }
+  if(res.items.length <= 3 && !res.parcial){
+    return res.items.map(fichaItem).join('<br><br><hr style="border:none;border-top:1px solid #eee">');
+  }
+  // Muchos resultados: listar para que precise
+  var h = 'Encontre <b>' + res.items.length + (res.parcial ? '+ coincidencias parciales' : ' coincidencias') + '</b>. Se mas especifico o usa el SKU:<br><br>';
+  res.items.forEach(function(it){
+    h += '&middot; <b>' + escH(it.sku) + '</b> ' + escH(it.desc) + ' <span style="color:#888;font-size:10px">(' + escH(it.vendor||it.vcode) + ')</span><br>';
+  });
+  return h;
+}
+
+function sendAIHub(pregunta){
+  if(!pregunta || !pregunta.trim()) return;
+  var input = document.getElementById('aiInput');
+  if(input) input.value = '';
+  addMsgHub('user', pregunta);
+  var resp;
+  try{ resp = motorLocal(normTxt(pregunta)); }
+  catch(e){ resp = 'Ocurrio un error procesando la pregunta: ' + escH(e.message); }
+  var msgs = document.getElementById('aiMsgs');
+  var div = document.createElement('div');
+  div.className = 'ai-msg ai';
+  div.innerHTML = resp;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 // == INIT ==
@@ -1117,10 +1329,6 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('detailModal').addEventListener('click', function(e){
     if(e.target===this) closeDetail();
   });
-
-  // Cargar key guardada
-  var savedKey=localStorage.getItem('CCP_AI_KEY')||'';
-  if(savedKey) _groqKey=savedKey;
 
   // AI panel listeners
   var fab=document.getElementById('aiFab');
@@ -1148,28 +1356,11 @@ document.addEventListener('DOMContentLoaded', function(){
   if(aiInp) aiInp.addEventListener('keydown',function(e){
     if(e.key==='Enter') sendAIHub(this.value.trim());
   });
-  var btnKey=document.getElementById('aiBtnKey');
-  if(btnKey) btnKey.addEventListener('click',openKeyModal);
-
   // Chips
   document.querySelectorAll('.ai-chip').forEach(function(chip){
     chip.addEventListener('click',function(){
       sendAIHub(this.getAttribute('data-q'));
     });
-  });
-
-  // Config: guardar api key
-  var hsk=document.getElementById('hubSaveKey');
-  if(hsk) hsk.addEventListener('click',function(){
-    var k=(document.getElementById('hubApiKey')||{}).value||'';
-    if(!k.startsWith('gsk_')){ alert('La key de Groq debe empezar con gsk_'); return; }
-    localStorage.setItem('CCP_AI_KEY',k);
-    _groqKey=k;
-    var fb=document.getElementById('hubKeyFb');
-    if(fb){
-      fb.textContent='Key guardada. Activa en todas las herramientas.';
-      fb.style.color='var(--gn)';
-    }
   });
 
   // Cargar reporte de Drive al arranque
