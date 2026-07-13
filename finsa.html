@@ -161,7 +161,7 @@ canvas{width:100%!important}
         <button id="sendPoDownload" style="padding:11px;background:#fff;color:#185FA5;border:1.5px solid #185FA5;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Descargar PDF</button>
         <button id="sendPoShare" style="padding:11px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Enviar email</button>
       </div>
-      <div style="font-size:10px;color:#888;text-align:center;margin-top:6px">El PDF se descarga por separado; adjúntalo al email si quieres.</div>
+      <div id="sendPoHint" style="font-size:10px;color:#888;text-align:center;margin-top:6px">El PDF se descarga por separado; adj&uacute;ntalo al email si quieres. Al enviar o descargar, los POs se registran en el Tracker del hub.</div>
     </div>
   </div>
 </div>
@@ -2328,6 +2328,7 @@ function _finsaPOsSeleccionados(){
 function _finsaDescargarPDF(){
   var pos = _finsaPOsSeleccionados();
   if(!pos.length){ alert('Selecciona al menos una orden.'); return; }
+  _finsaFeedbackTracker(registrarPOsEnTracker(pos));
   var html = _finsaHtmlPOFromPOs(pos);
   var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
@@ -2344,6 +2345,7 @@ function _finsaDescargarPDF(){
 function _finsaEnviarEmail(){
   var pos = _finsaPOsSeleccionados();
   if(!pos.length){ alert('Selecciona al menos una orden.'); return; }
+  _finsaFeedbackTracker(registrarPOsEnTracker(pos));
   var body = _finsaBodyEmailFromPOs(pos);
   var cnts = getContactos();
   var toList = cnts.filter(function(c){ return c.rol === 'to'; });
@@ -2361,6 +2363,75 @@ function _finsaEnviarEmail(){
   } else {
     try{ window.open(url, '_blank'); }catch(e){ window.location.href = url; }
   }
+}
+
+// === TRACKER DE POs (hub) ==================================
+// Al enviar/descargar un PO, se registra automaticamente en el Tracker del
+// hub (localStorage CCP_POs, mismo formato que index.html). Dedup por numero
+// de PO: si ya existe, actualiza contenido pero conserva estado/checks/ETA.
+function registrarPOsEnTracker(posEnviados){
+  try{
+    var lista;
+    try{ lista = JSON.parse(localStorage.getItem('CCP_POs') || '[]'); }catch(e){ lista = []; }
+    var hoy = new Date();
+    var fecha = hoy.toISOString().slice(0, 10);
+    var etaMs = hoy.getTime() + (CFG.ltFab + CFG.ltTra) * 7 * 86400000;
+    var eta = new Date(etaMs).toISOString().slice(0, 10);
+    var nuevos = 0, actualizados = 0;
+    posEnviados.forEach(function(po){
+      var skusTxt = po.items.map(function(it){ return it.sku; }).join(', ');
+      var notas = (po.tipo === 'paneles')
+        ? po.grupo + ' - Contenedor ' + po.contIdx + ' de ' + po.contTot
+        : 'Orden de cantos';
+      var rec = {
+        po: po.poNum,
+        sup: 'FINSA',
+        fecha: fecha,
+        eta: eta,
+        etaConf: '',
+        pal: String(po.total) + ' ' + (po.unidad || (po.tipo === 'cantos' ? 'cajas' : 'paletas')),
+        skus: po.items.length + ' SKUs: ' + skusTxt,
+        notas: notas,
+        estado: 0,
+        chkSamuel: false,
+        chkEpicor: false,
+        creado: new Date().toISOString(),
+        origen: 'finsa',
+        tipo: po.tipo,
+        grupo: po.grupo,
+        items: po.items
+      };
+      var ex = -1;
+      for(var i = 0; i < lista.length; i++){
+        if(lista[i].po === po.poNum && lista[i].sup === 'FINSA'){ ex = i; break; }
+      }
+      if(ex >= 0){
+        var prev = lista[ex];
+        rec.estado = prev.estado || 0;
+        rec.chkSamuel = !!prev.chkSamuel;
+        rec.chkEpicor = !!prev.chkEpicor;
+        rec.eta = prev.eta || rec.eta;
+        rec.etaConf = prev.etaConf || '';
+        rec.creado = prev.creado || rec.creado;
+        lista[ex] = rec;
+        actualizados++;
+      } else {
+        lista.unshift(rec);
+        nuevos++;
+      }
+    });
+    localStorage.setItem('CCP_POs', JSON.stringify(lista));
+    return {nuevos: nuevos, actualizados: actualizados};
+  }catch(e){ return null; }
+}
+
+function _finsaFeedbackTracker(res){
+  var el = document.getElementById('sendPoHint');
+  if(!el || !res) return;
+  var partes = [];
+  if(res.nuevos) partes.push(res.nuevos + (res.nuevos === 1 ? ' PO registrado' : ' POs registrados'));
+  if(res.actualizados) partes.push(res.actualizados + (res.actualizados === 1 ? ' actualizado' : ' actualizados'));
+  el.innerHTML = '<span style="color:#1D9E75;font-weight:700">&#10003; ' + partes.join(' y ') + ' en el Tracker del hub</span>';
 }
 
 function _finsaBuildPo(isCanto){
