@@ -92,7 +92,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 /* Upload hidden */
 input[type=file]{display:none}
 
-/* ══ CHATBOT IA ══ */
+/* == CHATBOT IA == */
 #aiFab{
   position:fixed;bottom:20px;right:20px;
   width:56px;height:56px;border-radius:50%;
@@ -474,7 +474,7 @@ input[type=file]{display:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// ══ CONSTANTES ══
+// == CONSTANTES ==
 var DRIVE_URL = 'https://script.google.com/macros/s/AKfycbxKG41HYb2X_vikPfsJeB2OrVOrlOZVqqBMfOIpG1OYQyS-E5S3qLMcLXkbXTjVO-et_g/exec';
 var TOOL_URLS = {
   laiwu:  'laiwu.html',
@@ -497,7 +497,7 @@ var ESTADOS = [
 var _groqKey = '';
 var aiHistory = [];
 
-// ══ TABS ══
+// == TABS ==
 function goTab(t){
   document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
   document.querySelectorAll('.sec').forEach(function(el){el.classList.remove('on');});
@@ -507,7 +507,7 @@ function goTab(t){
   if(t==='cfg') loadHubKeyCfg();
 }
 
-// ══ REPORTE: Google Drive ══
+// == REPORTE: Google Drive ==
 function setRepStatus(state, title, sub){
   var dot = document.getElementById('repDot');
   document.getElementById('repTitle').textContent = title;
@@ -608,7 +608,7 @@ function loadRepManual(file){
   reader.readAsArrayBuffer(file);
 }
 
-// ══ LANZAR HERRAMIENTA ══
+// == LANZAR HERRAMIENTA ==
 var TOOL_STATUS_KEY = 'CCP_TOOL_STATUS';
 var TOOL_STATUS_TTL = 60 * 60 * 1000; // 1 hora
 
@@ -668,7 +668,7 @@ function checkToolAvailability(){
 
 function applyToolStatus(status){
   window._TOOL_AVAILABLE = status;
-  // Recorrer cards y ajustar badge según disponibilidad
+  // Recorrer cards y ajustar badge segun disponibilidad
   document.querySelectorAll('.tool-card').forEach(function(card){
     var onclick = card.getAttribute('onclick') || '';
     var m = onclick.match(/launchTool\(['"]([^'"]+)['"]\)/);
@@ -690,7 +690,7 @@ function applyToolStatus(status){
   });
 }
 
-// ══ TRACKER ══
+// == TRACKER ==
 function getPOs(){
   try{ return JSON.parse(localStorage.getItem('CCP_POs')||'[]'); }
   catch(e){ return []; }
@@ -748,7 +748,7 @@ function fmtDate(d){
   }catch(e){ return d; }
 }
 
-// ══ Nuevo PO ══
+// == Nuevo PO ==
 function openNewPO(){
   document.getElementById('m-po').value='';
   document.getElementById('m-sup').value='Laiwu';
@@ -784,7 +784,7 @@ function savePO(){
   renderTracker();
 }
 
-// ══ Detalle PO ══
+// == Detalle PO ==
 var _detIdx = -1;
 function openDetail(idx){
   var pos = getPOs();
@@ -794,13 +794,35 @@ function openDetail(idx){
 
   document.getElementById('det-title').textContent = p.po + ' — ' + p.sup;
 
+  var origenBadge = p.origen
+    ? '<span style="background:#EBF3FF;color:#185FA5;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase">auto desde ' + p.origen + (p.tipo ? ' &middot; ' + p.tipo : '') + '</span>'
+    : '';
+
+  var itemsHtml = '';
+  if(p.items && p.items.length){
+    itemsHtml = '<div style="background:#f8f9fa;border-radius:8px;padding:10px;margin:12px 0">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:6px">Detalle (' + p.items.length + ' SKUs)</div>'
+      + '<div style="max-height:180px;overflow-y:auto">'
+      + '<table style="width:100%;border-collapse:collapse;font-size:11px">'
+      + p.items.map(function(it){
+          return '<tr style="border-bottom:1px solid #eee">'
+            + '<td style="padding:4px 6px;font-weight:700;color:var(--bl);white-space:nowrap">' + it.sku + '</td>'
+            + '<td style="padding:4px 6px;color:#555">' + (it.desc || '') + '</td>'
+            + '<td style="padding:4px 6px;text-align:right;white-space:nowrap"><b>' + it.qty + '</b> ' + (it.unidad || '') + '</td>'
+            + '</tr>';
+        }).join('')
+      + '</table></div></div>';
+  }
+
   var html = '<div style="font-size:12px;line-height:2">'
+    +(origenBadge ? '<div style="margin-bottom:4px">'+origenBadge+'</div>' : '')
     +'<div><b>Suplidor:</b> '+p.sup+'</div>'
     +'<div><b>Fecha PO:</b> '+fmtDate(p.fecha)+'</div>'
     +'<div><b>Paletas/Cont:</b> '+(p.pal||'-')+'</div>'
-    +'<div><b>SKUs:</b> '+(p.skus||'-')+'</div>'
+    +(p.items && p.items.length ? '' : '<div><b>SKUs:</b> '+(p.skus||'-')+'</div>')
     +'<div><b>Notas:</b> '+(p.notas||'-')+'</div>'
     +'</div>'
+    +itemsHtml
 
     +'<div style="background:#f8f9fa;border-radius:8px;padding:10px;margin:12px 0">'
     +'<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:8px">ETA</div>'
@@ -822,7 +844,8 @@ function openDetail(idx){
     +'<label class="chk"><input type="checkbox" id="det-epicor"'+(p.chkEpicor?' checked':'')+' > En Epicor</label>'
     +'</div>'
 
-    +'<button onclick="updateDetail()" style="width:100%;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">Guardar cambios</button>';
+    +'<button onclick="updateDetail()" style="width:100%;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">Guardar cambios</button>'
+    +'<button onclick="deletePO()" style="width:100%;padding:9px;background:transparent;border:1.5px solid #C0392B;color:#C0392B;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px">Eliminar PO</button>';
 
   document.getElementById('det-body').innerHTML = html;
   document.getElementById('detailModal').classList.add('open');
@@ -842,6 +865,17 @@ function updateDetail(){
   renderTracker();
 }
 
+function deletePO(){
+  var pos = getPOs();
+  var p = pos[_detIdx];
+  if(!p) return;
+  if(!confirm('Eliminar el PO ' + p.po + ' del tracker? Esta accion no se puede deshacer.')) return;
+  pos.splice(_detIdx, 1);
+  savePOs(pos);
+  closeDetail();
+  renderTracker();
+}
+
 function closeDetail(){ document.getElementById('detailModal').classList.remove('open'); }
 
 function deletePO(){
@@ -853,7 +887,7 @@ function deletePO(){
   renderTracker();
 }
 
-// ══ API KEY (globales para poder llamarlas desde onclick) ══
+// == API KEY (globales para poder llamarlas desde onclick) ==
 function openKeyModal(){
   var ki=document.getElementById('keyInput');
   if(ki) ki.value=_groqKey;
@@ -888,7 +922,7 @@ function loadHubKeyCfg(){
   }
 }
 
-// ══ AGENTE IA ══
+// == AGENTE IA ==
 function getContextoHub(){
   var ctx=['=== CCP COMPRAS HUB === Fecha: '+new Date().toLocaleDateString('es-PR')];
 
@@ -1066,7 +1100,7 @@ function sendAIHub(pregunta){
   });
 }
 
-// ══ INIT ══
+// == INIT ==
 document.addEventListener('DOMContentLoaded', function(){
   // File input reporte manual
   document.getElementById('repFileInput').addEventListener('change', function(){
