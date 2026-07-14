@@ -232,6 +232,31 @@ input[type=file]{display:none}
 </head>
 <body>
 
+<!-- BANNER DE ACCIONES PENDIENTES -->
+<div id="accBanner" style="display:none;background:linear-gradient(135deg,#FFF4E0 0%,#FDE9E7 100%);border-left:5px solid #C87A00;border-radius:10px;padding:12px 16px;margin:12px auto;max-width:1200px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:800;color:#C87A00">📋 <span id="accBannerCount">0</span> acciones pendientes de revisar</div>
+      <div id="accBannerDetalle" style="font-size:11px;color:#78716C;margin-top:2px"></div>
+    </div>
+    <button onclick="abrirAccionesModal()" style="padding:9px 16px;background:var(--bl);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Revisar</button>
+  </div>
+</div>
+
+<!-- MODAL ACCIONES PENDIENTES -->
+<div id="accModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;overflow-y:auto;padding:12px">
+  <div style="max-width:780px;margin:12px auto;background:#fff;border-radius:12px;overflow:hidden">
+    <div style="background:var(--bl);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:14px;font-weight:800">Acciones pendientes</div>
+        <div id="accModalSub" style="font-size:11px;opacity:.8"></div>
+      </div>
+      <button onclick="cerrarAccionesModal()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Cerrar</button>
+    </div>
+    <div id="accModalBody" style="padding:14px 16px;max-height:75vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-logo">🏢</div>
@@ -1392,6 +1417,130 @@ function guardarEmbarque(){
 
 function fmtN(n){ return Math.round(n).toLocaleString('es-PR'); }
 
+// ═══════════════════════════════════════════════════════════════
+// ACCIONES PENDIENTES - Emails semi-automaticos (Aurora/Alan/Kelvin)
+// ═══════════════════════════════════════════════════════════════
+
+var _accionesCache = [];
+
+async function cargarAccionesPendientes(){
+  try{
+    // Sincronizar POs del tracker al Apps Script antes de calcular
+    var pos = getPOs();
+    await fetch(GAS_URL + '?action=savepostrackercache&data=' + encodeURIComponent(JSON.stringify(pos))).catch(function(){});
+    var r = await fetch(GAS_URL + '?action=getacciones');
+    var acc = await r.json();
+    if(Array.isArray(acc)){
+      _accionesCache = acc;
+      renderBannerAcciones();
+    }
+  }catch(e){}
+}
+
+function renderBannerAcciones(){
+  var banner = document.getElementById('accBanner');
+  var count = document.getElementById('accBannerCount');
+  var det = document.getElementById('accBannerDetalle');
+  if(!banner) return;
+  if(!_accionesCache.length){ banner.style.display = 'none'; return; }
+  banner.style.display = 'block';
+  count.textContent = _accionesCache.length;
+  var tipos = {aurora:0, alan:0, kelvin:0};
+  _accionesCache.forEach(function(a){ tipos[a.tipo] = (tipos[a.tipo]||0) + 1; });
+  var partes = [];
+  if(tipos.aurora) partes.push(tipos.aurora + ' embarque' + (tipos.aurora>1?'s':'') + ' sin Levante (Aurora)');
+  if(tipos.alan) partes.push(tipos.alan + ' PO' + (tipos.alan>1?'s':'') + ' sin embarque (Alan)');
+  if(tipos.kelvin) partes.push(tipos.kelvin + ' receiving posiblemente abierto (Kelvin)');
+  det.textContent = partes.join(' \u00b7 ');
+}
+
+function abrirAccionesModal(){
+  var body = document.getElementById('accModalBody');
+  var sub = document.getElementById('accModalSub');
+  if(!_accionesCache.length){
+    body.innerHTML = '<div style="text-align:center;color:#888;padding:24px">Sin acciones pendientes.</div>';
+  } else {
+    sub.textContent = _accionesCache.length + ' accion' + (_accionesCache.length>1?'es':'') + ' pendiente' + (_accionesCache.length>1?'s':'') + ' de revisar y enviar';
+    body.innerHTML = _accionesCache.map(function(a,i){ return pintarAccion(a, i); }).join('');
+  }
+  document.getElementById('accModal').style.display = 'block';
+}
+
+function cerrarAccionesModal(){ document.getElementById('accModal').style.display = 'none'; }
+
+function pintarAccion(a, i){
+  var colores = {
+    aurora: {bg:'#EBF3FF', fg:'#185FA5', ic:'\uD83D\uDCCB'},  // Levante pendiente
+    alan:   {bg:'#FFF4E0', fg:'#C87A00', ic:'\uD83C\uDFED'},  // PO sin embarque
+    kelvin: {bg:'#FDE9E7', fg:'#C0392B', ic:'\u26A0\uFE0F'}   // Receiving abierto
+  };
+  var c = colores[a.tipo] || colores.aurora;
+  var pri = a.prioridad === 'alta' ? '<span style="background:#C0392B;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:6px">ALTA</span>' : '';
+  return '<div id="acc_' + i + '" style="border:1px solid #ddd;border-radius:10px;margin-bottom:14px;overflow:hidden">'
+    + '<div style="background:' + c.bg + ';padding:10px 12px;border-bottom:1px solid ' + c.fg + '33">'
+    + '<div style="font-size:13px;font-weight:800;color:' + c.fg + '">' + c.ic + ' ' + escH(a.titulo) + pri + '</div>'
+    + '<div style="font-size:11px;color:#666;margin-top:2px">Destinatario: ' + escH(a.email.to) + '</div>'
+    + '</div>'
+    + '<div style="padding:10px 12px">'
+    + '<div style="font-size:11px;color:#888;margin-bottom:4px">ASUNTO:</div>'
+    + '<div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px">' + escH(a.email.subject) + '</div>'
+    + '<div style="font-size:11px;color:#888;margin-bottom:4px">CC: ' + escH(a.email.cc) + '</div>'
+    + '<textarea id="accBody_' + i + '" style="width:100%;min-height:220px;font-family:monospace;font-size:11px;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;resize:vertical">' + escH(a.email.body) + '</textarea>'
+    + '<div id="accStatus_' + i + '" style="font-size:11px;text-align:center;min-height:18px;margin-top:6px"></div>'
+    + '<div style="display:flex;gap:8px;margin-top:6px">'
+    + '<button onclick="omitirAccion(' + i + ')" style="flex:1;padding:10px;background:#f0f0f0;color:#333;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">\u23ED Omitir hoy</button>'
+    + '<button onclick="enviarAccion(' + i + ')" style="flex:2;padding:10px;background:' + c.fg + ';color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer">\uD83D\uDCE7 Enviar email a ' + escH(a.detalle.ref || a.detalle.po || 'destinatario') + '</button>'
+    + '</div></div></div>';
+}
+
+async function enviarAccion(i){
+  var a = _accionesCache[i];
+  if(!a) return;
+  var status = document.getElementById('accStatus_' + i);
+  var body = document.getElementById('accBody_' + i).value;
+  status.textContent = 'Enviando...';
+  status.style.color = '#C87A00';
+  try{
+    var params = 'action=sendemailauto'
+      + '&accionId=' + encodeURIComponent(a.id)
+      + '&to=' + encodeURIComponent(a.email.to)
+      + '&cc=' + encodeURIComponent(a.email.cc)
+      + '&subject=' + encodeURIComponent(a.email.subject)
+      + '&body=' + encodeURIComponent(body);
+    var r = await fetch(GAS_URL + '?' + params);
+    var res = await r.json();
+    if(res.ok){
+      status.innerHTML = '\u2705 Email enviado correctamente';
+      status.style.color = '#1D9E75';
+      // Marcar la tarjeta como enviada
+      var card = document.getElementById('acc_' + i);
+      if(card) card.style.opacity = '0.55';
+      // Refrescar acciones despues de un rato
+      setTimeout(function(){ cargarAccionesPendientes(); }, 2000);
+    } else {
+      status.textContent = 'Error: ' + (res.error || 'no se pudo enviar');
+      status.style.color = '#C0392B';
+    }
+  }catch(e){
+    status.textContent = 'Sin conexion al servidor';
+    status.style.color = '#C0392B';
+  }
+}
+
+async function omitirAccion(i){
+  var a = _accionesCache[i];
+  if(!a) return;
+  try{
+    await fetch(GAS_URL + '?action=omitiraccion&accionId=' + encodeURIComponent(a.id));
+    var card = document.getElementById('acc_' + i);
+    if(card) card.style.opacity = '0.35';
+    var status = document.getElementById('accStatus_' + i);
+    if(status){ status.textContent = 'Omitido por hoy - volvera manana'; status.style.color = '#888'; }
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════
+
 function renderEmbarques(){
   var el = document.getElementById('embList');
   if(!el) return;
@@ -2203,6 +2352,8 @@ document.addEventListener('DOMContentLoaded', function(){
   // == Embarques: sincronizar remoto al arrancar y push snapshot inventario ==
   syncEmbarquesRemoto();
   setTimeout(pushSnapshotInventario, 2000);
+  // Cargar acciones pendientes (Aurora / Alan / Kelvin)
+  setTimeout(cargarAccionesPendientes, 3000);
   var embRef = document.getElementById('embRefresh');
   if(embRef) embRef.addEventListener('click', function(){ syncEmbarquesRemoto(true); });
 
