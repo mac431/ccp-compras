@@ -1593,17 +1593,25 @@ function renderChart(){
       '<div style="font-size:16px;font-weight:700;color:' + m[2] + '">' + m[1] + '</div></div>';
   }).join('');
 
-  // Projection: mismo modelo que el tab Reporte.
-  // QoO confirmado llega en el mes idxQoO; el PO de esta orden llega en idxPO.
+  // Projection: usa embarques reales del hub para las fechas confirmadas.
+  // El QoO de Epicor no cubierto por embarques (en fabrica) se distribuye
+  // al mes del lead time como fallback.
   var ltM = Math.max(1, Math.round((CFG.ltFab + CFG.ltTra) / 4));
   var idxQoO = Math.min(11, Math.max(0, ltM - 1));
   var idxPO  = Math.min(11, ltM);
   var poU = (palAdj[d.sku] || 0) * (d.std || 0);
+
+  var distr = _distribucionEmbarquesPorMes(d.sku);
+  // Diferencia entre QoO Epicor y suma de embarques = "en fabrica" (sin fecha)
+  var enFabrica = Math.max(0, (d.qoo || 0) - distr.totalConfirmado);
+
   var proj = [];
   var q = Math.max(0, d.qoh);
   for(var i = 0; i < 12; i++){
     proj.push(Math.round(q));
-    var confU = (i === idxQoO) ? (d.qoo || 0) : 0;
+    var confU = distr.meses[i] || 0;
+    // El QoO "en fabrica" se distribuye al mes del lead time (fallback)
+    if(i === idxQoO) confU += enFabrica;
     var poActU = (i === idxPO) ? poU : 0;
     q = Math.max(0, q + confU + poActU - d.tasa);
   }
@@ -1638,6 +1646,137 @@ function renderChart(){
 // === REPORT ====================================================
 var RTT_DATA = {};
 var rttTimer = null;
+// ═══════════════════════════════════════════════════════════════
+// EMBARQUES FINSA - Lee CCP_EMBARQUES del hub y distribuye QoO
+// en el mes real de la ETA en vez del mes teorico del lead time
+// ═══════════════════════════════════════════════════════════════
+
+var _embLlegadasCache = null;
+var _embLlegadasTs = 0;
+
+function _normDescPanel(s){
+  return String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function _matchDescEmbarqueASku(descEmb){
+  if(!descEmb) return null;
+  var desc = _normDescPanel(descEmb);
+  var esCanto = /ABS\s+EDGEBANDING/.test(desc);
+  if(esCanto){
+    var mA = descEmb.match(/0[,.](\d{2,3})/);
+    var ancho = mA ? String(parseInt(mA[1])) + 'MM' : '';
+    var color = desc.replace(/^ABS\s+EDGEBANDING\s+0[,.\s]*\d+\s+MM\s+0[,.\s]*\d+/, '').trim();
+    var mitad = Math.floor(color.length / 2);
+    if(color.substring(0, mitad).trim() === color.substring(mitad).trim() && mitad > 3){
+      color = color.substring(0, mitad).trim();
+    }
+    if(!color) return null;
+    var candC = DB_CANTOS.filter(function(c){
+      if(c.estado === 'AGOTAR') return false;
+      var ckN = _normDescPanel(c.ck);
+      if(!ckN) return false;
+      var palabrasCk = ckN.split(' ').filter(function(pp){return pp.length >= 3;});
+      if(!palabrasCk.length) return false;
+      var todas = palabrasCk.every(function(pp){ return color.indexOf(pp) >= 0; });
+      if(!todas) return false;
+      if(ancho && String(c.ancho||'').indexOf(ancho) < 0) return false;
+      return true;
+    });
+    if(candC.length){
+      candC.sort(function(a,b){ return String(b.ck||'').length - String(a.ck||'').length; });
+      return candC[0].sku;
+    }
+    return null;
+  }
+  var fmt = null;
+  if(/2[,.]?440.*?1[,.]?220/.test(descEmb)) fmt = '4X8';
+  else if(/2[,.]?745.*?1[,.]?220/.test(descEmb)) fmt = '4X9';
+  else if(/2[,.]?130|2[,.]?160/.test(descEmb)) fmt = '7X9';
+  var mesp = descEmb.match(/1[,.]?220\s+(\d{1,2})(?:MM)?\s+/);
+  var esp = mesp ? mesp[1] + 'MM' : null;
+  var col = desc.replace(/^SUPERPAN\s+H\s+EZ\s+DECOR\s+[\d,.\s]+/, '').trim();
+  var mit = Math.floor(col.length / 2);
+  if(col.substring(0, mit).trim() === col.substring(mit).trim() && mit > 3){
+    col = col.substring(0, mit).trim();
+  }
+  if(col.indexOf('WHITE 020') >= 0) col = col + ' BLANCO MEDIO';
+  if(col.indexOf('BLACK 231') >= 0) col = col + ' NEGRO';
+  if(!col) return null;
+  // Buscar TODAS las palabras del ck dentro del color de la descripcion.
+  // La descripcion puede tener palabras extra (acabado como TEXTIL, MESURA, etc)
+  // que no estan en el ck, pero el ck completo si debe aparecer en la desc.
+  var cand = DB_PANELS.filter(function(p){
+    if(p.estado === 'AGOTAR') return false;
+    var ckN = _normDescPanel(p.ck);
+    if(!ckN) return false;
+    var palabrasCk = ckN.split(' ').filter(function(pp){return pp.length >= 3;});
+    if(!palabrasCk.length) return false;
+    var todas = palabrasCk.every(function(pp){ return col.indexOf(pp) >= 0; });
+    if(!todas) return false;
+    if(fmt && String(p.fmt||'').toUpperCase() !== fmt) return false;
+    if(esp && String(p.esp||'').toUpperCase() !== esp) return false;
+    return true;
+  });
+  if(cand.length === 1) return cand[0].sku;
+  if(cand.length > 1){
+    // Preferir el ck mas largo (mas especifico): "ESPIGA SAL TEXTIL" gana sobre "ESPIGA SAL"
+    cand.sort(function(a,b){
+      var la = String(a.ck||'').length, lb = String(b.ck||'').length;
+      if(la !== lb) return lb - la;
+      return (b.l12||0)-(a.l12||0);
+    });
+    return cand[0].sku;
+  }
+  return null;
+}
+
+function _cargarLlegadasEmbarques(){
+  if(_embLlegadasCache && (Date.now() - _embLlegadasTs) < 60000) return _embLlegadasCache;
+  var embs = [];
+  try{ embs = JSON.parse(localStorage.getItem('CCP_EMBARQUES') || '[]'); }catch(e){}
+  var out = {};
+  embs.forEach(function(e){
+    if(!e.eta || e.estado === 'recibido') return;
+    (e.contenedores || []).forEach(function(c){
+      (c.items || []).forEach(function(it){
+        if(!it.qty || it.qty <= 0) return;
+        var sku = it.sku || _matchDescEmbarqueASku(it.desc);
+        if(!sku) return;
+        if(!out[sku]) out[sku] = [];
+        out[sku].push({
+          eta: e.eta, uni: it.qty, contenedor: c.contenedor,
+          po: it.po || '', ref: e.ref, estado: e.estado || 'transito'
+        });
+      });
+    });
+  });
+  _embLlegadasCache = out;
+  _embLlegadasTs = Date.now();
+  return out;
+}
+
+function _distribucionEmbarquesPorMes(sku){
+  var llegadas = _cargarLlegadasEmbarques()[sku] || [];
+  var res = { meses: [], totalConfirmado: 0, detallePorMes: {} };
+  for(var k = 0; k < 12; k++) res.meses.push(0);
+  var hoy = new Date();
+  var mesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  llegadas.forEach(function(ll){
+    var d = new Date(ll.eta + 'T12:00:00');
+    if(isNaN(d.getTime())) return;
+    var idxMes = (d.getFullYear() - mesActual.getFullYear()) * 12 + (d.getMonth() - mesActual.getMonth());
+    if(idxMes < 0) idxMes = 0;
+    if(idxMes > 11) return;
+    res.meses[idxMes] += ll.uni;
+    res.totalConfirmado += ll.uni;
+    if(!res.detallePorMes[idxMes]) res.detallePorMes[idxMes] = [];
+    res.detallePorMes[idxMes].push(ll);
+  });
+  return res;
+}
+
+// ═══════════════════════════════════════════════════════════════
+
 function repMonths(){
   var abbr = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   var m0 = new Date().getMonth();
@@ -1731,18 +1870,23 @@ function renderReport(){
       var poU = (palAdj[d.sku] || 0) * d.std;
       var q = Math.max(0, d.qoh);
       var cells = '';
+      var distr = _distribucionEmbarquesPorMes(d.sku);
+      var enFabrica = Math.max(0, (d.qoo || 0) - distr.totalConfirmado);
       for(var i = 0; i < 12; i++){
         var qIni = q;
-        var confU = (i === idxQoO) ? (d.qoo || 0) : 0;
+        var confEmb = distr.meses[i] || 0;
+        var enFabU = (i === idxQoO) ? enFabrica : 0;
+        var confU = confEmb + enFabU;
         var poActU = (i === idxPO) ? poU : 0;
         q = Math.max(0, q + confU + poActU - d.tasa);
         var cls = qIni === 0 ? 'cz' : qIni < d.piso ? 'crd' : qIni < d.safety ? 'cband' : 'cok';
         var sp = [];
-        if(confU > 0){ sp.push('<span style="color:#1e40af;font-weight:700">+' + fmt(confU) + '</span>'); }
-        if(poActU > 0){ sp.push('<span style="color:#7c3aed;font-weight:700">+' + fmt(poActU) + '</span>'); }
+        if(confEmb > 0){ sp.push('<span style="color:#1D9E75;font-weight:700" title="Embarque confirmado">&#128666;' + fmt(confEmb) + '</span>'); }
+        if(enFabU > 0){ sp.push('<span style="color:#C87A00;font-weight:700" title="En fabrica (sin embarque aun)">&#127981;' + fmt(enFabU) + '</span>'); }
+        if(poActU > 0){ sp.push('<span style="color:#7c3aed;font-weight:700" title="PO de esta orden">+' + fmt(poActU) + '</span>'); }
         var sub = sp.length ? '<div style="font-size:9px;margin-top:1px">' + sp.join(' ') + '</div>' : '';
         var cid = d.sku + '_' + i;
-        RTT_DATA[cid] = {sku:d.sku, desc:chartName(d), mes:months[i], qIni:qIni, confU:confU, poActU:poActU, tasa:d.tasa, vFin:q, safety:d.safety, piso:d.piso};
+        RTT_DATA[cid] = {sku:d.sku, desc:chartName(d), mes:months[i], qIni:qIni, confU:confU, confEmb:confEmb, enFabU:enFabU, poActU:poActU, tasa:d.tasa, vFin:q, safety:d.safety, piso:d.piso};
         cells += '<td class="r ' + cls + '" data-cid="' + cid + '">' + fmt(qIni) + sub + '</td>';
       }
       rowsHtml += '<tr><td style="font-size:10px;white-space:nowrap"><strong>' + chartName(d) + '</strong><div style="color:#999;font-size:9px">' + d.sku + '</div></td>' + cells + '</tr>';
@@ -1778,7 +1922,8 @@ function showRtt(el, cid){
   var finColor = info.vFin === 0 ? '#fca5a5' : info.vFin < info.piso ? '#fcd34d' : '#86efac';
   var lines = '<div style="font-weight:700;color:#7dd3fc;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:6px">' + info.mes + ' - ' + info.desc + '</div>';
   lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">QoH inicio mes</span><span style="font-weight:700">' + fmt(info.qIni) + '</span></div>';
-  if(info.confU > 0){ lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Llega QoO</span><span style="font-weight:700;color:#93c5fd">+' + fmt(info.confU) + '</span></div>'; }
+  if(info.confEmb > 0){ lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">&#128666; Embarque confirmado</span><span style="font-weight:700;color:#86efac">+' + fmt(info.confEmb) + '</span></div>'; }
+  if(info.enFabU > 0){ lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">&#127981; En fabrica (sin embarque)</span><span style="font-weight:700;color:#fbbf24">+' + fmt(info.enFabU) + '</span></div>'; }
   if(info.poActU > 0){ lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Esta orden</span><span style="font-weight:700;color:#c4b5fd">+' + fmt(info.poActU) + '</span></div>'; }
   lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Venta proyectada</span><span style="font-weight:700">' + fmt(info.tasa) + '/mes</span></div>';
   lines += '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">QoH fin de mes</span><span style="font-weight:700;color:' + finColor + '">' + fmt(info.vFin) + '</span></div>';
@@ -2538,6 +2683,7 @@ function guardarSnapshotHub(){
       }
     });
     localStorage.setItem('CCP_FINSA_DATA', JSON.stringify(snap));
+    try{ localStorage.setItem('CCP_FINSA_BD', JSON.stringify({panels: DB_PANELS, cantos: DB_CANTOS})); }catch(e){}
   }catch(e){ /* silent */ }
 }
 
@@ -2626,6 +2772,23 @@ function recargarArchivos(){
 // === DOMContentLoaded ==========================================
 document.addEventListener('DOMContentLoaded', function(){
   loadCFG();
+  // Sincronizar embarques del hub (para distribuir QoO por mes real de llegada)
+  try{
+    fetch(GAS_URL + '?action=getembarques')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(Array.isArray(data)){
+          try{ localStorage.setItem('CCP_EMBARQUES', JSON.stringify(data)); }catch(e){}
+          _embLlegadasCache = null; // invalidar cache
+          // Refrescar la vista si ya se cargo
+          if(typeof DATA !== 'undefined' && DATA && DATA.length){
+            renderGrupos && renderGrupos();
+            renderReport && renderReport();
+          }
+        }
+      })
+      .catch(function(){});
+  }catch(e){}
   // Sincronizar config desde la nube: si hay una version mas nueva de otro
   // dispositivo, se aplica y se recalcula (LAST_ROWS conserva el reporte).
   syncCFGRemote(function(changed){
