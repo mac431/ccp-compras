@@ -1786,12 +1786,31 @@ function respLlegadasItem(it){
   var embQ = llegadasDeEmbarques(it.sku, it);
   if(embQ.length){
     algo = true;
-    h += '&#128666; <b>Embarques FINSA confirmados:</b><br>';
+    // Agrupar por fecha ETA
+    var porFecha = {};
     embQ.forEach(function(e){
-      var badge = e.estado === 'recibido' ? ' &#9989;' : e.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
-      var paqTxt = e.paquetes ? ' (' + e.paquetes + ' paquetes)' : '';
-      h += '&middot; <b>' + escH(fmtDate(e.eta)) + '</b>: +' + fmtN(e.uni) + paqTxt + ' &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
+      var k = e.eta || 'sin fecha';
+      if(!porFecha[k]) porFecha[k] = {uni:0, paq:0, detalle:[], estado:e.estado};
+      porFecha[k].uni += e.uni;
+      porFecha[k].paq += (e.paquetes||0);
+      porFecha[k].detalle.push(e);
     });
+    var fechas = Object.keys(porFecha).sort();
+    var totalUni = embQ.reduce(function(a,e){return a+e.uni;},0);
+    var totalPaq = embQ.reduce(function(a,e){return a+(e.paquetes||0);},0);
+    h += '<div style="background:#EBF3FF;border-left:4px solid var(--bl);border-radius:6px;padding:10px 12px;margin-bottom:8px">';
+    h += '<div style="font-size:12px;font-weight:800;color:var(--bl)">&#128666; ' + embQ.length + ' llegadas &middot; ' + fmtN(totalUni) + ' uni &middot; ' + totalPaq + ' paquetes</div>';
+    fechas.forEach(function(f){
+      var d = porFecha[f];
+      var badge = d.estado === 'recibido' ? ' &#9989;' : d.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
+      h += '<div style="margin-top:8px;padding:8px 10px;background:#fff;border-radius:6px">';
+      h += '<div style="font-size:13px;font-weight:700;color:#333">&#128198; ' + escH(fmtDate(f)) + badge + ' &mdash; <b>' + fmtN(d.uni) + '</b> uni (' + d.paq + ' paquetes)</div>';
+      d.detalle.forEach(function(e){
+        h += '<div style="font-size:11px;color:#555;margin-top:4px;padding-left:8px">&middot; ' + escH(e.contenedor) + ': <b>' + fmtN(e.uni) + '</b> uni' + (e.paquetes?' (' + e.paquetes + ' paq)':'') + (e.po?' &middot; PO ' + escH(e.po):'') + '</div>';
+      });
+      h += '</div>';
+    });
+    h += '</div>';
   }
   var conf = llegadasConfirmadas(it.sku);
   if(conf.length){
@@ -1951,12 +1970,31 @@ function fichaItem(it){
   // Llegadas confirmadas desde embarques FINSA (fuente mas confiable)
   var embQ = llegadasDeEmbarques(it.sku, it);
   if(embQ.length){
-    h += '<br>&#128666; <b>Embarques confirmados:</b><br>';
+    // Agrupar por fecha ETA para lectura mas facil
+    var porFecha = {};
     embQ.forEach(function(e){
-      var badge = e.estado === 'recibido' ? ' &#9989;' : e.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
-      var paqTxt = e.paquetes ? ' (' + e.paquetes + ' paquetes)' : '';
-      h += '&middot; ETA ' + escH(fmtDate(e.eta)) + ': +' + fmtN(e.uni) + ' unidades' + paqTxt + ' &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
+      var k = e.eta || 'sin fecha';
+      if(!porFecha[k]) porFecha[k] = {uni:0, paq:0, contenedores:{}, estado:e.estado};
+      porFecha[k].uni += e.uni;
+      porFecha[k].paq += (e.paquetes||0);
+      porFecha[k].contenedores[e.contenedor] = (porFecha[k].contenedores[e.contenedor]||0) + e.uni;
     });
+    var fechas = Object.keys(porFecha).sort();
+    var totalUni = embQ.reduce(function(a,e){return a+e.uni;},0);
+    var totalPaq = embQ.reduce(function(a,e){return a+(e.paquetes||0);},0);
+    h += '<br><div style="background:#EBF3FF;border-left:4px solid var(--bl);border-radius:6px;padding:8px 10px;margin-top:6px">';
+    h += '<div style="font-size:11px;font-weight:800;color:var(--bl)">&#128666; ' + embQ.length + ' llegadas confirmadas &middot; ' + fmtN(totalUni) + ' uni total</div>';
+    fechas.forEach(function(f){
+      var d = porFecha[f];
+      var conts = Object.keys(d.contenedores);
+      var badge = d.estado === 'recibido' ? ' &#9989;' : d.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
+      h += '<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px">';
+      h += '<div style="font-size:12px;font-weight:700;color:#333">&#128198; ' + escH(fmtDate(f)) + badge + '</div>';
+      h += '<div style="font-size:11px;color:#555;margin-top:2px"><b>' + fmtN(d.uni) + '</b> uni en <b>' + d.paq + '</b> paquetes &middot; ' + conts.length + ' contenedor' + (conts.length>1?'es':'') + '</div>';
+      h += '<div style="font-size:10px;color:#888;margin-top:2px">' + conts.map(escH).join(', ') + '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
   }
 
   // Llegadas confirmadas del QTY (snapshot Laiwu)
