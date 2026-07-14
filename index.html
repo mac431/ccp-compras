@@ -259,6 +259,7 @@ input[type=file]{display:none}
 <div class="tabs">
   <div class="tab on" id="tab-tools" onclick="goTab('tools')">Herramientas</div>
   <div class="tab" id="tab-tracker" onclick="goTab('tracker')">Tracker POs</div>
+  <div class="tab" id="tab-embarques" onclick="goTab('embarques')">Embarques</div>
   <div class="tab" id="tab-cfg" onclick="goTab('cfg')">Config</div>
 </div>
 
@@ -344,6 +345,44 @@ input[type=file]{display:none}
           <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--mu);font-size:12px">Sin POs registrados. Genera un PO desde una herramienta o agrega uno manualmente.</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: EMBARQUES -->
+<div class="sec" id="embarquesSec">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:var(--bl)">Avisos de Embarque FINSA</div>
+        <div style="font-size:11px;color:var(--mu)" id="embLastSync">Verificando sincronizacion...</div>
+      </div>
+      <button id="embRefresh" style="padding:8px 12px;background:var(--bl);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Actualizar</button>
+    </div>
+    <div style="font-size:11px;color:var(--mu);background:#f8f9fa;padding:9px 10px;border-radius:8px">
+      &#128260; Se revisan automaticamente cada dia a las 6 AM en Google Apps Script. Cada embarque va cambiando de estado solo: en transito &rarr; llegando &rarr; recibido (verificado con el aumento del QoH) o retrasado.
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div style="font-size:12px;font-weight:700;color:var(--bl);margin-bottom:8px">Embarques activos</div>
+    <div id="embList" style="font-size:12px;color:var(--mu)">Cargando...</div>
+  </div>
+</div>
+
+<!-- MODAL REVISION EMBARQUE (queda como fallback manual - se activa desde consola si hace falta) -->
+<div id="embModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;overflow-y:auto;padding:12px">
+  <div style="max-width:720px;margin:12px auto;background:#fff;border-radius:12px;overflow:hidden">
+    <div style="background:var(--bl);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:14px;font-weight:800">Revisar embarque</div>
+        <div id="embModalRef" style="font-size:11px;opacity:.8"></div>
+      </div>
+      <button onclick="cerrarEmbModal()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Cerrar</button>
+    </div>
+    <div id="embModalBody" style="padding:14px 16px;max-height:70vh;overflow-y:auto"></div>
+    <div style="padding:10px 16px;border-top:1px solid #e5e5e5;display:flex;gap:8px">
+      <button onclick="cerrarEmbModal()" style="flex:1;padding:12px;background:#f0f0f0;color:#333;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>
+      <button id="embSaveBtn" onclick="guardarEmbarque()" style="flex:2;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">Confirmar y registrar</button>
     </div>
   </div>
 </div>
@@ -451,9 +490,12 @@ input[type=file]{display:none}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window['pdfjsLib']){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script>
 // == CONSTANTES ==
 var DRIVE_URL = 'https://script.google.com/macros/s/AKfycbxKG41HYb2X_vikPfsJeB2OrVOrlOZVqqBMfOIpG1OYQyS-E5S3qLMcLXkbXTjVO-et_g/exec';
+var GAS_URL = DRIVE_URL;
 var TOOL_URLS = {
   laiwu:  'laiwu.html',
   finsa:  'finsa.html',
@@ -480,6 +522,7 @@ function goTab(t){
   document.getElementById('tab-'+t).classList.add('on');
   document.getElementById(t+'Sec').classList.add('on');
   if(t==='tracker') renderTracker();
+  if(t==='embarques') renderEmbarques();
 }
 
 // == REPORTE: Google Drive ==
@@ -994,6 +1037,480 @@ function addMsgHub(role, text){
 }
 
 // ============================================================
+// MOTOR DE EMBARQUES FINSA - lee Packing List PDF, matchea SKUs,
+// actualiza el tracker sumando cada tanda como evento inmutable.
+// Estructura: CCP_EMBARQUES = [{id, ref, contenedor, seal, etd, eta, barco,
+//   naviera, items:[{sku, po, ordenFinsa, desc, qty, matchWarn}], creado}]
+// ============================================================
+
+function getEmbarques(){ try{ return JSON.parse(localStorage.getItem('CCP_EMBARQUES')||'[]'); }catch(e){ return []; } }
+function saveEmbarques(arr){ try{ localStorage.setItem('CCP_EMBARQUES', JSON.stringify(arr)); }catch(e){} }
+
+function getFinsaBD(){
+  try{ return JSON.parse(localStorage.getItem('CCP_FINSA_BD')||'null'); }catch(e){ return null; }
+}
+
+// ------------------------------------------------------------
+// PARSER DEL PDF (formato Packing List FINSA - texto plano)
+// ------------------------------------------------------------
+async function leerPDFTexto(file){
+  var buf = await file.arrayBuffer();
+  var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  var partes = [];
+  for(var i = 1; i <= pdf.numPages; i++){
+    var pg = await pdf.getPage(i);
+    var tc = await pg.getTextContent();
+    // Reconstruir lineas por posicion Y (pdf.js entrega items con transform)
+    var lineas = {};
+    tc.items.forEach(function(it){
+      var y = Math.round(it.transform[5]);
+      if(!lineas[y]) lineas[y] = [];
+      lineas[y].push({x: it.transform[4], s: it.str});
+    });
+    var keys = Object.keys(lineas).map(Number).sort(function(a,b){return b-a;});
+    keys.forEach(function(y){
+      lineas[y].sort(function(a,b){return a.x-b.x;});
+      partes.push(lineas[y].map(function(t){return t.s;}).join(' '));
+    });
+  }
+  return partes.join('\n');
+}
+
+function parsearPackingList(txt){
+  var out = {contenedores: [], warn: []};
+  // Ref/factura: primera linea con "N ordenN" tras "Tel."
+  var mref = txt.match(/Tel[.:]\s*[\d ]+\s+(\d{7,})/);
+  if(mref) out.ref = mref[1];
+  // Naviera / puerto / barco / fecha B/L
+  var mnav = txt.match(/Forwarding\s*\/?\s*Agent[:\s]*([A-Z0-9 .,&/-]+?)\s+Origin\s+Port[:\s]*([A-Z ]+?)\s+Destination\s+Port[:\s]*([A-Z ]+)/i);
+  if(mnav){ out.naviera = mnav[1].trim(); out.pol = mnav[2].trim(); out.pod = mnav[3].trim(); }
+  var mbar = txt.match(/Vessel\s+name[:\s]*([A-Z0-9 -]+?)\s+Date\s+B\/L[:\s]*(\d{2}[./]\d{2}[./]\d{4})/i);
+  if(mbar){ out.barco = mbar[1].trim(); out.dateBL = mbar[2].replace(/\./g,'/'); }
+
+  // Partir por contenedor
+  var partes = ('\n' + txt).split(/\nCONTAINER:\s+(\S+)\s+SEAL\s*:\s*(\S+)\n/);
+  for(var i = 1; i < partes.length; i += 3){
+    var cont = {contenedor: partes[i], seal: partes[i+1], items: []};
+    var body = partes[i+2];
+    body.split('\n').forEach(function(line){
+      var m = line.match(/^(\d{9,11})\s+(\d+)\s+(\d{9,11})\s+(.*?)\s+([\d.,]+)\s+UN\s+([\d.,]+)\s+([\d.,]+)(?:\s+(?:PO\s+)?(\S+))?\s*$/);
+      if(m){
+        cont.items.push({
+          ordenFinsa: m[1],
+          linea: parseInt(m[2]),
+          producto: m[3],
+          desc: m[4].trim(),
+          qty: parseFloat(m[5].replace(/\./g,'').replace(',','.')),
+          m3: m[6], m2: m[7],
+          po: (m[8]||'').replace(/^PO$/,'')
+        });
+      }
+    });
+    if(cont.items.length) out.contenedores.push(cont);
+  }
+  if(!out.contenedores.length) out.warn.push('No se pudieron extraer contenedores del PDF. Verifica que sea un Packing List de FINSA.');
+  return out;
+}
+
+// ------------------------------------------------------------
+// MATCH SKU: color + formato + espesor contra DB_PANELS/DB_CANTOS
+// ------------------------------------------------------------
+function normCK(s){ return String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/ +/g,' ').trim(); }
+
+// Alias de codigos genericos de FINSA hacia nuestros color keys.
+// Cuando FINSA describe el material con codigo interno (WHITE 020, BLACK 231, etc)
+// en vez del nombre comercial, mapeamos aqui.
+var FINSA_ALIAS = {
+  'WHITE 020': 'BLANCO MEDIO',
+  'BLACK 231': 'NEGRO',
+  'PANEL CRUDO': 'PANEL CRUDO'
+};
+
+function aplicarAlias(descN){
+  Object.keys(FINSA_ALIAS).forEach(function(alias){
+    if(descN.indexOf(alias) >= 0){
+      descN = descN + ' ' + FINSA_ALIAS[alias];
+    }
+  });
+  return descN;
+}
+
+function matchSKU(item){
+  var bd = getFinsaBD();
+  if(!bd) return {sku: null, confianza: 0, motivo: 'BD FINSA no cargada (abre finsa.html una vez)'};
+
+  var desc = item.desc || '';
+  var descN = aplicarAlias(normCK(desc));
+  // Detectar formato: 2440 1220 = 4x8, 2745 1220 = 4x9, 2160/2130 x 1220 = 7x9
+  var fmt = null;
+  if(/2[,.]?440.*?1[,.]?220/.test(desc)) fmt = '4X8';
+  else if(/2[,.]?745.*?1[,.]?220/.test(desc)) fmt = '4X9';
+  else if(/2[,.]?130.*?2[,.]?160|7X9|2130|2160/.test(desc)) fmt = '7X9';
+  // Espesor: primer numero de 1-2 digitos suelto (8, 16, 18, 19, 30, 36) tras el formato
+  var esp = null;
+  var mesp = desc.match(/1[,.]?220\s+(\d{1,2})(?:MM)?\s+/);
+  if(mesp) esp = mesp[1] + 'MM';
+
+  // Cantos: 0,023 = 23mm, 0,022 = 22mm, 0,044 = 44mm
+  var esCanto = /ABS\s+EDGEBANDING|CANTO|EDGEBAND/i.test(desc);
+  if(esCanto){
+    var mA = desc.match(/0[,.](\d{2,3})\s+MM/);
+    var anchoCanto = null;
+    if(mA){ anchoCanto = String(parseInt(mA[1])) + 'MM'; }
+    var ckC = normCK(desc.replace(/ABS\s+EDGEBANDING|0[,.]\d+\s+MM|0[,.]\d+/gi,''));
+    var cand = (bd.cantos||[]).filter(function(c){
+      var ckN = normCK(c.ck);
+      return ckN && ckC.indexOf(ckN) >= 0;
+    });
+    if(anchoCanto){
+      var conAncho = cand.filter(function(c){ return String(c.ancho||'').indexOf(anchoCanto) >= 0; });
+      if(conAncho.length) cand = conAncho;
+    }
+    if(cand.length === 1) return {sku: cand[0].sku, confianza: 100, tipo:'canto', desc: cand[0].desc};
+    if(cand.length > 1) return {sku: cand[0].sku, confianza: 60, tipo:'canto', desc: cand[0].desc, opciones: cand, motivo: cand.length + ' cantos posibles del color'};
+    return {sku: null, confianza: 0, tipo:'canto', motivo: 'Canto sin match'};
+  }
+
+  // Paneles: match por CK + fmt + esp
+  var candP = (bd.panels||[]).filter(function(p){
+    if(p.estado === 'AGOTAR' || p.estado === 'AGOTANDO') return false;
+    var ckN = normCK(p.ck);
+    if(!ckN) return false;
+    if(descN.indexOf(ckN) < 0) return false;
+    if(fmt && String(p.fmt||'').toUpperCase() !== fmt) return false;
+    if(esp && String(p.esp||'').toUpperCase() !== esp) return false;
+    return true;
+  });
+  if(candP.length === 1) return {sku: candP[0].sku, confianza: 100, tipo:'panel', desc: candP[0].desc};
+  if(candP.length > 1){
+    // preferir el que tenga descripcion mas parecida
+    candP.sort(function(a,b){ return b.l12 - a.l12; });
+    return {sku: candP[0].sku, confianza: 70, tipo:'panel', desc: candP[0].desc, opciones: candP, motivo: candP.length + ' paneles posibles'};
+  }
+  // Sin match exacto - intentar sin fmt/esp
+  var candLoose = (bd.panels||[]).filter(function(p){
+    var ckN = normCK(p.ck); return ckN && descN.indexOf(ckN) >= 0;
+  });
+  if(candLoose.length){
+    candLoose.sort(function(a,b){ return b.l12 - a.l12; });
+    return {sku: candLoose[0].sku, confianza: 40, tipo:'panel', desc: candLoose[0].desc, opciones: candLoose.slice(0,6), motivo: 'Match solo por color, verifica formato/espesor'};
+  }
+  return {sku: null, confianza: 0, tipo:'panel', motivo: 'Sin match por color'};
+}
+
+// ------------------------------------------------------------
+// FLUJO: parsear + preparar review + guardar
+// ------------------------------------------------------------
+var _embDraft = null;
+
+async function procesarPDFEmbarque(file){
+  var st = document.getElementById('embStatus');
+  st.textContent = 'Leyendo PDF...'; st.style.color = 'var(--am)';
+  try{
+    var txt = await leerPDFTexto(file);
+    var parsed = parsearPackingList(txt);
+    if(!parsed.contenedores.length){ st.textContent = 'No se detectaron contenedores. Verifica que sea un Packing List de FINSA.'; st.style.color = 'var(--rd)'; return; }
+    // Aplicar match a cada item
+    parsed.contenedores.forEach(function(c){
+      c.items.forEach(function(it){
+        var m = matchSKU(it);
+        it.sku = m.sku;
+        it.matchConfianza = m.confianza;
+        it.matchDesc = m.desc || '';
+        it.matchTipo = m.tipo;
+        it.matchOpciones = m.opciones || null;
+        it.matchMotivo = m.motivo || '';
+      });
+    });
+    _embDraft = parsed;
+    st.textContent = 'PDF procesado: ' + parsed.contenedores.length + ' contenedores, ' + parsed.contenedores.reduce(function(a,c){return a+c.items.length;},0) + ' items. Revisando...';
+    st.style.color = 'var(--gn)';
+    abrirEmbModal(parsed);
+  }catch(e){
+    st.textContent = 'Error leyendo el PDF: ' + e.message;
+    st.style.color = 'var(--rd)';
+  }
+}
+
+function abrirEmbModal(parsed){
+  var mref = document.getElementById('embModalRef');
+  mref.textContent = 'Ref ' + (parsed.ref||'?') + ' - ETA ' + (parsed.eta||parsed.dateBL||'?') + ' - ' + (parsed.barco||'') + ' - ' + parsed.contenedores.length + ' contenedores';
+  var body = document.getElementById('embModalBody');
+
+  // Datos generales editables
+  var gen = '<div style="background:#f8f9fa;border-radius:8px;padding:10px;margin-bottom:12px">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:6px">DATOS GENERALES</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'
+    + '<div><div style="font-size:10px;color:var(--mu)">Ref FINSA</div><input id="embRef" value="' + escH(parsed.ref||'') + '" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box"></div>'
+    + '<div><div style="font-size:10px;color:var(--mu)">Barco</div><input id="embBarco" value="' + escH(parsed.barco||'') + '" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box"></div>'
+    + '<div><div style="font-size:10px;color:var(--mu)">ETD</div><input type="date" id="embETD" value="' + escH(fechaISO(parsed.dateBL||'')) + '" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box"></div>'
+    + '<div><div style="font-size:10px;color:var(--mu)">ETA</div><input type="date" id="embETA" value="' + escH(fechaISO(parsed.eta||'')) + '" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box"></div>'
+    + '</div></div>';
+
+  var conts = parsed.contenedores.map(function(c, ci){
+    var items = c.items.map(function(it, ii){
+      var color, tag;
+      if(it.matchConfianza >= 100){ color = '#1D9E75'; tag = 'MATCH OK'; }
+      else if(it.matchConfianza >= 60){ color = '#C87A00'; tag = 'REVISAR: ' + escH(it.matchMotivo||''); }
+      else { color = '#C0392B'; tag = 'SIN MATCH: ' + escH(it.matchMotivo||''); }
+      var opts = '';
+      if(it.matchOpciones){
+        opts = '<select onchange="cambiarSKU(' + ci + ',' + ii + ',this.value)" style="padding:3px;border:1px solid #ddd;border-radius:4px;font-size:11px;width:100%;margin-top:3px">'
+          + '<option value="">-- Elegir SKU correcto --</option>'
+          + it.matchOpciones.map(function(o){ return '<option value="' + o.sku + '"' + (o.sku===it.sku?' selected':'') + '>' + escH(o.sku) + ' ' + escH(o.desc) + '</option>'; }).join('')
+          + '</select>';
+      }
+      return '<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:5px 4px;font-size:11px"><b>' + escH(it.po||'-') + '</b><div style="font-size:9px;color:#888">' + escH(it.ordenFinsa) + '</div></td>'
+        + '<td style="padding:5px 4px;font-size:10px;color:#555">' + escH(it.desc.slice(0,50)) + '<div style="font-size:10px;color:' + color + ';font-weight:700;margin-top:2px">' + tag + '</div>' + opts + '</td>'
+        + '<td style="padding:5px 4px;text-align:right;font-size:11px"><b>' + fmtN(it.qty) + '</b><br><span style="font-size:9px;color:#888">' + escH(it.matchDesc.slice(0,20)) + '</span></td></tr>';
+    }).join('');
+    return '<div style="border:1px solid #ddd;border-radius:8px;margin-bottom:10px;overflow:hidden">'
+      + '<div style="background:#EBF3FF;padding:8px 12px;font-size:12px;font-weight:800;color:var(--bl)">Cont ' + (ci+1) + ': ' + escH(c.contenedor) + '<span style="font-weight:400;color:#888"> - seal ' + escH(c.seal) + ' - ' + c.items.length + ' items</span></div>'
+      + '<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#fafafa"><th style="padding:4px;font-size:9px;color:#888;text-align:left">PO</th><th style="padding:4px;font-size:9px;color:#888;text-align:left">Descripcion + Match</th><th style="padding:4px;font-size:9px;color:#888;text-align:right">Qty</th></tr></thead><tbody>' + items + '</tbody></table></div>';
+  }).join('');
+
+  var warns = 0, oks = 0;
+  parsed.contenedores.forEach(function(c){ c.items.forEach(function(it){ if(it.matchConfianza >= 100) oks++; else warns++; }); });
+  var resumen = '<div style="background:' + (warns?'#FFF4E0':'#E8F7F2') + ';border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px">'
+    + '<b>' + oks + ' items OK</b>' + (warns ? ' - <b style="color:var(--am)">' + warns + ' necesitan revision</b>' : '')
+    + '<div style="font-size:10px;color:#888;margin-top:3px">Puedes cambiar el SKU en los que necesitan revision. Los sin match quedan marcados en el tracker.</div></div>';
+
+  body.innerHTML = gen + resumen + conts;
+  document.getElementById('embModal').style.display = 'block';
+}
+
+function cambiarSKU(ci, ii, sku){
+  if(!_embDraft) return;
+  var opciones = _embDraft.contenedores[ci].items[ii].matchOpciones || [];
+  var op = opciones.filter(function(o){ return o.sku === sku; })[0];
+  _embDraft.contenedores[ci].items[ii].sku = sku || null;
+  _embDraft.contenedores[ci].items[ii].matchConfianza = sku ? 100 : 0;
+  _embDraft.contenedores[ci].items[ii].matchDesc = op ? op.desc : '';
+}
+
+function cerrarEmbModal(){ document.getElementById('embModal').style.display = 'none'; _embDraft = null; }
+
+function fechaISO(s){
+  if(!s) return '';
+  var m = s.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+  if(m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  return s;
+}
+
+function guardarEmbarque(){
+  if(!_embDraft) return;
+  // Recoger valores editados
+  _embDraft.ref = document.getElementById('embRef').value.trim();
+  _embDraft.barco = document.getElementById('embBarco').value.trim();
+  _embDraft.etd = document.getElementById('embETD').value;
+  _embDraft.eta = document.getElementById('embETA').value;
+
+  // Verificar dedup: si YA existe un embarque con el mismo contenedor+seal, NO se registra
+  var embs = getEmbarques();
+  var yaExisten = [];
+  _embDraft.contenedores.forEach(function(c){
+    var dup = embs.some(function(e){ return e.contenedor === c.contenedor && e.seal === c.seal; });
+    if(dup) yaExisten.push(c.contenedor);
+  });
+  if(yaExisten.length === _embDraft.contenedores.length){
+    alert('Todos los contenedores de este embarque ya estan registrados. Nada que hacer.');
+    return;
+  }
+  if(yaExisten.length){
+    if(!confirm(yaExisten.length + ' contenedor(es) ya estaban registrados y se ignoraran. Continuar con los ' + (_embDraft.contenedores.length - yaExisten.length) + ' nuevos?')) return;
+  }
+
+  var nuevos = 0, posActualizados = 0, posCreados = 0, warns = 0;
+  var pos = getPOs();
+  var idBase = Date.now();
+  _embDraft.contenedores.forEach(function(c){
+    if(embs.some(function(e){ return e.contenedor === c.contenedor && e.seal === c.seal; })) return;
+    var emb = {
+      id: idBase + '_' + c.contenedor,
+      ref: _embDraft.ref,
+      contenedor: c.contenedor,
+      seal: c.seal,
+      etd: _embDraft.etd,
+      eta: _embDraft.eta,
+      barco: _embDraft.barco,
+      naviera: _embDraft.naviera||'',
+      pol: _embDraft.pol||'',
+      pod: _embDraft.pod||'',
+      items: c.items.map(function(it){
+        if(!it.sku || it.matchConfianza < 100) warns++;
+        return {
+          sku: it.sku, po: it.po||'', ordenFinsa: it.ordenFinsa,
+          desc: it.desc, qty: it.qty, matchWarn: !it.sku || it.matchConfianza < 100
+        };
+      }),
+      creado: new Date().toISOString()
+    };
+    embs.push(emb); nuevos++;
+
+    // Actualizar tracker: para cada PO en este contenedor
+    var porPo = {};
+    emb.items.forEach(function(it){ if(!it.po) return; if(!porPo[it.po]) porPo[it.po] = []; porPo[it.po].push(it); });
+    Object.keys(porPo).forEach(function(poNum){
+      var ix = -1;
+      for(var i = 0; i < pos.length; i++){ if(pos[i].po === poNum && pos[i].sup === 'FINSA'){ ix = i; break; } }
+      if(ix < 0){
+        // PO no existe - crear con alerta
+        pos.unshift({
+          po: poNum, sup: 'FINSA',
+          fecha: emb.etd || new Date().toISOString().slice(0,10),
+          eta: emb.eta, etaConf: emb.eta,
+          pal: porPo[poNum].reduce(function(a,it){return a+(it.qty||0);},0) + ' unidades',
+          skus: porPo[poNum].length + ' SKUs',
+          notas: 'ALERTA: PO creado automaticamente desde embarque ' + emb.contenedor + ' (no existia en el tracker)',
+          estado: 3, chkSamuel: false, chkEpicor: false,
+          creado: new Date().toISOString(),
+          origen: 'embarque-auto', tipo: 'auto', grupo: 'FINSA',
+          items: porPo[poNum].map(function(it){ return {sku: it.sku||'?', desc: it.desc, qty: it.qty, unidad: 'unidades'}; }),
+          embarquesRef: [emb.id],
+          alertaCreado: true
+        });
+        posCreados++;
+      } else {
+        // Existe - actualizar ETA confirmada al mes real y marcar En transito
+        pos[ix].etaConf = emb.eta;
+        if(pos[ix].estado < 3) pos[ix].estado = 3; // En transito
+        pos[ix].embarquesRef = pos[ix].embarquesRef || [];
+        if(pos[ix].embarquesRef.indexOf(emb.id) < 0) pos[ix].embarquesRef.push(emb.id);
+        pos[ix].notas = (pos[ix].notas||'') + ' | Embarque ' + emb.contenedor + ' ETA ' + emb.eta;
+        posActualizados++;
+      }
+    });
+  });
+
+  saveEmbarques(embs);
+  savePOs(pos);
+  cerrarEmbModal();
+  renderEmbarques();
+  renderTracker();
+  alert('Registrado: ' + nuevos + ' contenedor(es), ' + posActualizados + ' PO(s) actualizado(s), ' + posCreados + ' PO(s) creado(s)' + (warns ? ', ' + warns + ' item(s) con match a revisar en el detalle.' : '.'));
+}
+
+function fmtN(n){ return Math.round(n).toLocaleString('es-PR'); }
+
+function renderEmbarques(){
+  var el = document.getElementById('embList');
+  if(!el) return;
+  var embs = getEmbarques();
+  if(!embs.length){ el.innerHTML = 'Sin embarques registrados. Presiona <b>Actualizar</b> para consultar el Apps Script.'; syncEmbarquesRemoto(); return; }
+
+  var hoy = new Date();
+  embs.sort(function(a,b){ return (a.eta||'').localeCompare(b.eta||''); });
+  var activos = embs.filter(function(e){ return e.estado !== 'recibido'; });
+  var recibidos = embs.filter(function(e){ return e.estado === 'recibido'; });
+
+  function pintarEmb(e){
+    var estilos = {
+      transito:  {bg:'#EBF3FF', fg:'#185FA5', lbl:'\u23F3 EN TRANSITO'},
+      llegando:  {bg:'#FFF4E0', fg:'#C87A00', lbl:'\uD83D\uDCEC LLEGANDO'},
+      recibido:  {bg:'#E8F7F2', fg:'#1D9E75', lbl:'\u2705 RECIBIDO'},
+      retrasado: {bg:'#FDE9E7', fg:'#C0392B', lbl:'\u26A0\uFE0F RETRASADO'}
+    };
+    var st = estilos[e.estado] || estilos.transito;
+    var conts = (e.contenedores||[]).map(function(c){
+      var itemsTxt = (c.items||[]).slice(0,3).map(function(it){
+        return escH((it.desc||'').slice(0,45)) + ' <b>' + fmtN(it.qty) + '</b>' + (it.po ? ' <span style="color:#888">(' + escH(it.po) + ')</span>' : '');
+      }).join('<br>');
+      var mas = c.items && c.items.length > 3 ? '<div style="color:#888;font-size:10px">+ ' + (c.items.length - 3) + ' items mas</div>' : '';
+      return '<div style="border-left:3px solid ' + st.fg + ';padding:6px 10px;margin:4px 0;background:#fafafa;border-radius:4px">'
+        + '<div style="font-size:11px;font-weight:700;color:var(--bl)">' + escH(c.contenedor) + '</div>'
+        + '<div style="font-size:10px;color:#555;margin-top:3px">' + itemsTxt + '</div>' + mas + '</div>';
+    }).join('');
+    return '<div style="border-bottom:1px solid #eee;padding:10px 0">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<div><div style="font-size:12px;font-weight:800;color:var(--bl)">Ref ' + escH(e.ref||'?') + '</div>'
+      + '<div style="font-size:11px;color:#666">ETA <b>' + escH(fmtDate(e.eta)) + '</b> &middot; ETD ' + escH(fmtDate(e.etd)) + ' &middot; ' + escH(e.barco||'?') + '</div>'
+      + '<div style="font-size:10px;color:#888">' + (e.contenedores||[]).length + ' contenedor(es)</div></div>'
+      + '<div style="background:' + st.bg + ';color:' + st.fg + ';font-size:10px;font-weight:800;padding:4px 8px;border-radius:6px;white-space:nowrap">' + st.lbl + '</div>'
+      + '</div>' + conts + '</div>';
+  }
+
+  var html = '';
+  if(activos.length){
+    html += '<div style="font-size:11px;color:var(--mu);font-weight:700;margin:4px 0 8px">ACTIVOS (' + activos.length + ')</div>';
+    html += activos.map(pintarEmb).join('');
+  }
+  if(recibidos.length){
+    html += '<div style="font-size:11px;color:var(--mu);font-weight:700;margin:16px 0 8px">RECIBIDOS (' + recibidos.length + ')</div>';
+    html += recibidos.slice(0,10).map(pintarEmb).join('');
+    if(recibidos.length > 10) html += '<div style="color:#888;font-size:11px;margin-top:6px">+ ' + (recibidos.length - 10) + ' recibidos anteriores no mostrados</div>';
+  }
+  el.innerHTML = html;
+}
+
+// Sincroniza embarques desde el Apps Script (cache 5 min)
+var _embLastFetch = 0;
+async function syncEmbarquesRemoto(force){
+  var now = Date.now();
+  if(!force && (now - _embLastFetch) < 5 * 60 * 1000) return;
+  var last = document.getElementById('embLastSync');
+  if(last) last.textContent = 'Sincronizando...';
+  try{
+    var r = await fetch(GAS_URL + '?action=getembarques');
+    var data = await r.json();
+    if(Array.isArray(data)){
+      saveEmbarques(data);
+      _embLastFetch = now;
+      if(last) last.textContent = 'Ultima sincronizacion: ' + new Date().toLocaleTimeString('es-PR');
+      renderEmbarques();
+    } else {
+      if(last) last.textContent = 'Respuesta invalida del script';
+    }
+  }catch(e){
+    if(last) last.textContent = 'Sin conexion al Apps Script (usa datos locales)';
+  }
+}
+
+// Envia snapshot del QoH de hoy al Apps Script para que pueda verificar recepciones.
+// Se llama al abrir el hub, con los SKUs del reporte + los que aparecen en embarques.
+async function pushSnapshotInventario(){
+  try{
+    var rep = JSON.parse(localStorage.getItem('CCP_REPORT')||'[]');
+    if(!rep.length) return;
+    // SKUs relevantes: los que aparecen en algun embarque
+    var relevantes = {};
+    var embs = getEmbarques();
+    embs.forEach(function(e){ (e.contenedores||[]).forEach(function(c){ (c.items||[]).forEach(function(it){ if(it.sku) relevantes[it.sku] = true; }); }); });
+
+    var hoy = {};
+    rep.forEach(function(r){
+      var sku = String(r['Item Number']||'').trim();
+      if(!sku) return;
+      if(!Object.keys(relevantes).length || relevantes[sku]){
+        hoy[sku] = Number(r['Quantity on Hand']||0)||0;
+      }
+    });
+
+    // Buscar snapshot previo local para enviarlo como 'previo'
+    var prevRaw = localStorage.getItem('CCP_INV_SNAP_PREV');
+    var previo = prevRaw ? JSON.parse(prevRaw) : {};
+    // Rotar: el actual pasa a previo (si no hay previo aun)
+    if(!prevRaw || (Date.now() - (previo._ts||0)) > 3 * 86400000){
+      hoy._ts = Date.now();
+      localStorage.setItem('CCP_INV_SNAP_PREV', JSON.stringify(hoy));
+    }
+
+    var payload = { fecha: new Date().toISOString(), skus: hoy, previo: previo };
+    await fetch(GAS_URL + '?action=saveinventorysnapshot&data=' + encodeURIComponent(JSON.stringify(payload)));
+  }catch(e){}
+}
+
+// El widget manual queda como funcion "abierta" pero sin UI - se puede
+// llamar desde consola si algun packing list no llego por email y hace
+// falta cargarlo a mano. No es el flujo normal.
+async function procesarPDFManual(file){
+  return procesarPDFEmbarque(file);
+}
+
+// ============================================================
+// FIN MOTOR EMBARQUES
+// ============================================================
+
+// ============================================================
 // MOTOR LOCAL DEL ASISTENTE - sin IA externa, respuestas exactas
 // Fuentes: CCP_REPORT (reporte maestro), CCP_POs (tracker),
 // CCP_FINSA_DATA / CCP_LAIWU_DATA (snapshots de herramientas).
@@ -1022,6 +1539,36 @@ var STOP_CHAT = ('cuanto cuanta cuantos cuantas cuando cual cuales que como dond
 
 var _lastChatItems = [];
 
+function llegadasDeEmbarques(sku){
+  // Fuente mas confiable: packing lists de FINSA (auto-procesados o cargados manual)
+  var res = [];
+  var lbl = {transito:'en transito', llegando:'llegando', recibido:'recibido', retrasado:'retrasado'};
+  try{
+    var embs = JSON.parse(localStorage.getItem('CCP_EMBARQUES')||'[]');
+    embs.forEach(function(e){
+      // Formato nuevo: contenedores[].items[]
+      if(e.contenedores){
+        e.contenedores.forEach(function(c){
+          (c.items||[]).forEach(function(it){
+            if(String(it.sku) === String(sku) && it.qty > 0){
+              res.push({eta:e.eta, contenedor:c.contenedor, uni:it.qty, po:it.po||'', barco:e.barco||'', estado:lbl[e.estado]||e.estado||'transito'});
+            }
+          });
+        });
+      }
+      // Formato viejo: items[] directo con contenedor arriba (compat)
+      else if(e.items){
+        e.items.forEach(function(it){
+          if(String(it.sku) === String(sku) && it.qty > 0){
+            res.push({eta:e.eta, contenedor:e.contenedor, uni:it.qty, po:it.po||'', barco:e.barco||'', estado:lbl[e.estado]||'transito'});
+          }
+        });
+      }
+    });
+  }catch(err){}
+  return res;
+}
+
 function llegadasConfirmadas(sku){
   // Llegadas por mes desde el snapshot de Laiwu (archivo QTY cargado en la herramienta).
   // El indice i del array conf es relativo al mes en que se genero el snapshot.
@@ -1049,10 +1596,19 @@ function llegadasConfirmadas(sku){
 function respLlegadasItem(it){
   var h = '<b>Llegadas de ' + escH(it.desc) + '</b> (SKU ' + escH(it.sku) + ')<br><br>';
   var algo = false;
+  var embQ = llegadasDeEmbarques(it.sku);
+  if(embQ.length){
+    algo = true;
+    h += '&#128666; <b>Embarques FINSA confirmados:</b><br>';
+    embQ.forEach(function(e){
+      var badge = e.estado === 'recibido' ? ' &#9989;' : e.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
+      h += '&middot; <b>' + escH(fmtDate(e.eta)) + '</b>: +' + fmtN(e.uni) + ' &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
+    });
+  }
   var conf = llegadasConfirmadas(it.sku);
   if(conf.length){
     algo = true;
-    h += '&#128666; <b>Confirmado (archivo QTY):</b><br>';
+    h += (embQ.length?'<br>':'') + '&#128230; <b>Confirmado (archivo QTY):</b><br>';
     conf.forEach(function(c){ h += '&middot; ' + escH(c.mes) + ': +' + fmtN(c.uni) + ' unidades<br>'; });
   }
   var enPos = posConSku(it.sku);
@@ -1202,6 +1758,16 @@ function fichaItem(it){
     }
   } else {
     h += '&#9203; Sin ventas recientes &mdash; no se proyecta agotamiento';
+  }
+
+  // Llegadas confirmadas desde embarques FINSA (fuente mas confiable)
+  var embQ = llegadasDeEmbarques(it.sku);
+  if(embQ.length){
+    h += '<br>&#128666; <b>Embarques confirmados:</b><br>';
+    embQ.forEach(function(e){
+      var badge = e.estado === 'recibido' ? ' &#9989;' : e.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
+      h += '&middot; ETA ' + escH(fmtDate(e.eta)) + ': +' + fmtN(e.uni) + ' unidades &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
+    });
   }
 
   // Llegadas confirmadas del QTY (snapshot Laiwu)
@@ -1404,6 +1970,33 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   document.getElementById('detailModal').addEventListener('click', function(e){
     if(e.target===this) closeDetail();
+  });
+
+  // AI panel listeners
+  // == Embarques: sincronizar remoto al arrancar y push snapshot inventario ==
+  syncEmbarquesRemoto();
+  setTimeout(pushSnapshotInventario, 2000);
+  var embRef = document.getElementById('embRefresh');
+  if(embRef) embRef.addEventListener('click', function(){ syncEmbarquesRemoto(true); });
+
+  // == Embarques dropzone ==
+  var embDrop = document.getElementById('embDrop');
+  var embFile = document.getElementById('embFile');
+  if(embDrop && embFile){
+    embDrop.addEventListener('click', function(){ embFile.click(); });
+    embDrop.addEventListener('dragover', function(e){ e.preventDefault(); this.style.background='#D6E9FF'; });
+    embDrop.addEventListener('dragleave', function(){ this.style.background='#EBF3FF'; });
+    embDrop.addEventListener('drop', function(e){
+      e.preventDefault(); this.style.background='#EBF3FF';
+      if(e.dataTransfer.files[0]) procesarPDFEmbarque(e.dataTransfer.files[0]);
+    });
+    embFile.addEventListener('change', function(){
+      if(this.files[0]) procesarPDFEmbarque(this.files[0]);
+      this.value = '';
+    });
+  }
+  document.getElementById('embModal').addEventListener('click', function(e){
+    if(e.target === this) cerrarEmbModal();
   });
 
   // AI panel listeners
