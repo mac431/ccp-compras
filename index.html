@@ -1637,31 +1637,120 @@ var STOP_CHAT = ('cuanto cuanta cuantos cuantas cuando cual cuales que como dond
 
 var _lastChatItems = [];
 
-function llegadasDeEmbarques(sku){
-  // Fuente mas confiable: packing lists de FINSA (auto-procesados o cargados manual)
+// Match de embarques por descripcion cuando el sku no viene del Apps Script.
+// El OCR del packing list nos da "SUPERPAN H EZ DECOR 2,440 1,220 19 GRIS COCO BALM"
+// - extraemos color, formato (2440x1220 -> 4X8, 2745x1220 -> 4X9) y espesor
+// - luego matcheamos contra la desc del reporte (ej "SP GRIS COCO BALM 4X8 19MM")
+function _normDesc(s){
+  return String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+function _fmtEspDeDesc(desc){
+  // Detecta formato y espesor de "SUPERPAN H EZ DECOR 2,440 1,220 19 ..."
+  var out = {fmt: null, esp: null};
+  if(/2[,.]?440.*?1[,.]?220/.test(desc)) out.fmt = '4X8';
+  else if(/2[,.]?745.*?1[,.]?220/.test(desc)) out.fmt = '4X9';
+  else if(/2[,.]?130|2[,.]?160/.test(desc)) out.fmt = '7X9';
+  var mesp = desc.match(/1[,.]?220\s+(\d{1,2})(?:MM)?\s+/);
+  if(mesp) out.esp = mesp[1] + 'MM';
+  // Cantos
+  if(/ABS\s+EDGEBANDING/i.test(desc)){
+    out.fmt = 'CANTO';
+    var mA = desc.match(/0[,.](\d{2,3})/);
+    if(mA) out.esp = String(parseInt(mA[1])) + 'MM';
+  }
+  return out;
+}
+function _colorDeDesc(desc){
+  // Quita SUPERPAN, dimensiones, palabras "H EZ DECOR" y espesor. Deja solo el color.
+  var d = _normDesc(desc);
+  d = d.replace(/^SUPERPAN\s+H\s+EZ\s+DECOR\s+[\d,.\s]+/, '');
+  d = d.replace(/^ABS\s+EDGEBANDING\s+0[,.\s]*\d+\s+MM\s+0[,.\s]*\d+/, '');
+  // El OCR duplica el color: "ESPIGA SAL TEXTIL ESPIGA SAL TEXTIL" - tomamos la primera mitad
+  var mitad = Math.floor(d.length / 2);
+  if(d.substring(0, mitad).trim() === d.substring(mitad).trim() && mitad > 3){
+    d = d.substring(0, mitad).trim();
+  }
+  return d.trim();
+}
+// Cache de mapping sku -> descNormalizada del reporte
+var _skuDescCache = null;
+function _reporteBySkuDesc(){
+  if(_skuDescCache) return _skuDescCache;
+  _skuDescCache = {};
+  try{
+    var rep = JSON.parse(localStorage.getItem('CCP_REPORT')||'[]');
+    rep.forEach(function(r){
+      var sku = String(r['Item Number']||'').trim();
+      if(sku) _skuDescCache[sku] = _normDesc(r['Item Description']||'');
+    });
+  }catch(e){}
+  return _skuDescCache;
+}
+function _skuDeEmbarqueItem(it){
+  if(it.sku) return it.sku;
+  var descNorm = _normDesc(it.desc||'');
+  var color = _colorDeDesc(it.desc||'');
+  var fe = _fmtEspDeDesc(it.desc||'');
+  var map = _reporteBySkuDesc();
+  // Buscar SKU cuyo desc contenga color + formato + espesor
+  var matches = [];
+  for(var sku in map){
+    var d = map[sku];
+    if(!color) continue;
+    // Todas las palabras del color presentes
+    var palabras = color.split(' ').filter(function(p){return p.length >= 3;});
+    var todas = palabras.every(function(p){ return d.indexOf(p) >= 0; });
+    if(!todas) continue;
+    if(fe.fmt && d.indexOf(fe.fmt) < 0) continue;
+    if(fe.esp && d.indexOf(fe.esp) < 0) continue;
+    matches.push(sku);
+  }
+  if(matches.length === 1) return matches[0];
+  return null;
+}
+
+function llegadasDeEmbarques(sku, itemRef){
+  // Fuente mas confiable: packing lists de FINSA (auto-procesados en Apps Script).
+  // Estrategia de match:
+  //  1) Si el embarque item ya trae sku, matchea directo por sku
+  //  2) Si no, matchea por descripcion (color + fmt + esp) contra el desc del reporte
   var res = [];
   var lbl = {transito:'en transito', llegando:'llegando', recibido:'recibido', retrasado:'retrasado'};
+  var descBuscada = itemRef ? _normDesc(itemRef.desc||'') : (sku ? (_reporteBySkuDesc()[sku]||'') : '');
   try{
     var embs = JSON.parse(localStorage.getItem('CCP_EMBARQUES')||'[]');
     embs.forEach(function(e){
-      // Formato nuevo: contenedores[].items[]
+      var lista = [];
       if(e.contenedores){
-        e.contenedores.forEach(function(c){
-          (c.items||[]).forEach(function(it){
-            if(String(it.sku) === String(sku) && it.qty > 0){
-              res.push({eta:e.eta, contenedor:c.contenedor, uni:it.qty, po:it.po||'', barco:e.barco||'', estado:lbl[e.estado]||e.estado||'transito'});
-            }
-          });
-        });
+        e.contenedores.forEach(function(c){ (c.items||[]).forEach(function(it){ lista.push({it:it, contenedor:c.contenedor}); }); });
+      } else if(e.items){
+        e.items.forEach(function(it){ lista.push({it:it, contenedor:e.contenedor}); });
       }
-      // Formato viejo: items[] directo con contenedor arriba (compat)
-      else if(e.items){
-        e.items.forEach(function(it){
-          if(String(it.sku) === String(sku) && it.qty > 0){
-            res.push({eta:e.eta, contenedor:e.contenedor, uni:it.qty, po:it.po||'', barco:e.barco||'', estado:lbl[e.estado]||'transito'});
+      lista.forEach(function(x){
+        var it = x.it;
+        // Match por SKU si viene
+        var itSku = it.sku || _skuDeEmbarqueItem(it);
+        var matchOk = false;
+        if(sku && itSku && String(itSku) === String(sku)) matchOk = true;
+        // Fallback: match por color+fmt+esp de la desc
+        if(!matchOk && descBuscada && it.desc){
+          var color = _colorDeDesc(it.desc);
+          var fe = _fmtEspDeDesc(it.desc);
+          if(color){
+            var palabras = color.split(' ').filter(function(p){return p.length >= 3;});
+            var todas = palabras.every(function(p){ return descBuscada.indexOf(p) >= 0; });
+            if(todas && (!fe.fmt || descBuscada.indexOf(fe.fmt) >= 0) && (!fe.esp || descBuscada.indexOf(fe.esp) >= 0)) matchOk = true;
           }
-        });
-      }
+        }
+        if(matchOk && it.qty > 0){
+          res.push({
+            eta: e.eta, contenedor: x.contenedor, uni: it.qty,
+            po: it.po||'', barco: e.barco||'',
+            paquetes: it.paquetes||0,
+            estado: lbl[e.estado] || e.estado || 'transito'
+          });
+        }
+      });
     });
   }catch(err){}
   return res;
@@ -1694,13 +1783,14 @@ function llegadasConfirmadas(sku){
 function respLlegadasItem(it){
   var h = '<b>Llegadas de ' + escH(it.desc) + '</b> (SKU ' + escH(it.sku) + ')<br><br>';
   var algo = false;
-  var embQ = llegadasDeEmbarques(it.sku);
+  var embQ = llegadasDeEmbarques(it.sku, it);
   if(embQ.length){
     algo = true;
     h += '&#128666; <b>Embarques FINSA confirmados:</b><br>';
     embQ.forEach(function(e){
       var badge = e.estado === 'recibido' ? ' &#9989;' : e.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
-      h += '&middot; <b>' + escH(fmtDate(e.eta)) + '</b>: +' + fmtN(e.uni) + ' &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
+      var paqTxt = e.paquetes ? ' (' + e.paquetes + ' paquetes)' : '';
+      h += '&middot; <b>' + escH(fmtDate(e.eta)) + '</b>: +' + fmtN(e.uni) + paqTxt + ' &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
     });
   }
   var conf = llegadasConfirmadas(it.sku);
@@ -1859,12 +1949,13 @@ function fichaItem(it){
   }
 
   // Llegadas confirmadas desde embarques FINSA (fuente mas confiable)
-  var embQ = llegadasDeEmbarques(it.sku);
+  var embQ = llegadasDeEmbarques(it.sku, it);
   if(embQ.length){
     h += '<br>&#128666; <b>Embarques confirmados:</b><br>';
     embQ.forEach(function(e){
       var badge = e.estado === 'recibido' ? ' &#9989;' : e.estado === 'retrasado' ? ' &#9888;&#65039;' : '';
-      h += '&middot; ETA ' + escH(fmtDate(e.eta)) + ': +' + fmtN(e.uni) + ' unidades &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
+      var paqTxt = e.paquetes ? ' (' + e.paquetes + ' paquetes)' : '';
+      h += '&middot; ETA ' + escH(fmtDate(e.eta)) + ': +' + fmtN(e.uni) + ' unidades' + paqTxt + ' &middot; ' + escH(e.contenedor) + (e.po?' &middot; PO ' + escH(e.po):'') + ' <span style="color:#888;font-size:10px">(' + escH(e.estado) + ')</span>' + badge + '<br>';
     });
   }
 
