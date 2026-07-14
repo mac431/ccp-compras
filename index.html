@@ -2,24 +2,26 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>CCP Compras Hub</title>
 <style>
-:root{--bl:#185FA5;--gn:#1D9E75;--rd:#C0392B;--am:#C87A00;--br:#e5e5e5;--mu:#888;--tx:#1a1a1a;--bg:#f0f2f5}
+:root{--bl:#1B4D47;--gn:#1D9E75;--rd:#C0392B;--am:#C1602E;--br:#e5e5e5;--mu:#888;--tx:#1a1a1a;--bg:#f0f2f5}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:40px}
+body{font-family:'Open Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:40px}
 /* HEADER */
-.hdr{background:linear-gradient(135deg,#0D3F75,#185FA5);color:#fff;padding:16px;display:flex;align-items:center;gap:14px}
-.hdr-logo{font-size:32px}
+.hdr{background:#1A1A1A;color:#fff;padding:16px;display:flex;align-items:center;gap:14px}
+.hdr-logo{width:40px;height:40px;border-radius:50%;background:#1B4D47;color:#F5F5F0;display:flex;align-items:center;justify-content:center;font-family:'Julius Sans One',sans-serif;font-size:22px;flex-shrink:0}
 .hdr h1{font-size:17px;font-weight:800;margin-bottom:2px}
 .hdr p{font-size:11px;opacity:.7}
 /* REPORTE STATUS */
 .rep-bar{background:#fff;border-bottom:1px solid var(--br);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .rep-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .rep-dot.ok{background:#1D9E75}
-.rep-dot.warn{background:#C87A00}
+.rep-dot.warn{background:#C1602E}
 .rep-dot.err{background:#C0392B}
-.rep-dot.loading{background:#185FA5;animation:pulse 1s infinite}
+.rep-dot.loading{background:#1B4D47;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .rep-info{flex:1;min-width:0}
 .rep-info b{font-size:12px;font-weight:700;display:block}
@@ -43,7 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .tool-card p{font-size:11px;color:var(--mu)}
 .tool-card .badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-top:6px}
 .badge.ready{background:#E8F7F2;color:#1D9E75}
-.badge.wip{background:#FFF4E0;color:#C87A00}
+.badge.wip{background:#FFF4E0;color:#C1602E}
 .badge.soon{background:#f0f0f0;color:#999}
 /* TRACKER */
 .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
@@ -56,10 +58,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 /* Estado badges */
 .est{display:inline-block;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
 .est-0{background:#f0f0f0;color:#888}
-.est-1{background:#EBF3FF;color:#185FA5}
+.est-1{background:#EBF3FF;color:#1B4D47}
 .est-2{background:#E8F7F2;color:#1D9E75}
 .est-3{background:#F5F3FF;color:#7C3AED}
-.est-4{background:#FFF4E0;color:#C87A00}
+.est-4{background:#FFF4E0;color:#C1602E}
 .est-5{background:#E8F7F2;color:#1D9E75}
 /* Checks */
 .chk{display:inline-flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;user-select:none;padding:3px 6px;border-radius:6px;border:1px solid var(--br)}
@@ -96,7 +98,7 @@ input[type=file]{display:none}
 #aiFab{
   position:fixed;bottom:20px;right:20px;
   width:56px;height:56px;border-radius:50%;
-  background:linear-gradient(135deg,var(--bl),#0D3F75);
+  background:linear-gradient(135deg,var(--bl),#12332F);
   color:#fff;border:none;font-size:26px;cursor:pointer;
   box-shadow:0 6px 20px rgba(24,95,165,.4);
   z-index:400;transition:transform .15s
@@ -131,7 +133,7 @@ input[type=file]{display:none}
 }
 
 .ai-hdr{
-  background:linear-gradient(135deg,var(--bl),#0D3F75);
+  background:linear-gradient(135deg,var(--bl),#12332F);
   color:#fff;padding:14px 16px;
   border-radius:18px 18px 0 0;
   display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -200,7 +202,7 @@ input[type=file]{display:none}
   font-size:15px;cursor:pointer;
   display:flex;align-items:center;justify-content:center
 }
-#aiSend:hover{background:#0D3F75}
+#aiSend:hover{background:#12332F}
 
 /* Modal API Key */
 .key-modal{
@@ -233,10 +235,10 @@ input[type=file]{display:none}
 <body>
 
 <!-- BANNER DE ACCIONES PENDIENTES -->
-<div id="accBanner" style="display:none;background:linear-gradient(135deg,#FFF4E0 0%,#FDE9E7 100%);border-left:5px solid #C87A00;border-radius:10px;padding:12px 16px;margin:12px auto;max-width:1200px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+<div id="accBanner" style="display:none;background:linear-gradient(135deg,#FFF4E0 0%,#FDE9E7 100%);border-left:5px solid #C1602E;border-radius:10px;padding:12px 16px;margin:12px auto;max-width:1200px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
     <div style="flex:1;min-width:0">
-      <div style="font-size:13px;font-weight:800;color:#C87A00">📋 <span id="accBannerCount">0</span> acciones pendientes de revisar</div>
+      <div style="font-size:13px;font-weight:800;color:#C1602E">📋 <span id="accBannerCount">0</span> acciones pendientes de revisar</div>
       <div id="accBannerDetalle" style="font-size:11px;color:#78716C;margin-top:2px"></div>
     </div>
     <button onclick="abrirAccionesModal()" style="padding:9px 16px;background:var(--bl);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Revisar</button>
@@ -259,10 +261,10 @@ input[type=file]{display:none}
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-logo">🏢</div>
+  <div class="hdr-logo">C</div>
   <div>
-    <h1>CCP Compras Hub</h1>
-    <p>Caribbean Cabinet Products · Sistema de Compras</p>
+    <h1 style="font-family:'Julius Sans One',sans-serif;font-weight:400;letter-spacing:2.5px;text-transform:uppercase">Caribbean Compras</h1>
+    <p style="letter-spacing:1px">CABINETS PRODUCTS &middot; Sistema de Compras</p>
   </div>
 </div>
 
@@ -776,7 +778,7 @@ function renderTracker(){
       +'<td style="white-space:nowrap">'
         +(p.chkSamuel?'<span style="color:#1D9E75;font-size:14px">S</span>':'<span style="color:#ddd;font-size:14px">S</span>')
         +' '
-        +(p.chkEpicor?'<span style="color:#185FA5;font-size:14px">E</span>':'<span style="color:#ddd;font-size:14px">E</span>')
+        +(p.chkEpicor?'<span style="color:#1B4D47;font-size:14px">E</span>':'<span style="color:#ddd;font-size:14px">E</span>')
       +'</td>'
       +'<td style="text-align:right"><span style="color:var(--mu);font-size:16px">&rsaquo;</span></td>'
       +'</tr>';
@@ -838,7 +840,7 @@ function openDetail(idx){
   document.getElementById('det-title').textContent = p.po + ' — ' + p.sup;
 
   var origenBadge = p.origen
-    ? '<span style="background:#EBF3FF;color:#185FA5;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase">auto desde ' + p.origen + (p.tipo ? ' &middot; ' + p.tipo : '') + '</span>'
+    ? '<span style="background:#EBF3FF;color:#1B4D47;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase">auto desde ' + p.origen + (p.tipo ? ' &middot; ' + p.tipo : '') + '</span>'
     : '';
 
   var itemsHtml = '';
@@ -1276,7 +1278,7 @@ function abrirEmbModal(parsed){
     var items = c.items.map(function(it, ii){
       var color, tag;
       if(it.matchConfianza >= 100){ color = '#1D9E75'; tag = 'MATCH OK'; }
-      else if(it.matchConfianza >= 60){ color = '#C87A00'; tag = 'REVISAR: ' + escH(it.matchMotivo||''); }
+      else if(it.matchConfianza >= 60){ color = '#C1602E'; tag = 'REVISAR: ' + escH(it.matchMotivo||''); }
       else { color = '#C0392B'; tag = 'SIN MATCH: ' + escH(it.matchMotivo||''); }
       var opts = '';
       if(it.matchOpciones){
@@ -1417,9 +1419,9 @@ function guardarEmbarque(){
 
 function fmtN(n){ return Math.round(n).toLocaleString('es-PR'); }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 // ACCIONES PENDIENTES - Emails semi-automaticos (Aurora/Alan/Kelvin)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 
 var _accionesCache = [];
 
@@ -1470,8 +1472,8 @@ function cerrarAccionesModal(){ document.getElementById('accModal').style.displa
 
 function pintarAccion(a, i){
   var colores = {
-    aurora: {bg:'#EBF3FF', fg:'#185FA5', ic:'\uD83D\uDCCB'},  // Levante pendiente
-    alan:   {bg:'#FFF4E0', fg:'#C87A00', ic:'\uD83C\uDFED'},  // PO sin embarque
+    aurora: {bg:'#EBF3FF', fg:'#1B4D47', ic:'\uD83D\uDCCB'},  // Levante pendiente
+    alan:   {bg:'#FFF4E0', fg:'#C1602E', ic:'\uD83C\uDFED'},  // PO sin embarque
     kelvin: {bg:'#FDE9E7', fg:'#C0392B', ic:'\u26A0\uFE0F'}   // Receiving abierto
   };
   var c = colores[a.tipo] || colores.aurora;
@@ -1499,7 +1501,7 @@ async function enviarAccion(i){
   var status = document.getElementById('accStatus_' + i);
   var body = document.getElementById('accBody_' + i).value;
   status.textContent = 'Enviando...';
-  status.style.color = '#C87A00';
+  status.style.color = '#C1602E';
   try{
     var params = 'action=sendemailauto'
       + '&accionId=' + encodeURIComponent(a.id)
@@ -1539,7 +1541,7 @@ async function omitirAccion(i){
   }catch(e){}
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 
 function renderEmbarques(){
   var el = document.getElementById('embList');
@@ -1586,8 +1588,8 @@ function renderEmbarques(){
 
   function pintarEmb(e, ei){
     var estilos = {
-      transito:  {bg:'#EBF3FF', fg:'#185FA5', lbl:'\u23F3 EN TRANSITO'},
-      llegando:  {bg:'#FFF4E0', fg:'#C87A00', lbl:'\uD83D\uDCEC LLEGANDO'},
+      transito:  {bg:'#EBF3FF', fg:'#1B4D47', lbl:'\u23F3 EN TRANSITO'},
+      llegando:  {bg:'#FFF4E0', fg:'#C1602E', lbl:'\uD83D\uDCEC LLEGANDO'},
       recibido:  {bg:'#E8F7F2', fg:'#1D9E75', lbl:'\u2705 RECIBIDO'},
       retrasado: {bg:'#FDE9E7', fg:'#C0392B', lbl:'\u26A0\uFE0F RETRASADO'}
     };
