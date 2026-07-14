@@ -1426,7 +1426,7 @@ function renderEmbarques(){
     return '<div style="border-left:3px solid var(--bl);margin:4px 0;background:#fafafa;border-radius:4px;overflow:hidden">'
       + '<div onclick="toggleCont(\'' + key + '\')" style="padding:6px 10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
       + '<div><div style="font-size:11px;font-weight:700;color:var(--bl)">' + escH(c.contenedor) + '</div>'
-      + (c.seal ? '<div style="font-size:10px;color:#888">seal ' + escH(c.seal) + ' &middot; ' + (c.items||[]).length + ' items</div>' : '')
+      + (c.seal ? '<div style="font-size:10px;color:#888">seal ' + escH(c.seal) + ' &middot; ' + (c.items||[]).length + ' items' + (c.packets ? ' &middot; ' + c.packets + ' paquetes' : '') + '</div>' : '')
       + '</div>'
       + '<span style="font-size:14px;color:#888" id="' + key + '_arrow">&#9662;</span>'
       + '</div>'
@@ -1444,7 +1444,11 @@ function renderEmbarques(){
     var st = estilos[e.estado] || estilos.transito;
     var totalItems = (e.contenedores||[]).reduce(function(a,c){ return a + (c.items||[]).length; }, 0);
     var totalUni = 0;
-    (e.contenedores||[]).forEach(function(c){ (c.items||[]).forEach(function(it){ totalUni += (it.qty||0); }); });
+    var totalPk = 0;
+    (e.contenedores||[]).forEach(function(c){
+      (c.items||[]).forEach(function(it){ totalUni += (it.qty||0); });
+      totalPk += (c.packets||0);
+    });
     var poSet = {};
     (e.contenedores||[]).forEach(function(c){ (c.items||[]).forEach(function(it){ if(it.po) poSet[it.po] = 1; }); });
     var poList = Object.keys(poSet).slice(0,5).join(', ') + (Object.keys(poSet).length > 5 ? '...' : '');
@@ -1455,7 +1459,7 @@ function renderEmbarques(){
       + '<div style="display:flex;justify-content:space-between;align-items:center">'
       + '<div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--bl)">Ref ' + escH(e.ref||'?') + ' <span style="font-size:11px;color:#888;font-weight:400">' + escH(e.barco||'') + '</span></div>'
       + '<div style="font-size:11px;color:#666;margin-top:2px">ETA <b>' + escH(fmtDate(e.eta)) + '</b> &middot; ETD ' + escH(fmtDate(e.etd)) + '</div>'
-      + '<div style="font-size:10px;color:#888">' + (e.contenedores||[]).length + ' contenedor(es) &middot; ' + totalItems + ' items &middot; ' + fmtN(totalUni) + ' uni'
+      + '<div style="font-size:10px;color:#888">' + (e.contenedores||[]).length + ' contenedor(es) &middot; ' + totalItems + ' items &middot; ' + fmtN(totalUni) + ' uni' + (totalPk ? ' &middot; ' + totalPk + ' paquetes' : '')
       + (poList ? ' &middot; POs: ' + escH(poList) : '') + '</div></div>'
       + '<div style="display:flex;gap:6px;align-items:center;margin-left:8px">'
       + '<div style="background:' + st.bg + ';color:' + st.fg + ';font-size:10px;font-weight:800;padding:4px 8px;border-radius:6px;white-space:nowrap">' + st.lbl + '</div>'
