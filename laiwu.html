@@ -281,16 +281,16 @@ canvas{width:100%!important}
     <!-- Two PO summaries -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="background:#EBF3FF;border-radius:8px;padding:10px;border-left:3px solid var(--bl)">
-        <div style="font-size:10px;font-weight:700;color:var(--bl);margin-bottom:6px">LAI062026-01</div>
-        <div style="font-size:10px;color:var(--mu)">🚢 Ship: 15 Ago 2026</div>
-        <div style="font-size:10px;color:var(--mu);margin-bottom:6px">📦 ETA: ~15 Oct 2026</div>
+        <div style="font-size:10px;font-weight:700;color:var(--bl);margin-bottom:6px" id="po1NumLbl">PO-01</div>
+        <div style="font-size:10px;color:var(--mu)" id="po1ShipLbl">🚢 Ship: &mdash;</div>
+        <div style="font-size:10px;color:var(--mu);margin-bottom:6px" id="po1EtaLbl">📦 ETA: &mdash;</div>
         <div style="font-size:18px;font-weight:800;color:var(--bl)" id="po1Pal">—</div>
         <div style="font-size:11px;color:var(--mu)" id="po1Cont">—</div>
       </div>
       <div style="background:#F5F3FF;border-radius:8px;padding:10px;border-left:3px solid #8B5CF6">
-        <div style="font-size:10px;font-weight:700;color:#8B5CF6;margin-bottom:6px">LAI062026-02</div>
-        <div style="font-size:10px;color:var(--mu)">🚢 Ship: 1 Sep 2026</div>
-        <div style="font-size:10px;color:var(--mu);margin-bottom:6px">📦 ETA: ~1 Nov 2026</div>
+        <div style="font-size:10px;font-weight:700;color:#8B5CF6;margin-bottom:6px" id="po2NumLbl">PO-02</div>
+        <div style="font-size:10px;color:var(--mu)">🚢 Ship: &mdash;</div>
+        <div style="font-size:10px;color:var(--mu);margin-bottom:6px">📦 ETA: &mdash;</div>
         <div style="font-size:18px;font-weight:800;color:#8B5CF6" id="po2Pal">—</div>
         <div style="font-size:11px;color:var(--mu)" id="po2Cont">—</div>
       </div>
@@ -501,7 +501,18 @@ canvas{width:100%!important}
 
 <script>
 // == APP DATA & LOGIC ==
-const MN=['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];
+const MESES_ES=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const MESES_LG=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function mesOff(off){var d=new Date();d=new Date(d.getFullYear(),d.getMonth()+off,1);return{n:MESES_ES[d.getMonth()],lg:MESES_LG[d.getMonth()],y:d.getFullYear(),mm:String(d.getMonth()+1).padStart(2,'0')};}
+const MN=(function(){var a=[];for(var i=0;i<12;i++)a.push(mesOff(i).n);return a;})();
+function poNumBase(){var m0=mesOff(0);return 'LAI'+m0.mm+m0.y;}
+(function(){try{
+  var e;
+  e=document.getElementById('po1NumLbl'); if(e)e.textContent=poNumBase()+'-01';
+  e=document.getElementById('po1ShipLbl'); if(e)e.innerHTML='\uD83D\uDEA2 Ship: 15 '+mesOff(2).n+' '+mesOff(2).y;
+  e=document.getElementById('po1EtaLbl'); if(e)e.innerHTML='\uD83D\uDCE6 ETA: ~15 '+mesOff(4).n+' '+mesOff(4).y;
+  e=document.getElementById('po2NumLbl'); if(e)e.textContent=poNumBase()+'-02';
+}catch(ex){}})();
 
 // PO items - mutable (adjusted by  buttons)
 const PO_BASE=[
@@ -765,7 +776,7 @@ function poBlock(poId,ship,eta,color,rows,tp,tu,nota){
     <div style="font-size:12px;color:#888">${nota}</div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-    <div class="box" style="border-left-color:${color}"><div class="l"> Fecha</div><div class="v" style="color:${color}">Junio 2026</div></div>
+    <div class="box" style="border-left-color:${color}"><div class="l"> Fecha</div><div class="v" style="color:${color}">${mesOff(0).lg} ${mesOff(0).y}</div></div>
     <div class="box" style="border-left-color:${color}"><div class="l"> Contenedores</div><div class="v" style="color:${color}">${Math.ceil(tp/18)}  40'</div></div>
     <div class="box" style="border-left-color:${color}"><div class="l"> Ship Date</div><div class="v" style="color:${color}">${ship}</div></div>
     <div class="box" style="border-left-color:${color}"><div class="l"> ETA Puerto Rico</div><div class="v" style="color:${color}">${eta}</div></div>
@@ -790,7 +801,7 @@ function exportCombined(){
   const r2=ac2.map(p=>`<tr><td>${p.sku}</td><td>${p.desc}</td><td align="right">${p.std}</td><td align="right">${getPal2(p)}</td><td align="right">${fmt(getPal2(p)*p.std)}</td></tr>`).join('');
   const hasPO2=tp2>0;
   const fecha=new Date().toLocaleDateString('es-PR',{year:'numeric',month:'long',day:'numeric'});
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ordenes LAI062026</title>
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ordenes ${poNumBase()}</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:12px;padding:28px;color:#1a1a1a;max-width:820px;margin:0 auto}
 .co{font-size:20px;font-weight:800;color:#1B4D47;margin-bottom:2px}.su{font-size:11px;color:#888;margin-bottom:8px}
 .dtitle{font-size:14px;font-weight:700;padding-bottom:10px;border-bottom:2px solid #1B4D47;margin-bottom:22px}
@@ -839,16 +850,16 @@ td:nth-child(n+3){text-align:right}tr:nth-child(even) td{background:#fafafa}
 </style></head><body>
 <div class="co"> Caribbean Cabinet Products</div>
 <div class="su">Laiwu PVC Panels - Vendor 51</div>
-<div class="dtitle">${hasPO2?`Ordenes LAI062026-01 &amp; LAI062026-02 . ${Math.ceil(tp1/18)+Math.ceil(tp2/18)} contenedores totales`:`Orden LAI062026-01 . ${Math.ceil(tp1/18)} contenedores`}</div>
-${poBlock((window._poNum||'LAI062026-01'),'15 Agosto 2026','~15 Octubre 2026','#1B4D47',r1,tp1,tu1,hasPO2?'Primera entrega':'Orden única')}
-${hasPO2?`<div class="pb"></div>${poBlock((window._poNum2||'LAI062026-02'),'1 Septiembre 2026','~1 Noviembre 2026','#8B5CF6',r2,tp2,tu2,'Segunda entrega · 15 días después del PO-01')}`:''}
-<div class="note">${hasPO2?'PO-01: Ship 15 Ago → ETA ~15 Oct 2026 &nbsp;·&nbsp; PO-02: Ship 1 Sep → ETA ~1 Nov 2026<br>':''}Lead Time: 1 mes fab + 2 meses transito . Banda SSmes . Safety Stock: 3 meses<br>Generado: ${fecha}</div>
+<div class="dtitle">${hasPO2?`Ordenes ${poNumBase()}-01 &amp; ${poNumBase()}-02 . ${Math.ceil(tp1/18)+Math.ceil(tp2/18)} contenedores totales`:`Orden ${poNumBase()}-01 . ${Math.ceil(tp1/18)} contenedores`}</div>
+${poBlock((window._poNum||poNumBase()+'-01'),'15 '+mesOff(2).lg+' '+mesOff(2).y,'~15 '+mesOff(4).lg+' '+mesOff(4).y,'#1B4D47',r1,tp1,tu1,hasPO2?'Primera entrega':'Orden única')}
+${hasPO2?`<div class="pb"></div>${poBlock((window._poNum2||poNumBase()+'-02'),'1 '+mesOff(3).lg+' '+mesOff(3).y,'~1 '+mesOff(5).lg+' '+mesOff(5).y,'#8B5CF6',r2,tp2,tu2,'Segunda entrega · 15 días después del PO-01')}`:''}
+<div class="note">${hasPO2?'PO-01: Ship 15 ${mesOff(2).n} → ETA ~15 ${mesOff(4).n} ${mesOff(4).y} &nbsp;·&nbsp; PO-02: Ship 1 ${mesOff(3).n} → ETA ~1 ${mesOff(5).n} ${mesOff(5).y}<br>':''}Lead Time: 1 mes fab + 2 meses transito . Banda SSmes . Safety Stock: 3 meses<br>Generado: ${fecha}</div>
 <br><button class="np" onclick="window.print()" style="padding:11px 22px;background:#1B4D47;color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer"> Imprimir / Guardar PDF</button>
 </body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;
-  a.download=hasPO2?'PO_LAI062026_01_02.html':'PO_LAI062026_01.html';
+  a.download=hasPO2?('PO_'+poNumBase()+'_01_02.html'):('PO_'+poNumBase()+'_01.html');
   document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},1000);
 }
@@ -1123,7 +1134,7 @@ function renderIAExport(){
   var lines=[];
   lines.push("=== INVENTARIO LAIWU (Vendor 51) - Caribbean Cabinet Products ===");
   lines.push("Fecha reporte: "+hoy);
-  lines.push("Mes base: JUN 2026 | ETA orden actual: OCT 2026 | Safety Stock: 3 meses de tasa");
+  lines.push("Mes base: "+mesOff(0).n+" "+mesOff(0).y+" | ETA orden actual: "+mesOff(4).n+" "+mesOff(4).y+" | Safety Stock: 3 meses de tasa");
   lines.push("");
 
   // Tabla principal
@@ -1184,7 +1195,7 @@ function renderIAExport(){
     var totalPal=PO_BASE.reduce(function(a,p){return a+(palAdj[p.sku]||0);},0);
     lines.push("");
     lines.push("--- ORDEN EN PROCESO ---");
-    lines.push("PO: "+(window._poNum||"pendiente")+" | "+totalPal+" paletas | "+Math.ceil(totalPal/MAX_PAL)+" contenedores | ETA: ~Oct 2026");
+    lines.push("PO: "+(window._poNum||"pendiente")+" | "+totalPal+" paletas | "+Math.ceil(totalPal/MAX_PAL)+" contenedores | ETA: ~"+mesOff(4).n+" "+mesOff(4).y);
     PO_BASE.forEach(function(p){
       var pal=palAdj[p.sku]||0;
       if(pal>0) lines.push("  "+p.sku+": "+pal+" pal = "+(pal*p.std).toLocaleString()+" uni");
@@ -1399,12 +1410,12 @@ function buildSKUData(mm,qty,pos){
     }
   }
 
-  // Month index from Jun 2026 base
-  const BASE=new Date(2026,5,1);
+  // Month index from current month base (dinamico, antes congelado en Jun 2026)
+  const BASE=new Date(new Date().getFullYear(),new Date().getMonth(),1);
   function mIdx(d){
     if(!d||isNaN(new Date(d)))return -1;
     const dt=new Date(d);
-    const diff=(dt.getFullYear()-2026)*12+(dt.getMonth()-5);
+    const diff=(dt.getFullYear()-BASE.getFullYear())*12+(dt.getMonth()-BASE.getMonth());
     return diff>=0&&diff<12?diff:-1;
   }
 
@@ -1442,6 +1453,7 @@ function buildSKUData(mm,qty,pos){
     const est=Array(12).fill(0),ship=Array(12).fill(0),pend=[...conf];
     for(let arr=4;arr<12;arr++){
       let q=qoh;for(let fi=0;fi<arr;fi++)q=Math.max(0,q+pend[fi]-tasa);
+      q+=conf[arr]; // contar llegadas confirmadas que arriban ese mismo mes
       const need=peak-q;
       if(need>0){const p=Math.ceil(need/std),u=p*std;est[arr]=u;pend[arr]+=u;const si=arr-TRANSIT;if(si>=0)ship[si]+=u;}
     }
@@ -1449,6 +1461,7 @@ function buildSKUData(mm,qty,pos){
     for(let i=0;i<12;i++){q=Math.max(0,q+pend[i]-tasa);qoh_proj.push(Math.round(q));}
 
     let q_oct=qoh;for(let i=0;i<4;i++)q_oct=Math.max(0,q_oct+conf[i]-tasa);
+    q_oct+=conf[4]; // consistente: stock al arribo incluye confirmados de ese mes
     const po_units=est[4],po_pals=po_units>0?Math.round(po_units/std):0;
 
     skus.push({sku,desc,std,tasa:Math.round(tasa*10)/10,safety,piso,techo,peak,qoh,qoo,p3m:Math.round(p3m*10)/10,jun,may,abr,mar,conf,est,ship,qoh_proj,po_pals,po_units,qoh_at_eta:Math.round(q_oct)});
@@ -1540,7 +1553,7 @@ function syncCFGRemote(){
 loadCFG();
 syncCFGRemote();
 
-function renderReport(){RTT_DATA={};var MN=['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];document.getElementById('rHead').innerHTML='<tr><th>SKU</th><th>Estado</th>'+MN.map(function(m){return '<th>'+m+'</th>';}).join('')+'</tr>';document.getElementById('rBody').innerHTML=DATA.filter(function(d){return d.tasa>0;}).map(function(d){return '<tr><td><b>'+d.sku+'</b></td><td>'+(hasAlert(d)?'<span class="crd">!</span>':'<span class="cok">OK</span>')+'</td>'+d.qoh_proj.map(function(v,i){var qd1=i===0?d.qoh:d.qoh_proj[i-1];var confU=d.conf[i]||0,estU=d.est[i]||0;var poActU=(i===4?estU:0),estFutU=(i===4?0:estU);var cls=v===0?'cz':v<d.piso?'crd':v<d.safety?'cband':'cok';var sp=[];if(confU>0)sp.push('<span style="color:#1e40af;font-weight:700">+'+(confU>=1000?(confU/1000).toFixed(1)+'k':confU)+'</span>');if(poActU>0)sp.push('<span style="color:#7c3aed;font-weight:700">+'+(poActU>=1000?(poActU/1000).toFixed(1)+'k':poActU)+'</span>');if(estFutU>0)sp.push('<span style="color:#60a5fa;font-weight:600">+'+(estFutU>=1000?(estFutU/1000).toFixed(1)+'k':estFutU)+'</span>');var sub=sp.length?'<div style="font-size:9px;margin-top:1px">'+sp.join(' ')+'</div>':'';var cid=d.sku+'_'+i;RTT_DATA[cid]={sku:d.sku,mi:i,qd1:qd1,confU:confU,estU:estU,poActU:poActU,estFutU:estFutU,tasa:d.tasa,vFin:v,safety:d.safety,piso:d.piso};return '<td class="'+cls+'" data-cid="'+cid+'">'+fmt(qd1)+sub+'</td>';}).join('')+'</tr>';}).join('');}
+function renderReport(){RTT_DATA={};document.getElementById('rHead').innerHTML='<tr><th>SKU</th><th>Estado</th>'+MN.map(function(m){return '<th>'+m+'</th>';}).join('')+'</tr>';document.getElementById('rBody').innerHTML=DATA.filter(function(d){return d.tasa>0;}).map(function(d){return '<tr><td><b>'+d.sku+'</b></td><td>'+(hasAlert(d)?'<span class="crd">!</span>':'<span class="cok">OK</span>')+'</td>'+d.qoh_proj.map(function(v,i){var qd1=i===0?d.qoh:d.qoh_proj[i-1];var confU=d.conf[i]||0,estU=d.est[i]||0;var poActU=(i===4?estU:0),estFutU=(i===4?0:estU);var cls=v===0?'cz':v<d.piso?'crd':v<d.safety?'cband':'cok';var sp=[];if(confU>0)sp.push('<span style="color:#1e40af;font-weight:700">+'+(confU>=1000?(confU/1000).toFixed(1)+'k':confU)+'</span>');if(poActU>0)sp.push('<span style="color:#7c3aed;font-weight:700">+'+(poActU>=1000?(poActU/1000).toFixed(1)+'k':poActU)+'</span>');if(estFutU>0)sp.push('<span style="color:#60a5fa;font-weight:600">+'+(estFutU>=1000?(estFutU/1000).toFixed(1)+'k':estFutU)+'</span>');var sub=sp.length?'<div style="font-size:9px;margin-top:1px">'+sp.join(' ')+'</div>':'';var cid=d.sku+'_'+i;RTT_DATA[cid]={sku:d.sku,mi:i,qd1:qd1,confU:confU,estU:estU,poActU:poActU,estFutU:estFutU,tasa:d.tasa,vFin:v,safety:d.safety,piso:d.piso};return '<td class="'+cls+'" data-cid="'+cid+'">'+fmt(qd1)+sub+'</td>';}).join('')+'</tr>';}).join('');}
 function hideTT(){document.getElementById('rtt').style.display='none';clearTimeout(rttTimer);}
 function showRtt(el,cid){var info=RTT_DATA[cid];if(!info)return;var MNF=['Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre','Enero','Febrero','Marzo','Abril','Mayo'];var tt=document.getElementById('rtt');var cob=info.tasa>0?Math.round(info.vFin/info.tasa*10)/10:0;var finColor=info.vFin===0?'#fca5a5':info.vFin<info.piso?'#fcd34d':'#86efac';var anio=info.mi<=6?'2026':'2027';tt.innerHTML='<div style="font-size:12px;font-weight:700;color:#7dd3fc;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:6px">'+MNF[info.mi]+' '+anio+' - SKU '+info.sku+'</div>'+'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">QoH inicio mes</span><span style="font-weight:700">'+fmt(info.qd1)+'</span></div>'+(info.confU>0?'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Llega confirmado</span><span style="font-weight:700;color:#93c5fd">+'+fmt(info.confU)+'</span></div>':'')+(info.poActU>0?'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Esta orden</span><span style="font-weight:700;color:#c4b5fd">+'+fmt(info.poActU)+'</span></div>':'')+(info.estFutU>0?'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Proyectado futuro</span><span style="font-weight:700;color:#60a5fa">+'+fmt(info.estFutU)+'</span></div>':'')+'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Venta proyectada</span><span style="font-weight:700">'+fmt(info.tasa)+'/mes</span></div>'+'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">QoH fin de mes</span><span style="font-weight:700;color:'+finColor+'">'+fmt(info.vFin)+'</span></div>'+'<div style="border-top:1px solid rgba(255,255,255,.12);margin:6px 0 5px"></div>'+'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px"><span style="opacity:.65">Cobertura</span><span style="font-weight:700">'+cob+' meses</span></div>'+(info.vFin===0?'<div style="margin-top:6px;color:#fca5a5;font-weight:700">STOCKOUT este mes</div>':info.vFin<info.piso?'<div style="margin-top:6px;color:#fcd34d;font-weight:700">Bajo piso al fin de mes</div>':'');var rect=el.getBoundingClientRect();var left=Math.min(rect.left,window.innerWidth-258);var top=rect.bottom+4;if(window.innerHeight-rect.bottom<200)top=rect.top-200;tt.style.left=left+'px';tt.style.top=top+'px';tt.style.display='block';clearTimeout(rttTimer);rttTimer=setTimeout(hideTT,5000);}
 function renderEmg(){var criticos=DATA.filter(function(d){if(!d.tasa)return false;var tasaDia=d.tasa/30,q=d.qoh;var diasMes=[0,30,61,91,122,152,183,214,242,273,303,334],hoy=26;for(var dia=1;dia<=EMG_DIAS;dia++){for(var mi=0;mi<12;mi++){var de=diasMes[mi]+15-hoy;if(de===dia)q+=(d.conf[mi]||0);}q=Math.max(0,q-tasaDia);if(q===0)return true;}return false;});var panel=document.getElementById('emgPanel');if(!criticos.length){panel.style.display='none';return;}panel.style.display='block';document.getElementById('emgList').innerHTML=criticos.map(function(d){return '<div class="emg-item">SKU '+d.sku+' - QoH: '+fmt(d.qoh)+' - ~'+Math.round(d.qoh/d.tasa*30)+' dias</div>';}).join('');window._emgCrit=criticos;}
@@ -1583,7 +1596,7 @@ function openEmg(){
 
     if(mesDef<0) return; // no hay deficit - no necesita emergencia
 
-    var MN=["JUN","JUL","AGO","SEP","OCT"];
+    var MN5=MN.slice(0,5);var MN=MN5;
     // Si el deficit ocurre ANTES de que llegue la emergencia
     if(mesDef < etaMes){
       advertencias.push({
@@ -1695,11 +1708,11 @@ function feedbackTracker(res){
 function saveContactos(){var r=[];for(var i=0;i<4;i++){var blk=document.getElementById('cnt-block-'+i);if(!blk||blk.style.display==='none')continue;var em=(document.getElementById('cnt-email-'+i)||{}).value||'';if(!em)continue;r.push({nombre:(document.getElementById('cnt-nombre-'+i)||{}).value||'',email:em,rol:(document.getElementById('cnt-rol-'+i)||{}).value||'to',visible:true});}localStorage.setItem('CCP_LAIWU_CONTACTS',JSON.stringify(r));}
 function loadContactos(){try{var saved=JSON.parse(localStorage.getItem('CCP_LAIWU_CONTACTS')||'[]');if(!saved.length) return;saved.forEach(function(c,i){var blk=document.getElementById('cnt-block-'+i);if(!blk) return;blk.style.display='block';var nom=document.getElementById('cnt-nombre-'+i);var em=document.getElementById('cnt-email-'+i);var rol=document.getElementById('cnt-rol-'+i);if(nom) nom.value=c.nombre||''  ;if(em) em.value=c.email||'';if(rol) rol.value=c.rol||'to';});}catch(e){}}
 function getContactos(){var r=[];for(var i=0;i<4;i++){var blk=document.getElementById('cnt-block-'+i);if(!blk||blk.style.display==='none')continue;var em=(document.getElementById('cnt-email-'+i)||{}).value||'';if(!em)continue;r.push({nombre:(document.getElementById('cnt-nombre-'+i)||{}).value||'',email:em,rol:(document.getElementById('cnt-rol-'+i)||{}).value||'to'});}return r;}
-function buildPOHTML(){var sp=computeSplit();var ac1=PO_BASE.filter(function(p){return(sp[p.sku]||{p1:0}).p1>0;});var ac2=PO_BASE.filter(function(p){return(sp[p.sku]||{p2:0}).p2>0;});var tp1=ac1.reduce(function(a,p){return a+sp[p.sku].p1;},0);var tu1=ac1.reduce(function(a,p){return a+sp[p.sku].p1*p.std;},0);var tp2=ac2.reduce(function(a,p){return a+sp[p.sku].p2;},0);var tu2=ac2.reduce(function(a,p){return a+sp[p.sku].p2*p.std;},0);var fecha=new Date().toLocaleDateString('es-PR',{year:'numeric',month:'long',day:'numeric'});_poState={sp:sp,ac1:ac1,tp1:tp1,tu1:tu1,ac2:ac2,tp2:tp2,tu2:tu2,fecha:fecha,isEmg:false};function trow(p,key,color){var pal=sp[p.sku][key];var uni=fmt(pal*p.std);return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 6px;font-weight:700;font-size:12px;white-space:nowrap">'+p.sku+'</td><td style="padding:8px 6px;font-size:11px;line-height:1.4">'+p.desc+'<br><span style="font-size:10px;color:#888">Std:'+p.std+' · '+uni+' uni</span></td><td style="padding:8px 6px;text-align:right;font-weight:800;font-size:16px;color:'+color+';white-space:nowrap">'+pal+'</td></tr>';}function tsec(id,ship,eta,color,items,key,tp,tu){var rows=items.map(function(p){var pal=sp[p.sku][key];return '<tr style="border-bottom:1px solid #f0f0f0">'+'<td style="padding:5px 4px;font-weight:700;font-size:11px;white-space:nowrap">'+p.sku+'</td>'+'<td style="padding:5px 4px;font-size:10px">'+p.desc+'<br><span style="color:#aaa;font-size:9px">Std:'+p.std+'</span></td>'+'<td style="padding:5px 4px;text-align:right;font-weight:800;font-size:14px;color:'+color+'">'+pal+'</td>'+'<td style="padding:5px 4px;text-align:right;font-size:10px;color:#666">'+fmt(pal*p.std)+'</td>'+'</tr>';}).join('');return '<div style="margin-bottom:14px">'+'<div style="background:'+color+';color:#fff;padding:7px 12px;border-radius:6px 6px 0 0;font-size:13px;font-weight:800">'+id+'</div>'+'<div style="background:#f8f9fa;padding:5px 12px;font-size:10px;border-bottom:1px solid #e5e5e5">'+'Ship: <b>'+ship+'</b> &middot; ETA: <b>'+eta+'</b> &middot; <b>'+Math.ceil(tp/MAX_PAL)+'</b> contenedor'+(Math.ceil(tp/MAX_PAL)!==1?'es':'')+'</div>'+'<table style="width:100%;border-collapse:collapse">'+'<colgroup><col style="width:65px"><col><col style="width:38px"><col style="width:70px"></colgroup>'+'<thead><tr style="background:'+color+'18">'+'<th style="padding:4px;text-align:left;font-size:9px;color:#888">SKU</th>'+'<th style="padding:4px;text-align:left;font-size:9px;color:#888">Descripcion</th>'+'<th style="padding:4px;text-align:right;font-size:9px;color:#888">Pal</th>'+'<th style="padding:4px;text-align:right;font-size:9px;color:#888">Uni</th>'+'</tr></thead>'+'<tbody>'+rows+'</tbody>'+'<tfoot><tr style="background:#f0f0f0;font-weight:800">'+'<td colspan="2" style="padding:5px 4px;font-size:11px">TOTAL</td>'+'<td style="padding:5px 4px;text-align:right;color:'+color+'">'+tp+' pal</td>'+'<td style="padding:5px 4px;text-align:right;font-size:10px">'+fmt(tu)+' uni</td>'+'</tr></tfoot></table></div>';}return '<div style="font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;width:100%;box-sizing:border-box;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px"><div style="font-size:20px;font-weight:800;color:#1B4D47">Caribbean Cabinet Products</div><div style="font-size:11px;color:#aaa">'+fecha+'</div></div><div style="font-size:12px;color:#888;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #1B4D47">Laiwu PVC Panels - Vendor 51</div>'+tsec((window._poNum||'LAI062026-01'),'15 Ago 2026','~15 Oct 2026','#1B4D47',ac1,'p1',tp1,tu1)+(ac2.length?tsec((window._poNum2||'LAI062026-02'),'1 Sep 2026','~1 Nov 2026','#8B5CF6',ac2,'p2',tp2,tu2):'')+'<div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:40px"><div style="border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;text-align:center">Autorizado por</div><div style="border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;text-align:center">Fecha</div></div></div>';}
+function buildPOHTML(){var sp=computeSplit();var ac1=PO_BASE.filter(function(p){return(sp[p.sku]||{p1:0}).p1>0;});var ac2=PO_BASE.filter(function(p){return(sp[p.sku]||{p2:0}).p2>0;});var tp1=ac1.reduce(function(a,p){return a+sp[p.sku].p1;},0);var tu1=ac1.reduce(function(a,p){return a+sp[p.sku].p1*p.std;},0);var tp2=ac2.reduce(function(a,p){return a+sp[p.sku].p2;},0);var tu2=ac2.reduce(function(a,p){return a+sp[p.sku].p2*p.std;},0);var fecha=new Date().toLocaleDateString('es-PR',{year:'numeric',month:'long',day:'numeric'});_poState={sp:sp,ac1:ac1,tp1:tp1,tu1:tu1,ac2:ac2,tp2:tp2,tu2:tu2,fecha:fecha,isEmg:false};function trow(p,key,color){var pal=sp[p.sku][key];var uni=fmt(pal*p.std);return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 6px;font-weight:700;font-size:12px;white-space:nowrap">'+p.sku+'</td><td style="padding:8px 6px;font-size:11px;line-height:1.4">'+p.desc+'<br><span style="font-size:10px;color:#888">Std:'+p.std+' · '+uni+' uni</span></td><td style="padding:8px 6px;text-align:right;font-weight:800;font-size:16px;color:'+color+';white-space:nowrap">'+pal+'</td></tr>';}function tsec(id,ship,eta,color,items,key,tp,tu){var rows=items.map(function(p){var pal=sp[p.sku][key];return '<tr style="border-bottom:1px solid #f0f0f0">'+'<td style="padding:5px 4px;font-weight:700;font-size:11px;white-space:nowrap">'+p.sku+'</td>'+'<td style="padding:5px 4px;font-size:10px">'+p.desc+'<br><span style="color:#aaa;font-size:9px">Std:'+p.std+'</span></td>'+'<td style="padding:5px 4px;text-align:right;font-weight:800;font-size:14px;color:'+color+'">'+pal+'</td>'+'<td style="padding:5px 4px;text-align:right;font-size:10px;color:#666">'+fmt(pal*p.std)+'</td>'+'</tr>';}).join('');return '<div style="margin-bottom:14px">'+'<div style="background:'+color+';color:#fff;padding:7px 12px;border-radius:6px 6px 0 0;font-size:13px;font-weight:800">'+id+'</div>'+'<div style="background:#f8f9fa;padding:5px 12px;font-size:10px;border-bottom:1px solid #e5e5e5">'+'Ship: <b>'+ship+'</b> &middot; ETA: <b>'+eta+'</b> &middot; <b>'+Math.ceil(tp/MAX_PAL)+'</b> contenedor'+(Math.ceil(tp/MAX_PAL)!==1?'es':'')+'</div>'+'<table style="width:100%;border-collapse:collapse">'+'<colgroup><col style="width:65px"><col><col style="width:38px"><col style="width:70px"></colgroup>'+'<thead><tr style="background:'+color+'18">'+'<th style="padding:4px;text-align:left;font-size:9px;color:#888">SKU</th>'+'<th style="padding:4px;text-align:left;font-size:9px;color:#888">Descripcion</th>'+'<th style="padding:4px;text-align:right;font-size:9px;color:#888">Pal</th>'+'<th style="padding:4px;text-align:right;font-size:9px;color:#888">Uni</th>'+'</tr></thead>'+'<tbody>'+rows+'</tbody>'+'<tfoot><tr style="background:#f0f0f0;font-weight:800">'+'<td colspan="2" style="padding:5px 4px;font-size:11px">TOTAL</td>'+'<td style="padding:5px 4px;text-align:right;color:'+color+'">'+tp+' pal</td>'+'<td style="padding:5px 4px;text-align:right;font-size:10px">'+fmt(tu)+' uni</td>'+'</tr></tfoot></table></div>';}return '<div style="font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;width:100%;box-sizing:border-box;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px"><div style="font-size:20px;font-weight:800;color:#1B4D47">Caribbean Cabinet Products</div><div style="font-size:11px;color:#aaa">'+fecha+'</div></div><div style="font-size:12px;color:#888;margin-bottom:16px;padding-bottom:12px;border-bottom:3px solid #1B4D47">Laiwu PVC Panels - Vendor 51</div>'+tsec((window._poNum||poNumBase()+'-01'),'15 '+mesOff(2).n+' '+mesOff(2).y,'~15 '+mesOff(4).n+' '+mesOff(4).y,'#1B4D47',ac1,'p1',tp1,tu1)+(ac2.length?tsec((window._poNum2||poNumBase()+'-02'),'1 '+mesOff(3).n+' '+mesOff(3).y,'~1 '+mesOff(5).n+' '+mesOff(5).y,'#8B5CF6',ac2,'p2',tp2,tu2):'')+'<div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:40px"><div style="border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;text-align:center">Autorizado por</div><div style="border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;text-align:center">Fecha</div></div></div>';}
 function verPO(){try{var now=new Date();var mm=String(now.getMonth()+1).padStart(2,"0");var yyyy=now.getFullYear();var seqEl=document.getElementById("poSeqInput");var seqNum=seqEl?parseInt(seqEl.value)||1:1;window._poNum="LAI"+mm+yyyy+"-"+String(seqNum).padStart(2,"0");window._poNum2="LAI"+mm+yyyy+"-"+String(seqNum+1).padStart(2,"0");var html=buildPOHTML();try{var _sn=JSON.parse(localStorage.getItem("CCP_LAIWU_DATA")||"null");if(_sn&&_poState){_sn.po=[];(_poState.ac1||[]).forEach(function(p){_sn.po.push({sku:p.sku,pal:_poState.sp[p.sku].p1,uni:_poState.sp[p.sku].p1*p.std});});(_poState.ac2||[]).forEach(function(p){_sn.po.push({sku:p.sku,pal:_poState.sp[p.sku].p2,uni:_poState.sp[p.sku].p2*p.std});});localStorage.setItem("CCP_LAIWU_DATA",JSON.stringify(_sn));}}catch(_e2){}var inner=document.getElementById("poBodyInner");if(!inner){alert("Error: overlay no encontrado");return;}inner.innerHTML="<div style='padding:10px;background:#fff;margin:8px;border-radius:10px'>"+html+"</div>";document.getElementById("poBarTitle").textContent="Orden de Compra";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var hint=document.getElementById("poHint");if(hint)hint.textContent=toList.length?"Para: "+toList.map(function(c){return c.nombre||c.email;}).join(", "):"Agrega contactos en Config";var ov=document.getElementById("poOv");if(ov){ov.style.display="block";ov.scrollTop=0;}}catch(err){alert("Error al generar PO: "+err.message);}}function doEmail(){
   var st=_poState||window._emgState;
   if(!st){alert("Primero presiona Ver / Enviar PO.");return;}
-  var poNum=window._poNum||"LAI062026-01";
+  var poNum=window._poNum||(poNumBase()+"-01");
   var cnts=getContactos();
   var toList=cnts.filter(function(c){return c.rol==="to";});
   var nombre=toList.length?(toList[0].nombre||"Jason"):"Jason";
@@ -1722,7 +1735,7 @@ function verPO(){try{var now=new Date();var mm=String(now.getMonth()+1).padStart
     });
   } else {
     if(st.ac1&&st.ac1.length){
-      tablaPO.push(poNum+" | Ship: 15 Ago 2026 | ETA: ~15 Oct 2026 | "+Math.ceil(st.tp1/MAX_PAL)+" contenedores");
+      tablaPO.push(poNum+" | Ship: 15 "+mesOff(2).n+" "+mesOff(2).y+" | ETA: ~15 "+mesOff(4).n+" "+mesOff(4).y+" | "+Math.ceil(st.tp1/MAX_PAL)+" contenedores");
       tablaPO.push(sep);
       tablaPO.push("SKU          DESC                    STD  PAL    UNI");
       tablaPO.push(sep);
@@ -1739,7 +1752,7 @@ function verPO(){try{var now=new Date();var mm=String(now.getMonth()+1).padStart
       tablaPO.push("TOTAL"+String("").padEnd(30)+String(st.tp1).padStart(4)+"  "+String(st.tu1).padStart(6));
     }
     if(st.ac2&&st.ac2.length){
-      var poNum2=window._poNum2||"LAI062026-02";
+      var poNum2=window._poNum2||(poNumBase()+"-02");
       tablaPO.push("");
       tablaPO.push(poNum2+" | Ship: 1 Sep 2026 | ETA: ~1 Nov 2026 | "+Math.ceil(st.tp2/MAX_PAL)+" contenedores");
       tablaPO.push(sep);
@@ -1802,13 +1815,13 @@ function verPO(){try{var now=new Date();var mm=String(now.getMonth()+1).padStart
       ?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products"
       :"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";
     var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);
-    window.open(url);
+    location.href=url;
     flash("Abriendo cliente de correo...");
   } else {
     copiar();
   }
 }
-function sendEmailSuplidor(){var st=_poState||window._emgState;if(!st){alert("Primero presiona Ver / Enviar PO.");return;}feedbackTracker(st.isEmg?registrarEmgEnTracker(st):registrarPOsLaiwuEnTracker());var poNum=window._poNum||"LAI062026-01";var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var ccList=cnts.filter(function(c){return c.rol==="cc";});if(!toList.length){alert("Agrega contactos en la tab Config primero.");return;}var nombre=toList[0].nombre||"Jason";var partes=["Hola "+nombre+",","",st.isEmg?"Adjunto PO de emergencia "+st.poNum+" para su revision inmediata.":"Adjunto orden de compra "+poNum+" para su revision y confirmacion.","",st.isEmg?"PO#: "+st.poNum+" - ETA requerida: "+st.etaStr:"PO#: "+poNum+" - Ship: 15 Ago 2026 - ETA: ~15 Oct 2026","",st.isEmg?"Favor confirmar disponibilidad y fecha de despacho a la brevedad.":"Favor confirmar recibo, disponibilidad y fecha de produccion.","","Gracias,","Caribbean Cabinet Products"];var msg=partes.join("\n");var asunto=st.isEmg?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products":"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";var toStr=toList.map(function(c){return c.email;}).join(",");var ccStr=ccList.length?"&cc="+ccList.map(function(c){return c.email;}).join(","):"";var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(isMobile&&navigator.share){navigator.share({title:asunto,text:msg}).catch(function(){window.open(url);});}else{window.open(url);}}
+function sendEmailSuplidor(){var st=_poState||window._emgState;if(!st){alert("Primero presiona Ver / Enviar PO.");return;}feedbackTracker(st.isEmg?registrarEmgEnTracker(st):registrarPOsLaiwuEnTracker());var poNum=window._poNum||(poNumBase()+"-01");var cnts=getContactos();var toList=cnts.filter(function(c){return c.rol==="to";});var ccList=cnts.filter(function(c){return c.rol==="cc";});if(!toList.length){alert("Agrega contactos en la tab Config primero.");return;}var nombre=toList[0].nombre||"Jason";var partes=["Hola "+nombre+",","",st.isEmg?"Adjunto PO de emergencia "+st.poNum+" para su revision inmediata.":"Adjunto orden de compra "+poNum+" para su revision y confirmacion.","",st.isEmg?"PO#: "+st.poNum+" - ETA requerida: "+st.etaStr:"PO#: "+poNum+" - Ship: 15 "+mesOff(2).n+" "+mesOff(2).y+" - ETA: ~15 "+mesOff(4).n+" "+mesOff(4).y,"",st.isEmg?"Favor confirmar disponibilidad y fecha de despacho a la brevedad.":"Favor confirmar recibo, disponibilidad y fecha de produccion.","","Gracias,","Caribbean Cabinet Products"];var msg=partes.join("\n");var asunto=st.isEmg?"URGENTE - PO Emergencia "+st.poNum+" - Caribbean Cabinet Products":"Orden de Compra "+poNum+" - Caribbean Cabinet Products - Laiwu";var toStr=toList.map(function(c){return c.email;}).join(",");var ccStr=ccList.length?"&cc="+ccList.map(function(c){return c.email;}).join(","):"";var url="mailto:"+toStr+"?subject="+encodeURIComponent(asunto)+ccStr+"&body="+encodeURIComponent(msg);var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(isMobile&&navigator.share){navigator.share({title:asunto,text:msg}).catch(function(){location.href=url;});}else{location.href=url;}}
 function updateCfgUI(){var lt=CFG.ltFab+CFG.ltTra+1;var mn=['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];var eta=lt<12?mn[lt]+' 2026':mn[lt-12]+' 2027';var ids={ltFabV:CFG.ltFab,ltTraV:CFG.ltTra,ssV:CFG.ss,mpV:CFG.maxPal};Object.keys(ids).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=ids[id];});var ltEl=document.getElementById('ltTotalV'),etaEl=document.getElementById('ltEtaV');if(ltEl)ltEl.textContent=lt+' meses';if(etaEl)etaEl.textContent=eta;}
 var _origGo=go;go=function(t,el){_origGo(t,el);if(t==="report")renderReport();if(t==="cfg")updateCfgUI();};
 var _origInitApp=initApp;initApp=function(r){_origInitApp(r);setTimeout(renderEmg,100);};
