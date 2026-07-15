@@ -212,7 +212,7 @@ canvas{width:100%!important}
   <div class="hero">
     <div class="lbl">Orden FINSA</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-      <div class="num" id="heroPoNum" style="margin-bottom:0">F072026-1</div>
+      <div class="num" id="heroPoNum" style="margin-bottom:0">F—</div>
       <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:8px;padding:4px 6px 4px 10px">
         <span style="font-size:10px;opacity:.75">Sec</span>
         <button id="heroSeqDown" style="background:rgba(255,255,255,.25);border:none;color:#fff;width:24px;height:24px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">-</button>
@@ -257,7 +257,7 @@ canvas{width:100%!important}
         </tr></thead>
         <tbody id="cantoBody"></tbody>
         <tfoot><tr class="tf">
-          <td colspan="4">TOTAL F062026-C1</td>
+          <td colspan="4">TOTAL PO CANTOS</td>
           <td class="r" id="tfCajas">—</td>
           <td class="r" id="tfRollos">—</td>
         </tr></tfoot>
@@ -624,7 +624,8 @@ const DB_CANTOS = [{"sku": "41087476", "desc": "CANTO ESPIGA SAL TEXT .8X44 90M"
 
 
 const CANTO_WAITLIST = [{"sku_viejo": "41044796", "desc": "CANTO BOHEMIAN BLANCO 1X44 175M", "color": "Bohemian Blanco (Boreal)", "ancho_solicitar": ".8X44 o .8X50", "l12": 1.0}, {"sku_viejo": "41049515", "desc": "CANTO CERE XACOBEO BALM 1X44 175", "color": "Cerezo Xacobeo (Balm)", "ancho_solicitar": ".8X44 o .8X50", "l12": 4.0}, {"sku_viejo": "41139312", "desc": "CANTO GRIS SUAVE 1X44 175M", "color": "Gris Suave (Soft III)", "ancho_solicitar": ".8X44 o .8X50", "l12": 4.0}, {"sku_viejo": "40865920", "desc": "CANTO IRON OAK 1X22 150M", "color": "Iron Oak (Atlas)", "ancho_solicitar": ".8X23", "l12": 13.0}, {"sku_viejo": "41095018", "desc": "CANTO NOGAL BOHEME 1X44 175M", "color": "Nogal Boheme (Etna)", "ancho_solicitar": ".8X44 o .8X50", "l12": 1.0}, {"sku_viejo": "41088981", "desc": "CANTO NOGAL FAUSTO 1X22 175M", "color": "Nogal Fausto (Etna)", "ancho_solicitar": ".8X23", "l12": 12.0}, {"sku_viejo": "41095023", "desc": "CANTO NOGAL FAUSTO 1X44 175M", "color": "Nogal Fausto (Etna)", "ancho_solicitar": ".8X44 o .8X50", "l12": 2.0}, {"sku_viejo": "41092405", "desc": "CANTO ROBLE COOPER 1X22 175M", "color": "Roble Cooper (Mesura)", "ancho_solicitar": ".8X23", "l12": 11.0}, {"sku_viejo": "41095021", "desc": "CANTO ROBLE COOPER 1X44 175M", "color": "Roble Cooper (Mesura)", "ancho_solicitar": ".8X44 o .8X50", "l12": 1.0}, {"sku_viejo": "41087834", "desc": "CANTO ROBLE ROMANCE 1X44 175M", "color": "Roble Romance (Atlas)", "ancho_solicitar": ".8X44 o .8X50", "l12": 1.0}, {"sku_viejo": "41068827", "desc": "CANTO VERDE GLENCOE 1X43 147M", "color": "Verde Glencoe (Technical Matt)", "ancho_solicitar": ".8X44 o .8X50", "l12": 2.0}, {"sku_viejo": "41058067", "desc": "CANTO CHAMPAN METAL 1X44 175M", "color": "Champ\u00e1n Metal (Moon) \u2014 a\u00f1adir a selecci\u00f3n", "ancho_solicitar": ".8X44 o .8X50", "l12": 1.0}, {"sku_viejo": "41068829", "desc": "CANTO GRIS CLARO T/M 1X43 147M", "color": "Gris Claro (Technical Matt)", "ancho_solicitar": ".8X44 o .8X50", "l12": 0.0}, {"sku_viejo": "41049514", "desc": "CANTO ROBLE ETERNITY A 1X50 175M", "color": "Roble Eternity (Atlas)", "ancho_solicitar": ".8X44 o .8X50", "l12": 0.0}, {"sku_viejo": "41095020", "desc": "CANTO ROBLE NEWMAN 1X44 175M", "color": "Roble Newman (Mesura)", "ancho_solicitar": ".8X44 o .8X50", "l12": 0.0}, {"sku_viejo": "40598011", "desc": "CANTO ROBLE TRIGO 1X22 175M", "color": "Roble Trigo (Etna)", "ancho_solicitar": ".8X23", "l12": 0.0}, {"sku_viejo": "41051994", "desc": "CANTO ROBLE ROMANCE 1X50 175M", "color": "Roble Romance (Atlas)", "ancho_solicitar": ".8X44 o .8X50", "l12": 0.0}, {"sku_viejo": "PENDIENTE", "desc": "BLANCO EXTRA BALM (paneles 8/16/19MM + canto 23MM)", "color": "Blanco Extra (Balm) - sustituye WHITE SR209", "ancho_solicitar": "todas las variantes", "l12": 1154.0}];
-const MN = ['JUN','JUL','AGO','SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY'];
+const MN = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+function etaAnio(idx){ var n = new Date(); return n.getFullYear() + (idx < n.getMonth() ? 1 : 0); }
 const fmt = n => Math.round(n).toLocaleString('es-PR');
 
 // === CONFIG ====================================================
@@ -1432,7 +1433,7 @@ function updateHeroTotals(){
   var eta_idx = (mm + Math.round((CFG.ltFab + CFG.ltTra) / 4)) % 12;
   document.getElementById('heroTotalPal').textContent = totalPal + ' pal';
   document.getElementById('heroTotalCont').textContent = totalCont + ' contenedor' + (totalCont!==1?'es':'');
-  document.getElementById('heroEta').textContent = MN[eta_idx] + ' 2026';
+  document.getElementById('heroEta').textContent = MN[eta_idx] + ' ' + etaAnio(eta_idx);
   document.getElementById('heroCantoCajas').textContent = totalCajas + ' cajas';
 }
 
@@ -1444,7 +1445,7 @@ function makePOHtml(){
   var yyyy = now.getFullYear();
   var fecha = now.toLocaleDateString('es-PR', {year:'numeric', month:'long', day:'numeric'});
   var eta_idx = (now.getMonth() + Math.round((CFG.ltFab + CFG.ltTra) / 4)) % 12;
-  var etaStr = MN[eta_idx] + ' ' + yyyy;
+  var etaStr = MN[eta_idx] + ' ' + etaAnio(eta_idx);
 
   // Recorrer grupos en el mismo orden que la Orden y emitir 1 PO por contenedor
   var poIdx = startSeq;
@@ -1531,10 +1532,11 @@ function makePOHtml(){
 
 function makePOCantoHtml(){
   var seq = parseInt(document.getElementById('poSeqInput').value) || 1;
-  var poNum = 'F062026-C' + seq;
+  var _n = new Date();
+  var poNum = 'F' + String(_n.getMonth()+1).padStart(2,'0') + _n.getFullYear() + '-C' + seq;
   var fecha = new Date().toLocaleDateString('es-PR',{year:'numeric',month:'long',day:'numeric'});
   var eta_idx = (new Date().getMonth() + Math.round((CFG.ltFab + CFG.ltTra) / 4)) % 12;
-  var etaStr = MN[eta_idx] + ' 2026';
+  var etaStr = MN[eta_idx] + ' ' + etaAnio(eta_idx);
 
   var rows = '';
   var totalCajas = 0, totalRollos = 0;
@@ -2096,7 +2098,7 @@ function updateCfgUI(){
   var months = Math.round(totalWeeks / 4);
   var eta_idx = (new Date().getMonth() + months) % 12;
   document.getElementById('ltTotalV').textContent = '~' + months + ' meses (' + totalWeeks + ' sem)';
-  document.getElementById('ltEtaV').textContent = MN[eta_idx] + ' 2026';
+  document.getElementById('ltEtaV').textContent = MN[eta_idx] + ' ' + etaAnio(eta_idx);
 }
 
 function renderDesc(){
@@ -2433,7 +2435,7 @@ function _finsaBodyEmailFromPOs(posSel){
 
   var partes = ['Hola ' + nombre + ',', '',
     'Adjunto orden de compra para su revision y confirmacion.',
-    '', 'ETA estimada: ' + MN[eta_idx] + ' ' + yyyy, ''];
+    '', 'ETA estimada: ' + MN[eta_idx] + ' ' + etaAnio(eta_idx), ''];
 
   var totalPan = 0, totalCajas = 0, totalRollos = 0;
 
@@ -2482,7 +2484,7 @@ function _finsaHtmlPOFromPOs(posSel){
 
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PO FINSA ' + mm + '/' + yyyy + '</title>' + css + '</head><body>';
   html += '<div class="co">Caribbean Cabinet Products</div>';
-  html += '<div class="su">FINANCIERA MADERERA, S.A. (FINSA) &middot; Vendor 6 &middot; ' + fecha + ' &middot; ETA estimada: ' + MN[eta_idx] + ' ' + yyyy + '</div>';
+  html += '<div class="su">FINANCIERA MADERERA, S.A. (FINSA) &middot; Vendor 6 &middot; ' + fecha + ' &middot; ETA estimada: ' + MN[eta_idx] + ' ' + etaAnio(eta_idx) + '</div>';
   html += '<div class="hdr"><b>' + posSel.length + '</b> ordenes de compra a emitir</div>';
 
   posSel.forEach(function(po){
@@ -2677,7 +2679,7 @@ function _finsaBuildPo(isCanto){
   var unidad = isCanto ? ' cajas' : ' paletas';
   var body = ['Hola ' + nombre + ',','',
     'Adjunto orden de compra ' + poNum + ' para su revision y confirmacion.',
-    '','PO#: ' + poNum + ' | ' + totalPal + unidad + ' | ETA estimada: ' + MN[eta_idx] + ' ' + yyyy,
+    '','PO#: ' + poNum + ' | ' + totalPal + unidad + ' | ETA estimada: ' + MN[eta_idx] + ' ' + etaAnio(eta_idx),
     '','Favor confirmar recibo, disponibilidad y fecha de produccion.','','Gracias,',
     'Caribbean Cabinet Products'].join('\n');
   var asunto = 'Orden de Compra ' + poNum + ' - Caribbean Cabinet Products - FINSA';
@@ -3010,14 +3012,15 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   document.getElementById('btnCopyMsg').addEventListener('click', function(){
     var seq = parseInt(document.getElementById('poSeqInput').value)||1;
-    var poNum = 'F062026-' + seq;
+    var _n = new Date();
+    var poNum = 'F' + String(_n.getMonth()+1).padStart(2,'0') + _n.getFullYear() + '-' + seq;
     var cnts = getContactos();
     var nombre = cnts.length ? (cnts[0].nombre || 'Alan') : 'Alan';
     var totalPal = DATA.reduce(function(a,d){ return a+palAdj[d.sku]; },0);
     var eta_idx = (new Date().getMonth() + Math.round((CFG.ltFab+CFG.ltTra)/4))%12;
     var msg = ['Hola ' + nombre + ',','',
       'Adjunto orden de compra ' + poNum + ' para su revision y confirmacion.',
-      '','PO#: ' + poNum + ' | ' + totalPal + ' paletas | ETA estimada: ' + MN[eta_idx] + ' 2026',
+      '','PO#: ' + poNum + ' | ' + totalPal + ' paletas | ETA estimada: ' + MN[eta_idx] + ' ' + etaAnio(eta_idx),
       '','Favor confirmar recibo, disponibilidad y fecha de produccion.','','Gracias,',
       'Caribbean Cabinet Products'].join('\n');
     navigator.clipboard.writeText(msg).then(function(){
@@ -3048,7 +3051,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var unidad = isCanto ? ' cajas' : ' paletas';
     var body = ['Hola ' + nombre + ',','',
       'Adjunto orden de compra ' + poNum + ' para su revision y confirmacion.',
-      '','PO#: ' + poNum + ' | ' + totalPal + unidad + ' | ETA estimada: ' + MN[eta_idx] + ' ' + yyyy,
+      '','PO#: ' + poNum + ' | ' + totalPal + unidad + ' | ETA estimada: ' + MN[eta_idx] + ' ' + etaAnio(eta_idx),
       '','Favor confirmar recibo, disponibilidad y fecha de produccion.','','Gracias,',
       'Caribbean Cabinet Products'].join('\n');
     var asunto = 'Orden de Compra ' + poNum + ' - Caribbean Cabinet Products - FINSA';
