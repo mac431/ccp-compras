@@ -1344,6 +1344,40 @@ function processFiles(){
 
 // Run hub report check on load
 checkHubReport();
+// Auto-carga del QTY desde Drive (Apps Script). Si la accion no existe o falla, la subida manual sigue disponible.
+function checkHubQty(){
+  if(loaded.f2) return;
+  var GAS_URL = "https://script.google.com/macros/s/AKfycbxKG41HYb2X_vikPfsJeB2OrVOrlOZVqqBMfOIpG1OYQyS-E5S3qLMcLXkbXTjVO-et_g/exec";
+  var us2 = document.getElementById("us2");
+  if(us2) us2.textContent = "Buscando QTY en Drive...";
+  fetch(GAS_URL + "?action=getqty")
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(loaded.f2) return;
+      if(!j || !j.b64) throw new Error("sin datos");
+      var wb = XLSX.read(j.b64, {type:"base64", cellDates:true});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var data = XLSX.utils.sheet_to_json(ws, {defval:0, raw:true});
+      if(!data.length) throw new Error("QTY vacio");
+      rawQTY = data; loaded.f2 = true;
+      var uc2 = document.getElementById("uc2");
+      if(uc2){ uc2.style.border = "2px solid #1D9E75"; uc2.style.background = "#E8F7F2"; }
+      var dstr = j.date ? new Date(j.date).toLocaleDateString("es-PR",{day:"2-digit",month:"short"}) : "";
+      if(us2) us2.textContent = "QTY de Drive" + (dstr ? " (" + dstr + ")" : "") + " - " + data.length + " filas";
+      var ck2 = document.getElementById("uchk2"); if(ck2) ck2.textContent = "OK";
+      var ls = document.getElementById("loadStatus");
+      if(loaded.f1){
+        if(ls) ls.textContent = "Reporte + QTY cargados en automatico - calculando...";
+        setTimeout(processFiles, 300);
+      } else {
+        if(ls) ls.textContent = "QTY listo. Falta el reporte de inventario.";
+      }
+    })
+    .catch(function(e){
+      if(!loaded.f2 && us2) us2.textContent = "QTY___.xlsx \u00b7 click o arrastra aqu\u00ed";
+    });
+}
+checkHubQty();
 
 function findCol(row,...candidates){
   const keys=Object.keys(row);
