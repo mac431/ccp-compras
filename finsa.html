@@ -245,10 +245,12 @@ canvas{width:100%!important}
     <div class="canto-sep">&#128467; Cantos &mdash; PO separado (mismo contenedor que paneles)</div>
     <div class="sec-lbl">Ajuste de cajas por SKU</div>
     <div class="tw">
+      <div style="font-size:9px;color:#888;margin-bottom:6px"><b style="color:#1a1a1a">123</b><b style="color:#1e40af">/45</b> = rollos en stock / rollos en orden</div>
       <table>
         <thead><tr>
           <th>SKU</th><th>Descripcion</th>
           <th class="r">Ancho</th>
+          <th class="r" title="Rollos en stock / rollos en orden (azul)">QoH/QoO</th>
           <th class="r">Rol/Caja</th>
           <th class="r" style="min-width:100px">Cajas</th>
           <th class="r">Rollos</th>
@@ -323,7 +325,7 @@ canvas{width:100%!important}
           <th style="text-align:left">Descripcion</th>
           <th>Linea</th><th>Fmt</th><th>Esp</th>
           <th>Std</th><th>Min Pal</th><th>Mix</th>
-          <th>QoH</th><th>L12</th>
+          <th>QoH</th><th>QoO</th><th>L12</th>
         </tr></thead>
         <tbody id="bdpBody"></tbody>
       </table>
@@ -342,7 +344,7 @@ canvas{width:100%!important}
           <th style="text-align:left">Descripcion</th>
           <th>Ancho</th><th>Largo</th>
           <th>Rol/Caja</th><th>Caj/Plt</th>
-          <th>QoH</th><th>L12</th>
+          <th>QoH</th><th>QoO</th><th>L12</th>
         </tr></thead>
         <tbody id="bdcBody"></tbody>
       </table>
@@ -1124,7 +1126,7 @@ function renderGrupos(){
       html += '<div style="overflow-x:auto"><table style="min-width:340px;width:100%;border-collapse:collapse;font-size:11px">';
       html += '<thead><tr>' +
         '<th style="text-align:left;padding:4px 6px;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:.3px">Panel</th>' +
-        '<th style="text-align:center;padding:4px 6px;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:.3px" title="QoH (stock actual) y Cobertura en meses al ritmo de venta. Verde >=3mo, Ambar 1-3mo, Rojo <1mo, Gris sin venta.">Stock / Cob</th>' +
+        '<th style="text-align:center;padding:4px 6px;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:.3px" title="QoH/QoO (stock actual / en orden, azul) y Cobertura en meses al ritmo de venta. Verde >=3mo, Ambar 1-3mo, Rojo <1mo, Gris sin venta.">Stock / Cob</th>' +
         '<th style="text-align:right;padding:4px 6px;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:.3px" title="Ultimos 12 meses (solo visualizacion, no exporta)">L12</th>' +
         '<th style="text-align:right;padding:4px 6px;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:.3px;min-width:130px">Paletas</th>' +
         '<th style="text-align:right;padding:4px 6px;color:#888;font-size:9px;text-transform:uppercase;letter-spacing:.3px">Uni</th>' +
@@ -1178,7 +1180,7 @@ function renderGrupos(){
         // Stock / Cob
         html += '<td style="text-align:center;padding:2px 4px">';
         html += '<div style="display:inline-block;min-width:56px;background:' + cobBg + ';color:' + cobFg + ';padding:3px 6px;border-radius:6px;font-weight:700;line-height:1.15">';
-        html += '<div style="font-size:12px">' + fmt(it.qoh) + '</div>';
+        html += '<div style="font-size:12px">' + fmt(it.qoh) + ((it.qoo||0) > 0 ? '<span style="font-weight:600;color:#1e40af">/' + fmt(it.qoo) + '</span>' : '') + '</div>';
         html += '<div style="font-size:9px;opacity:.85">' + cobText + '</div>';
         html += '</div>';
         html += '</td>';
@@ -1231,6 +1233,16 @@ function renderGrupos(){
     sumBar += '<button id="colAllBtn" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;border:1px solid #1B4D47;background:' + (allCol ? '#1B4D47' : '#fff') + ';color:' + (allCol ? '#fff' : '#1B4D47') + ';cursor:pointer;white-space:nowrap">' + (allCol ? 'Expandir todo' : 'Colapsar todo') + '</button>';
     sumBar += '</div>';
     sumBar += '<div style="display:flex;gap:5px;flex-wrap:wrap">' + sumChips + '</div>';
+    sumBar += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:7px;padding-top:6px;border-top:1px dashed #e5e5e5;font-size:9px;color:#888">';
+    sumBar += '<span><b style="color:#1a1a1a">123</b><b style="color:#1e40af">/45</b> = stock / en orden</span>';
+    sumBar += '<span><span style="background:#E8F7F2;color:#1D9E75;padding:1px 5px;border-radius:4px;font-weight:700">3+mo</span> cobertura OK</span>';
+    sumBar += '<span><span style="background:#FFF4E0;color:#C1602E;padding:1px 5px;border-radius:4px;font-weight:700">1-3mo</span> atencion</span>';
+    sumBar += '<span><span style="background:#FDECEA;color:#C0392B;padding:1px 5px;border-radius:4px;font-weight:700">&lt;1mo</span> critico</span>';
+    sumBar += '<span><span style="background:#f0f0f0;color:#888;padding:1px 5px;border-radius:4px;font-weight:700">sin venta</span></span>';
+    sumBar += '<span><b style="color:#C1602E">min4</b> piso 4 pal</span>';
+    sumBar += '<span><b style="color:#C1602E">MIN</b> orden por minimo</span>';
+    sumBar += '<span><b style="color:#7B2D8B">SOBRE</b> sobre-stock</span>';
+    sumBar += '</div>';
     sumBar += '</div>';
     html = sumBar + html;
   }
@@ -1379,6 +1391,7 @@ function renderCantoTable(){
     if(c.alerta){ badges += '<div style="color:#C0392B;font-size:9px;font-weight:bold">' + c.alerta + '</div>'; }
     html += '<td style="font-size:10px">' + c.desc + badges + '</td>';
     html += '<td class="r">' + c.ancho + '</td>';
+    html += '<td class="r" style="white-space:nowrap"><b>' + fmt(Math.max(0, c.qoh)) + '</b>' + ((c.qoo||0) > 0 ? '<span style="color:#1e40af">/' + fmt(c.qoo) + '</span>' : '') + '</td>';
     html += '<td class="r">' + c.rollos_caja + '</td>';
     html += '<td class="r"><div class="adj">';
     html += '<button data-csku="' + c.sku + '" data-delta="-1" class="adj-btn-c">-</button>';
@@ -2020,6 +2033,7 @@ function renderBDPaneles(){
       '<td style="text-align:right' + (d.min_pal>=4?';color:#C1602E;font-weight:700':'') + '">' + d.min_pal + '</td>' +
       '<td style="text-align:center;font-size:10px">' + (d.mix||'') + '</td>' +
       '<td style="text-align:right">' + fmt(d.qoh) + '</td>' +
+      '<td style="text-align:right;color:#1e40af">' + fmt(d.qoo || 0) + '</td>' +
       '<td style="text-align:right">' + fmt(d.l12) + '</td></tr>';
   });
   document.getElementById('bdpBody').innerHTML = rows;
@@ -2036,6 +2050,7 @@ function renderBDCantos(){
       '<td style="text-align:right">' + c.rollos_caja + '</td>' +
       '<td style="text-align:right">' + c.cajas_pallet + '</td>' +
       '<td style="text-align:right">' + fmt(c.qoh) + '</td>' +
+      '<td style="text-align:right;color:#1e40af">' + fmt(c.qoo || 0) + '</td>' +
       '<td style="text-align:right">' + fmt(c.l12) + '</td></tr>';
   });
   document.getElementById('bdcBody').innerHTML = rows;
