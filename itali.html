@@ -95,6 +95,8 @@ tbody tr:nth-child(even){background:var(--rowalt);}
 .weblink{font-size:10px;color:var(--accent);text-decoration:none;font-weight:700;}
 .weblink:hover{text-decoration:underline;}
 .cov-crit{color:var(--red);font-weight:700;}
+tbody tr.row-order{background:#dcefe5 !important;}
+tbody tr.row-order td:first-child{border-left:3px solid var(--accent);}
 .cov-warn{color:#b8860b;font-weight:700;}
 .cov-band{color:#2E8B57;font-weight:700;}
 .cov-ok{color:#1D9E75;font-weight:700;}
@@ -157,7 +159,7 @@ textarea.ia-text{width:100%;height:280px;font-family:monospace;font-size:10.5px;
 
   <div class="tabnav">
     <button class="tabbtn active" data-tabbtn="orden">Orden</button>
-    <button class="tabbtn" data-tabbtn="reporte">Reporte</button>
+    <button class="tabbtn" data-tabbtn="reporte">Inventario</button>
     <button class="tabbtn" data-tabbtn="bd">BD Productos</button>
     <button class="tabbtn" data-tabbtn="po">Generar PO</button>
     <button class="tabbtn" data-tabbtn="config">Config</button>
@@ -183,10 +185,6 @@ textarea.ia-text{width:100%;height:280px;font-family:monospace;font-size:10.5px;
           <label>&nbsp;</label>
           <button class="btn secondary" id="recalcBtn">Recalcular</button>
         </div>
-        <div class="field">
-          <label>&nbsp;</label>
-          <label class="note" style="margin:0;display:flex;align-items:center;gap:5px;padding:7px 0;"><input type="checkbox" id="showAllSkus" checked> Mostrar todos los SKUs (incluye compra 0)</label>
-        </div>
       </div>
       <p class="note">Regla confirmada por Miguel. La pesta&ntilde;a Reporte muestra STD/12 vs L12/12 lado a lado por SKU para vigilar inflacion en SKUs viejos. M&iacute;nimo efectivo por l&iacute;nea: MAX(redondeo a std_pkg, MOQ de cotizaci&oacute;n IF).</p>
     </div>
@@ -199,13 +197,15 @@ textarea.ia-text{width:100%;height:280px;font-family:monospace;font-size:10.5px;
 
   <div data-tab="reporte">
     <div class="panel">
-      <h2>Reporte por SKU &mdash; STD/12 vs L12/12 vs Prom 3M</h2>
+      <h2>Inventario, ventas y compras &mdash; todos los SKUs</h2>
       <div class="filterbar">
         <input type="text" id="repSearch" placeholder="Buscar SKU o descripcion...">
-        <label class="note" style="margin:0;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="repSoloActivos" checked> Solo con actividad</label>
+        <label class="note" style="margin:0;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="repSoloActivos"> Solo con actividad</label>
+        <button class="btn secondary small" id="repExpandBtn">Expandir todo</button>
+        <button class="btn secondary small" id="repCollapseBtn">Colapsar todo</button>
       </div>
       <div class="tablewrap" id="reporteWrap"></div>
-      <p class="note">STD/12 = venta de por vida entre 12 &mdash; infla la tasa de SKUs viejos. Si STD/12 es mucho mayor que L12/12, revisa antes de ordenar.</p>
+      <p class="note">Organizado por las mismas familias del catalogo de italianaferramenta.it. Toca una familia para abrirla. El punto verde marca familias con lineas en orden. Escribe una cantidad en Ordenar para agregar el SKU a la orden. STD/12 con &#9888; = tasa inflada por venta historica (SKU viejo).</p>
     </div>
   </div>
 
@@ -517,17 +517,16 @@ function attachImgFallbacks(root){
 
 function renderOrden(){
   renderSummary();
-  var showAll = document.getElementById('showAllSkus').checked;
   var byFam = {};
   DATA.forEach(function(d){
-    if(!showAll && d.sug <= 0 && d.qty <= 0) return;
+    if(d.sug <= 0 && d.qty <= 0) return;
     if(!byFam[d.fam]) byFam[d.fam] = [];
     byFam[d.fam].push(d);
   });
   var fams = Object.keys(byFam).sort();
   var root = document.getElementById('ordenList');
   if(fams.length === 0){
-    root.innerHTML = '<div class="panel emptystate">Ninguna linea sugerida con la cobertura actual. Marca "Mostrar todos los SKUs" para ver el listado completo con compra 0.</div>';
+    root.innerHTML = '<div class="panel emptystate">Ninguna linea sugerida con la cobertura actual. Ve a la pestana Inventario para ver los 164 SKUs y agregar cantidades manualmente.</div>';
     return;
   }
   var html = [];
@@ -559,7 +558,7 @@ function renderOrden(){
       if(d.moq && d.qty > 0 && d.qty === d.moq && d.falta < d.moq) badges += '<span class="badge amber">MOQ ' + fmtInt(d.moq) + '</span>';
       if(d.disc) badges += '<span class="badge disc">DESC</span>';
       var qooTxt = d.qoo > 0 ? '<span class="badge qoo">' + fmtInt(d.qoo) + '</span>' : '0';
-      html.push('<tr>');
+      html.push('<tr' + (d.qty > 0 ? ' class="row-order"' : '') + '>');
       html.push('<td>' + imgTag(d.sku) + '</td>');
       html.push('<td><b>' + esc(d.sku) + '</b>' + badges + '</td>');
       html.push('<td class="desc-cell">' + esc(d.desc) + (d.web ? ' <a class="weblink" href="' + esc(d.web) + '" target="_blank" rel="noopener">WEB</a>' : '') + '</td>');
@@ -596,33 +595,93 @@ function renderOrden(){
 }
 
 /* ============ RENDER REPORTE ============ */
+var FAM_OPEN_R = {};
+
 function renderReporte(){
   var q = (document.getElementById('repSearch').value || '').toUpperCase();
   var solo = document.getElementById('repSoloActivos').checked;
   var arr = DATA.filter(function(d){
-    if(solo && d.l12 <= 0 && d.p3m <= 0 && d.qoh <= 0) return false;
+    if(solo && d.l12 <= 0 && d.p3m <= 0 && d.qoh <= 0 && d.qty <= 0) return false;
     if(q && d.sku.toUpperCase().indexOf(q) === -1 && d.desc.toUpperCase().indexOf(q) === -1) return false;
     return true;
   });
-  arr.sort(function(a,b){ return b.l12 - a.l12; });
-  var html = [];
-  html.push('<table><thead><tr><th>SKU</th><th>Descripcion</th><th class="num">QoH</th><th class="num">QoO</th><th class="num">STD/12</th><th class="num">L12/12</th><th class="num">P3M</th><th class="num">Tasa usada</th><th class="num">Cob (m)</th></tr></thead><tbody>');
+  var byFam = {};
   arr.forEach(function(d){
-    var inflado = d.l12r > 0 && d.std12 > d.l12r * 1.5;
-    html.push('<tr>');
-    html.push('<td><b>' + esc(d.sku) + '</b>' + (d.disc ? '<span class="badge disc">DESC</span>' : '') + '</td>');
-    html.push('<td class="desc-cell">' + esc(d.desc) + '</td>');
-    html.push('<td class="num">' + fmtInt(d.qoh) + '</td>');
-    html.push('<td class="num">' + fmtInt(d.qoo) + '</td>');
-    html.push('<td class="num"' + (inflado ? ' style="color:#9a5b00;font-weight:700;"' : '') + '>' + fmt1(d.std12) + (inflado ? ' &#9888;' : '') + '</td>');
-    html.push('<td class="num">' + fmt1(d.l12r) + '</td>');
-    html.push('<td class="num">' + fmt1(d.p3m) + '</td>');
-    html.push('<td class="num"><b>' + fmt1(d.rate) + '</b></td>');
-    html.push('<td class="num ' + covClass(d) + '">' + (isFinite(d.cob) ? fmt1(d.cob) : '-') + '</td>');
-    html.push('</tr>');
+    if(!byFam[d.fam]) byFam[d.fam] = [];
+    byFam[d.fam].push(d);
   });
-  html.push('</tbody></table>');
-  document.getElementById('reporteWrap').innerHTML = html.join('');
+  var fams = Object.keys(byFam).sort();
+  var root = document.getElementById('reporteWrap');
+  if(fams.length === 0){
+    root.innerHTML = '<div class="emptystate">Ningun SKU coincide con el filtro.</div>';
+    return;
+  }
+  var html = [];
+  fams.forEach(function(f){
+    var fa = byFam[f];
+    fa.sort(function(a,b){
+      var av = a.qty > 0 ? 1 : 0, bv = b.qty > 0 ? 1 : 0;
+      if(av !== bv) return bv - av;
+      return b.l12 - a.l12;
+    });
+    var enOrden = 0, uds = 0, crit = 0;
+    fa.forEach(function(d){
+      if(d.qty > 0){ enOrden++; uds += d.qty; }
+      if(d.rate > 0 && isFinite(d.cob) && d.cob < LEAD_MESES) crit++;
+    });
+    var open = q ? true : (FAM_OPEN_R[f] === true);
+    var meta = fa.length + ' SKUs';
+    if(enOrden > 0) meta += ' &middot; ' + enOrden + ' en orden (' + fmtInt(uds) + ' uds)';
+    if(crit > 0) meta += ' &middot; <span style="color:var(--red);font-weight:700;">' + crit + ' bajo lead time</span>';
+    html.push('<div class="family-card">');
+    html.push('<div class="family-head" data-rfam="' + esc(f) + '">');
+    html.push('<span class="family-caret">' + (open ? '&#9660;' : '&#9654;') + '</span>');
+    html.push('<span class="family-name">' + esc(f) + '</span>');
+    html.push('<span class="family-meta">' + meta + '</span>');
+    html.push('<span class="family-total">' + (enOrden > 0 ? '&#9679;' : '') + '</span>');
+    html.push('</div>');
+    html.push('<div class="family-body' + (open ? ' open' : '') + '"><div class="tablewrap"><table><thead><tr>');
+    html.push('<th></th><th>SKU</th><th>Descripcion</th><th class="num">QoH</th><th class="num">QoO</th><th class="num">STD/12</th><th class="num">L12/12</th><th class="num">P3M</th><th class="num">Tasa</th><th class="num">Cob (m)</th><th class="num">Sugerido</th><th class="num">Ordenar</th><th class="num">EUR</th>');
+    html.push('</tr></thead><tbody>');
+    fa.forEach(function(d){
+      var inflado = d.l12r > 0 && d.std12 > d.l12r * 1.5;
+      html.push('<tr' + (d.qty > 0 ? ' class="row-order"' : '') + '>');
+      html.push('<td>' + imgTag(d.sku) + '</td>');
+      html.push('<td><b>' + esc(d.sku) + '</b>' + (d.disc ? '<span class="badge disc">DESC</span>' : '') + (d.pkg === 1 ? '<span class="badge warn">STD=1</span>' : '') + '</td>');
+      html.push('<td class="desc-cell">' + esc(d.desc) + (d.web ? ' <a class="weblink" href="' + esc(d.web) + '" target="_blank" rel="noopener">WEB</a>' : '') + '</td>');
+      html.push('<td class="num">' + fmtInt(d.qoh) + '</td>');
+      html.push('<td class="num">' + (d.qoo > 0 ? '<span class="badge qoo">' + fmtInt(d.qoo) + '</span>' : '0') + '</td>');
+      html.push('<td class="num"' + (inflado ? ' style="color:#9a5b00;font-weight:700;"' : '') + '>' + fmt1(d.std12) + (inflado ? ' &#9888;' : '') + '</td>');
+      html.push('<td class="num">' + fmt1(d.l12r) + '</td>');
+      html.push('<td class="num">' + fmt1(d.p3m) + '</td>');
+      html.push('<td class="num"><b>' + fmt1(d.rate) + '</b></td>');
+      html.push('<td class="num ' + covClass(d) + '">' + (isFinite(d.cob) ? fmt1(d.cob) : '-') + '</td>');
+      html.push('<td class="num">' + fmtInt(d.sug) + '</td>');
+      html.push('<td class="num"><input class="qty-input" type="number" min="0" step="1" data-repqty="' + esc(d.sku) + '" value="' + d.qty + '"></td>');
+      html.push('<td class="num">' + (d.eu !== null ? d.eu.toFixed(4) : '-') + '</td>');
+      html.push('</tr>');
+    });
+    html.push('</tbody></table></div></div></div>');
+  });
+  root.innerHTML = html.join('');
+  attachImgFallbacks(root);
+  var heads = root.querySelectorAll('.family-head[data-rfam]');
+  for(var i = 0; i < heads.length; i++){
+    heads[i].addEventListener('click', function(){
+      var f = this.getAttribute('data-rfam');
+      FAM_OPEN_R[f] = FAM_OPEN_R[f] === true ? false : true;
+      renderReporte();
+    });
+  }
+  var qtys = root.querySelectorAll('input[data-repqty]');
+  for(var j = 0; j < qtys.length; j++){
+    qtys[j].addEventListener('change', function(){
+      ORDER_QTY[this.getAttribute('data-repqty')] = num(this.value);
+      computeAll();
+      renderOrden();
+      renderReporte();
+    });
+  }
 }
 
 /* ============ RENDER BD ============ */
@@ -887,9 +946,16 @@ document.getElementById('monthsUp').addEventListener('click', function(){
 });
 document.getElementById('monthsInput').addEventListener('change', function(){ computeAll(); renderOrden(); renderReporte(); });
 document.getElementById('recalcBtn').addEventListener('click', function(){ ORDER_QTY = {}; computeAll(); renderOrden(); renderReporte(); });
-document.getElementById('showAllSkus').addEventListener('change', renderOrden);
 document.getElementById('repSearch').addEventListener('input', renderReporte);
 document.getElementById('repSoloActivos').addEventListener('change', renderReporte);
+document.getElementById('repExpandBtn').addEventListener('click', function(){
+  DATA.forEach(function(d){ FAM_OPEN_R[d.fam] = true; });
+  renderReporte();
+});
+document.getElementById('repCollapseBtn').addEventListener('click', function(){
+  FAM_OPEN_R = {};
+  renderReporte();
+});
 document.getElementById('bdSearch').addEventListener('input', renderBD);
 document.getElementById('bdFam').addEventListener('change', renderBD);
 document.getElementById('generatePoBtn').addEventListener('click', generatePo);
