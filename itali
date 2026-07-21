@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITALIANA FERRAMENTA - Herramienta de Orden de Compra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&family=Poppins:wght@500;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --cc-black:#1a1a1a; --cc-orange:#c1602e; --cc-teal:#1b4d47; --cc-silver:#9aa0a6;
+  --bg:#f4f3f1; --panel:#ffffff; --ink:#1a1a1a; --sub:#6a6f73; --line:#e4e1dc;
+  --accent:#1b4d47; --accent-ink:#ffffff; --green:#1b4d47; --red:#b3261e; --rowalt:#faf9f7; --radius:8px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Open Sans',Arial,Helvetica,sans-serif;font-size:13px;}
+h1,h2,.family-name{font-family:'Poppins',Arial,sans-serif;}
+header{background:var(--cc-black);color:#fff;padding:16px 22px;display:flex;align-items:center;gap:14px;}
+header .brandmark{flex:0 0 auto;}
+header .htext{flex:1;}
+header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+header p{margin:3px 0 0;font-size:11px;color:#c9c9c9;}
+.navback{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.navback:hover{background:rgba(255,255,255,.12);}
+.wrap{padding:16px 22px 60px;}
+.tabnav{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10;padding-top:6px;overflow-x:auto;}
+.tabbtn{background:none;border:none;padding:10px 18px;font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;font-family:'Open Sans',Arial,sans-serif;white-space:nowrap;}
+.tabbtn:hover{color:var(--cc-teal);}
+.tabbtn.active{color:var(--cc-teal);border-bottom-color:var(--accent);}
+[data-tab]{display:none;}
+[data-tab].tab-active{display:block;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
+.panel h2{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--cc-teal);font-weight:700;}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;color:var(--sub);font-weight:600;}
+input[type=text],input[type=number],select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:13px;background:#fff;color:var(--ink);}
+.months-ctl{display:flex;align-items:center;gap:6px;}
+.months-ctl button{width:26px;height:26px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-weight:700;color:var(--accent);}
+.months-ctl input{width:60px;text-align:center;}
+button.btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+button.btn.secondary{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+button.btn.small{padding:4px 8px;font-size:11px;}
+#generatePoBtn{background:var(--cc-orange);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:#eef1f5;border-bottom:2px solid var(--line);padding:6px;text-align:left;white-space:nowrap;user-select:none;}
+thead th.num{text-align:right;}
+tbody td{padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap;}
+tbody td.num{text-align:right;font-variant-numeric:tabular-nums;}
+tbody tr:nth-child(even){background:var(--rowalt);}
+.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:4px;}
+.badge.warn{background:#fde2c8;color:#9a5b00;}
+.badge.nop{background:#f0d3d3;color:#8a2020;}
+.badge.qoo{background:#dbe7f7;color:#1e40af;}
+.badge.disc{background:#e4d9d9;color:#6b3b3b;}
+.badge.nuevo{background:#e2dcf5;color:#4c3a8f;}
+.badge.amber{background:#fdf0c8;color:#8a6d00;}
+.badge.if{background:#e0ece6;color:#1b4d47;}
+.qty-input{width:70px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right;}
+.cfg-input{width:70px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;text-align:right;}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.summary-item{background:#f7f8fa;border:1px solid var(--line);border-radius:6px;padding:8px 10px;}
+.summary-item .lbl{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.03em;}
+.summary-item .val{font-size:17px;font-weight:700;margin-top:2px;}
+.summary-item.total{background:var(--accent);color:#fff;}
+.summary-item.total .lbl{color:#cfe2dc;}
+.note{font-size:11px;color:var(--sub);line-height:1.5;margin-top:8px;}
+.statusbar{display:flex;align-items:center;gap:10px;padding:9px 22px;background:#eef3ea;border-bottom:1px solid var(--line);font-size:12px;flex-wrap:wrap;}
+.statusbar.err{background:#fbeaea;}
+.statusbar.loading{background:#eef1f5;}
+.status-dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex:0 0 auto;}
+.status-dot.loading{background:#b8860b;}
+.status-dot.err{background:var(--red);}
+.statusbar .txt{flex:1;min-width:180px;}
+.upload-panel{display:none;}
+.upload-panel.show{display:block;}
+.filebtn{display:inline-block;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.filebtn input{display:none;}
+.hidden{display:none !important;}
+.family-card{border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;background:#fff;overflow:hidden;}
+.family-head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;background:#f7f8fa;}
+.family-head:hover{background:#eef1f5;}
+.family-name{font-weight:700;font-size:13px;flex:0 0 auto;}
+.family-meta{color:var(--sub);font-size:11px;flex:1;}
+.family-total{font-weight:700;font-size:13px;color:var(--accent);white-space:nowrap;}
+.family-caret{font-size:11px;color:var(--sub);width:14px;text-align:center;}
+.family-body{display:none;padding:0 4px 8px;}
+.family-body.open{display:block;}
+.tablewrap{overflow:auto;}
+.emptystate{padding:24px;text-align:center;color:var(--sub);font-size:13px;}
+.pimg{width:44px;height:44px;object-fit:contain;border-radius:6px;background:#fff;border:1px solid var(--line);vertical-align:middle;}
+.noimg{display:inline-flex;width:44px;height:44px;border-radius:6px;background:#f0efec;border:1px dashed var(--line);color:#b0aca3;font-size:8px;align-items:center;justify-content:center;text-align:center;vertical-align:middle;}
+.desc-cell{white-space:normal;min-width:220px;max-width:340px;font-size:11.5px;line-height:1.35;}
+.weblink{font-size:10px;color:var(--accent);text-decoration:none;font-weight:700;}
+.weblink:hover{text-decoration:underline;}
+.cov-crit{color:var(--red);font-weight:700;}
+.cov-warn{color:#b8860b;font-weight:700;}
+.cov-band{color:#2E8B57;font-weight:700;}
+.cov-ok{color:#1D9E75;font-weight:700;}
+textarea.po-text{width:100%;height:420px;font-family:monospace;font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:10px;}
+textarea.ia-text{width:100%;height:280px;font-family:monospace;font-size:10.5px;border:1px solid var(--line);border-radius:6px;padding:10px;}
+.filterbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.filterbar input[type=text]{min-width:220px;}
+@media (max-width:640px){
+  header{padding:12px 14px;}
+  .wrap{padding:12px 12px 60px;}
+  .desc-cell{min-width:160px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="navback" id="navBackBtn">&#8592; Volver</button>
+  <span class="brandmark">
+    <svg width="34" height="34" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g stroke="#ffffff" stroke-width="3" stroke-linecap="round">
+        <line x1="50" y1="50" x2="50" y2="6"/>
+        <line x1="50" y1="50" x2="68" y2="9" transform="rotate(11 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(22 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(33 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(44 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(55 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(66 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(77 50 50)"/>
+        <line x1="50" y1="50" x2="50" y2="6" transform="rotate(88 50 50)"/>
+      </g>
+      <path d="M 50 50 A 35 35 0 1 0 78 22 L 50 50 Z" fill="#1b4d47"/>
+      <circle cx="50" cy="50" r="14" fill="#1a1a1a"/>
+    </svg>
+  </span>
+  <div class="htext">
+    <div style="font-family:'Julius Sans One',sans-serif;font-size:9px;letter-spacing:3.5px;color:#B4B2A9;margin-bottom:2px">CARIBBEAN <span style="font-size:7px;letter-spacing:2.5px;opacity:.75">CABINETS PRODUCTS</span></div>
+    <h1>ITALIANA FERRAMENTA &mdash; Orden de Compra</h1>
+    <p>Vendor ITALI &middot; Herrajes &middot; FCA Brugnera (PN) Italia &middot; Lead time ~3 meses</p>
+  </div>
+</header>
+
+<div class="statusbar loading" id="statusBar">
+  <span class="status-dot loading" id="statusDot"></span>
+  <span class="txt" id="statusTxt">Buscando reporte de inventario del hub...</span>
+  <button class="btn secondary small" id="reloadHubBtn">Recargar desde hub</button>
+  <button class="btn secondary small" id="showUploadBtn">Cargar archivo manualmente</button>
+</div>
+
+<div class="wrap upload-panel" id="uploadPanel">
+  <div class="panel">
+    <h2>Cargar reporte de inventario</h2>
+    <p class="note">No se encontro el reporte en el hub (sessionStorage). Sube el archivo REPORTE_DE_MAS_DE_MENOS_TODOS_LOS_VEN.xlsx manualmente.</p>
+    <label class="filebtn">Elegir archivo Excel<input type="file" id="fileInput"></label>
+    <span class="note" id="fileStatus"></span>
+  </div>
+</div>
+
+<div class="wrap hidden" id="mainWrap">
+
+  <div class="tabnav">
+    <button class="tabbtn active" data-tabbtn="orden">Orden</button>
+    <button class="tabbtn" data-tabbtn="reporte">Reporte</button>
+    <button class="tabbtn" data-tabbtn="bd">BD Productos</button>
+    <button class="tabbtn" data-tabbtn="po">Generar PO</button>
+    <button class="tabbtn" data-tabbtn="config">Config</button>
+  </div>
+
+  <div data-tab="orden" class="tab-active">
+    <div class="panel">
+      <h2>Cobertura y tasa</h2>
+      <div class="row">
+        <div class="field">
+          <label>Meses de compra (cobertura objetivo)</label>
+          <div class="months-ctl">
+            <button id="monthsDown">-</button>
+            <input type="number" id="monthsInput" value="12" step="0.1" min="0.1" max="36">
+            <button id="monthsUp">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tasa de venta</label>
+          <div style="padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#f7f8fa;font-weight:700;font-size:12px;">MAX(Sales To Date / 12, Prom 3M)</div>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn secondary" id="recalcBtn">Recalcular</button>
+        </div>
+      </div>
+      <p class="note">Regla confirmada por Miguel. La pesta&ntilde;a Reporte muestra STD/12 vs L12/12 lado a lado por SKU para vigilar inflacion en SKUs viejos. M&iacute;nimo efectivo por l&iacute;nea: MAX(redondeo a std_pkg, MOQ de cotizaci&oacute;n IF).</p>
+    </div>
+    <div class="panel">
+      <h2>Resumen de la orden</h2>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+    <div id="ordenList"></div>
+  </div>
+
+  <div data-tab="reporte">
+    <div class="panel">
+      <h2>Reporte por SKU &mdash; STD/12 vs L12/12 vs Prom 3M</h2>
+      <div class="filterbar">
+        <input type="text" id="repSearch" placeholder="Buscar SKU o descripcion...">
+        <label class="note" style="margin:0;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="repSoloActivos" checked> Solo con actividad</label>
+      </div>
+      <div class="tablewrap" id="reporteWrap"></div>
+      <p class="note">STD/12 = venta de por vida entre 12 &mdash; infla la tasa de SKUs viejos. Si STD/12 es mucho mayor que L12/12, revisa antes de ordenar.</p>
+    </div>
+  </div>
+
+  <div data-tab="bd">
+    <div class="panel">
+      <h2>Base de datos de productos</h2>
+      <div class="filterbar">
+        <input type="text" id="bdSearch" placeholder="Buscar SKU o descripcion...">
+        <select id="bdFam"><option value="">Todas las familias</option></select>
+      </div>
+      <div class="tablewrap" id="bdWrap"></div>
+      <p class="note">Fuente IF = descripcion oficial de la guia o cotizacion de Italiana Ferramenta. Fuente EPICOR = traduccion automatica pendiente de revision (ambar). Fotos: enlace directo al sitio de IF con respaldo embebido para codigos custom.</p>
+    </div>
+    <div class="panel">
+      <h2>SKUs nuevos cotizados por IF (no existen en Epicor)</h2>
+      <div class="tablewrap" id="nuevosWrap"></div>
+      <p class="note">Visibles solo como referencia &mdash; fuera del calculo de orden hasta que se creen en Epicor.</p>
+    </div>
+  </div>
+
+  <div data-tab="po">
+    <div class="panel">
+      <h2>Generar orden de compra</h2>
+      <div class="row">
+        <div class="field">
+          <label>Numero de PO</label>
+          <input type="text" id="poNumber" value="">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn" id="generatePoBtn">Generar PO</button>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn secondary" id="copyPoBtn">Copiar al portapapeles</button>
+        </div>
+      </div>
+      <p class="note" id="poStatus"></p>
+      <textarea class="po-text" id="poText" readonly></textarea>
+    </div>
+  </div>
+
+  <div data-tab="config">
+    <div class="panel">
+      <h2>Configuracion por SKU &mdash; std_pkg y piso minimo</h2>
+      <p class="note">Override de std_pkg (cuando el reporte trae 1 u otro valor incorrecto) y piso minimo de stock por SKU. Se guarda en este navegador (localStorage ITALI_CFG). Deja vacio para usar el valor del reporte / piso 0.</p>
+      <div class="filterbar">
+        <input type="text" id="cfgSearch" placeholder="Buscar SKU...">
+        <label class="note" style="margin:0;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="cfgSoloStd1" checked> Solo std_pkg = 1</label>
+        <button class="btn secondary small" id="cfgSaveBtn">Guardar cambios</button>
+      </div>
+      <div class="tablewrap" id="cfgWrap"></div>
+    </div>
+    <div class="panel">
+      <h2>Exportar para IA</h2>
+      <p class="note">Copia este bloque y pegalo en el chat para que Claude analice la orden actual con todos los datos.</p>
+      <div class="row" style="margin-bottom:8px;">
+        <button class="btn secondary" id="iaBtn">Generar export</button>
+        <button class="btn secondary" id="iaCopyBtn">Copiar</button>
+      </div>
+      <textarea class="ia-text" id="iaText" readonly></textarea>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+/* ============ DATOS EMBEBIDOS ============ */
+var DB = {"60403310ZN":{"d":"Tornillo de cabeza avellanada corte en cruz sin punta Ø 7 L50 zincado","f":"COUNTERSUNK HEAD WOOD SCREWS","w":"https://www.italianaferramenta.it/en/catalog/countersunk-head-wood-screws-601/60403310ZN","src":"IF","eu":null,"moq":null},"60502070YA":{"d":"Tornillo euro de cabeza avellanada rosca Ø 6,3 cab.Ø7,5 L14 niquelado","f":"EURO SCREWS","w":"https://www.italianaferramenta.it/en/catalog/euro-screws-603/60502070YA","src":"IF","eu":null,"moq":null},"10208020YA":{"d":"Soporte estante K LINE espiga Ø5mm niquelado","f":"K LINE","w":"https://www.italianaferramenta.it/en/catalog/k-line-103/10208020YA","src":"IF","eu":null,"moq":null},"23203130EE":{"d":"paracolpo K Flex Ø5 L2,3 ant./ant. Paragolpe K FLEX Ø5 L2,3mm antracita","f":"K FLEX","w":"https://www.italianaferramenta.it/en/catalog/k-flex-709/23203130EE","src":"IF","eu":null,"moq":null},"57008020EE":{"d":"Pulsador embutido K-PUSH TECH 37mm con imán antracita","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008020EE","src":"IF","eu":null,"moq":null},"60113020YA":{"d":"Tornillo de cabeza plana PZ2 para madera Ø4 L31 níquel","f":"EURO SCREWS","w":"https://www.italianaferramenta.it/en/catalog/euro-screws-603/60113020YA","src":"IF","eu":null,"moq":null},"11401030IJ":{"d":"Soporte de unión PK2 SL19mm tipo excentrica gris","f":"PK2","w":"https://www.italianaferramenta.it/en/catalog/pk2-111/11401030IJ","src":"IF","eu":null,"moq":null},"11403020YA":{"d":"Soporte PK2 SL18/19mm con tuerca y tornillo prem. niquelado","f":"PK2","w":"https://www.italianaferramenta.it/en/catalog/pk2-111/11403020YA","src":"IF","eu":null,"moq":null},"57025020EE":{"d":"Tapa superior para K-PUSH TECH 37mm antracita","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57025020EE","src":"IF","eu":null,"moq":null},"21893000EE":{"d":"Tapa plastico para piñon TARGET J10 Ø13 antracita","f":"TARGET J10","w":"https://www.italianaferramenta.it/en/catalog/target-j10-415/21893000EE","src":"IF","eu":null,"moq":null},"57025040EE":{"d":"basetta ridosso fix K Push Tech 37 fissaggio vite ant. Base inferior para K-PUSH TECH 37mm antracita","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57025040EE","src":"IF","eu":null,"moq":null},"21893000IJ":{"d":"Tapa plastico para piñon TARGET J10 Ø13 gris","f":"TARGET J10","w":"https://www.italianaferramenta.it/en/catalog/target-j10-415/21893000IJ","src":"IF","eu":null,"moq":null},"21893000AB":{"d":"Tapa plastico para piñon TARGET J10 Ø13 blanco","f":"TARGET J10","w":"https://www.italianaferramenta.it/en/catalog/target-j10-415/21893000AB","src":"IF","eu":null,"moq":null},"21306010ZN":{"d":"Excentrica sin borde III Ø15 SL18mm zincado","f":"CAMS","w":"https://www.italianaferramenta.it/en/catalog/cams-408/21306010ZN","src":"IF","eu":null,"moq":null},"21402070ZN":{"d":"Perno roscado p/excentrica IF Ø6 L11mm distancia ejes 19,7 zincado","f":"DOWELS FOR CAMS","w":"https://www.italianaferramenta.it/en/catalog/dowels-for-cams-409/21402070ZN","src":"IF","eu":null,"moq":null},"23203130IJ":{"d":"paracolpo K Flex Ø5 L2,3 gri.19/gri.19 Paragolpe K FLEX Ø5 L2,3mm gris 19","f":"K FLEX","w":"https://www.italianaferramenta.it/en/catalog/k-flex-709/23203130IJ","src":"IF","eu":null,"moq":null},"16113040KB":{"d":"Soporte para vidrio KRISTAL espiga Ø5 esp.5÷6mm cromado","f":"KRISTAL","w":"https://www.italianaferramenta.it/en/catalog/kristal-206/16113040KB","src":"IF","eu":null,"moq":null},"11403020YQ":{"d":"reggip. Pk2 SL19 c/buss. e vite prem. nic.ner. Soporte PK2 SL18/19mm con tuerca y tornillo prem. niq.negro","f":"PK2","w":"https://www.italianaferramenta.it/en/catalog/pk2-111/11403020YQ","src":"IF","eu":null,"moq":null},"11401090IJ":{"d":"Soporte de unión PK2 SL19mm tipo excentrica zin.negro/gris","f":"PK2","w":"https://www.italianaferramenta.it/en/catalog/pk2-111/11401090IJ","src":"IF","eu":null,"moq":null},"55006160XD":{"d":"piastrina c/biadesivo p/cricchetto K Push e Tech Placa ahesiva Ø15 esp.0,7 acero pulido","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/55006160XD","src":"IF","eu":null,"moq":null},"55006100YA":{"d":"Placa para imán Ø10 L14 esp.1 con clavo Ø3,5 para atornillar níquel","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/55006100YA","src":"IF","eu":null,"moq":null},"C010000165":{"d":"Bolsa 100 soporte estante GERMANY espiga Ø5mm transparente","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/C010000165","src":"IF","eu":null,"moq":null},"C010002605":{"d":"ocultos níquel negro Nk + hoja de instr.","f":"KIARO EASY","w":"https://www.italianaferramenta.it/en/catalog/kiaro-easy-818/C010002605","src":"IF","eu":null,"moq":null},"C010001482":{"d":"TRANSPARENT RUBBER FOR K-LINE","f":"K LINE","w":"https://www.italianaferramenta.it/en/catalog/k-line-103/C010001482","src":"IF","eu":null,"moq":null},"1621005000":{"d":"ADJ. CONCEALED SHELF SUPPORT","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/1621005000","src":"IF","eu":null,"moq":null},"C010000131":{"d":"Bolsa 100 soportes estante PALETTA Ø5 níquel","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/C010000131","src":"IF","eu":null,"moq":null},"C010002374":{"d":"Soporte estante K LINE espiga Ø5mm Black","f":"K LINE","w":"https://www.italianaferramenta.it/en/catalog/k-line-103/C010002374","src":"IF","eu":null,"moq":null},"55006030YA":{"d":"Placa para imán Ø10 esp.0,8 con clavo Ø3 níquel","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/55006030YA","src":"IF","eu":null,"moq":null},"C010002315":{"d":"Bolsa 1 juego bisagra KIMANA (dos piezas+tapa) + tornillos de fij. níquel negro","f":"KIMANA","w":"https://www.italianaferramenta.it/en/catalog/kimana-1101/C010002315","src":"IF","eu":null,"moq":null},"55007010EE":{"d":"cricchetto K Lock reg. ad incasso c/magnete ant. K-LOCK pulsador magnético embutido antracita","f":"K LOCK","w":"https://www.italianaferramenta.it/en/catalog/k-lock-902/55007010EE","src":"IF","eu":null,"moq":null},"C010002603":{"d":"ocultos níquel negro Nk + hoja de instr.","f":"KIARO EASY","w":"https://www.italianaferramenta.it/en/catalog/kiaro-easy-818/C010002603","src":"IF","eu":null,"moq":null},"16206030ZN":{"d":"Soporte balda c/regulación espiga hexagonal Ø10 L100 zincado","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/16206030ZN","src":"IF","eu":null,"moq":null},"63461010IJ":{"d":"Tapa embellecedora LIBRA CC1 Ø12 int.42 esp.4,4 plástico gris","f":"COVER CAPS","w":"https://www.italianaferramenta.it/en/catalog/cover-caps-701/63461010IJ","src":"IF","eu":null,"moq":null},"1620807000":{"d":"SHELF SUPPORT 14X200 BROWN","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/1620807000","src":"IF","eu":null,"moq":null},"63420015ZN":{"d":"attaccaglia Libra H1 fissaggio vite zin. <HV> Colgador LIBRA H1 fijación con tornillos zincado HV","f":"OTHER WALL HANGERS","w":"https://www.italianaferramenta.it/en/catalog/other-wall-hangers-1299/63420015ZN","src":"IF","eu":null,"moq":null},"63450015ZN":{"d":"Placa LIBRA WP1 (H1-H2-H3) a dividir en dos zincado HV","f":"WPC BARS AND PLATES","w":"https://www.italianaferramenta.it/en/catalog/wpc-bars-and-plates-1222/63450015ZN","src":"IF","eu":null,"moq":null},"63420020ZN":{"d":"Colgador LIBRA H2 con 3 tacos Ø10 + palanca giratoria zincado","f":"LIBRA H2","w":"https://www.italianaferramenta.it/en/catalog/libra-h2-1202/63420020ZN","src":"IF","eu":null,"moq":null},"23214010IJ":{"d":"Conector plastico para fondo cajón 32x14,5 gris","f":"OTHER CONNECTINGS","w":"https://www.italianaferramenta.it/en/catalog/other-connectings-499/23214010IJ","src":"IF","eu":null,"moq":null},"C010002234":{"d":"COMPAS SUPP. K12 L244","f":"K12 K12 ADJ BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/k12-k12-adj-brackets-813/C010002234","src":"IF","eu":null,"moq":null},"1621501000":{"d":"TRIADE CONCEALED SHELF SUPPORT","f":"TRIADE BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/triade-brackets-313/1621501000","src":"IF","eu":null,"moq":null},"57008040EE":{"d":"Pulsador embutido K-PUSH TECH 37mm con imán antracita","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008040EE","src":"IF","eu":null,"moq":null},"C010001345":{"d":"Bolsa 1 juego bisagra KIMANA (dos piezas+tapa embellecedora) + 4 tornillos de fij. níquel","f":"KIMANA","w":"https://www.italianaferramenta.it/en/catalog/kimana-1101/C010001345","src":"IF","eu":null,"moq":null},"C010002784":{"d":"tuerca presión M6x11 L13 nylon","f":"TARGET J10","w":"https://www.italianaferramenta.it/en/catalog/target-j10-415/C010002784","src":"IF","eu":null,"moq":null},"1622501000":{"d":"TRIADE SLIM 18MM CACEALED SYSTEM","f":"TRIADE BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/triade-brackets-313/1622501000","src":"IF","eu":null,"moq":null},"1622101000":{"d":"Basic Concealed Shelf SUPP. 19MM","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/1622101000","src":"IF","eu":null,"moq":null},"C010002783":{"d":"Bolsa 50 soportes union TARGET J10 euro L8 zincado","f":"TARGET J10","w":"https://www.italianaferramenta.it/en/catalog/target-j10-415/C010002783","src":"IF","eu":null,"moq":null},"C010002233":{"d":"COMPAS SUPP. K12 L164","f":"K12 K12 ADJ BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/k12-k12-adj-brackets-813/C010002233","src":"IF","eu":null,"moq":null},"C010002756":{"d":"Bolsa 50 tornillos embutir SP16 p/TARGET J16 níquel","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/C010002756","src":"IF","eu":null,"moq":null},"Y0JG052900":{"d":"Conf. punta Ø10x133mm per dima di foratura Broca Ø10x133mm para plantilla de perforación","f":"DRILLING JIG K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-k-push-tech-1505/Y0JG052900","src":"IF","eu":null,"moq":null},"12502020IJ":{"d":"reggipiano s/fermo Trik 12 gri.19 Soporte estante TRIK 12 abierto gris","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/12502020IJ","src":"IF","eu":null,"moq":null},"12504020ZN":{"d":"Perno Euro para TRIK 12  Ø5,9x13,4mm (L7,5) zincado","f":"TRIK","w":"https://www.italianaferramenta.it/en/catalog/trik-118/12504020ZN","src":"IF","eu":null,"moq":null},"63512030ZN":{"d":"Colgador con gancho alineado derecha zincado","f":"OTHER WALL HANGERS","w":"https://www.italianaferramenta.it/en/catalog/other-wall-hangers-1299/63512030ZN","src":"IF","eu":null,"moq":null},"63512040ZN":{"d":"Colgador con gancho alineado izquierda zincado","f":"OTHER WALL HANGERS","w":"https://www.italianaferramenta.it/en/catalog/other-wall-hangers-1299/63512040ZN","src":"IF","eu":null,"moq":null},"C010002372":{"d":"Bolsa 100 soportes estante de embutir KINTAI con espiga Ø5 antracita","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/C010002372","src":"IF","eu":null,"moq":null},"63442000ZN":{"d":"barra reggipensile Libra B3 L2000 zin. Barra LIBRA B3 L2000 zincado","f":"LIBRA WALL BARS","w":"https://www.italianaferramenta.it/en/catalog/libra-wall-bars-1213/63442000ZN","src":"IF","eu":null,"moq":null},"C010002522":{"d":"Bolsa 2 sist.de unión para encimeras K TOP (desmontados)","f":"OTHER WORKTOP CONNECTORS","w":"https://www.italianaferramenta.it/en/catalog/other-worktop-connectors-599/C010002522","src":"IF","eu":null,"moq":null},"16215020ZN":{"d":"Placa sujeccion trasera TRIADE zincada","f":"TRIADE BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/triade-brackets-313/16215020ZN","src":"IF","eu":null,"moq":null},"57112000RO":{"d":"Útil para montaje K-PUSH TECH","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57112000RO","src":"IF","eu":null,"moq":null},"C010002370":{"d":"Bolsa 100 soportes estante de embutir KINTAI con espiga Ø5 blanco","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/C010002370","src":"IF","eu":null,"moq":null},"Y0JG0110RO":{"d":"Plantilla taladrado K PUSH TECH para paneles   16 y 18mm de espesor","f":"DRILLING JIG K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-k-push-tech-1505/Y0JG0110RO","src":"IF","eu":null,"moq":null},"C010002507":{"d":"Bolsa 50 tornillos embutir SP18 p/TARGET J10 níquel","f":"TARGET J10","w":"https://www.italianaferramenta.it/en/catalog/target-j10-415/C010002507","src":"IF","eu":null,"moq":null},"C010002785":{"d":"Bolsa 100 tuerca presión M4x8 L11 nylon neutro","f":"DOWEL","w":"https://www.google.com/search?q=site:italianaferramenta.it+C010002785","src":"IF","eu":null,"moq":null},"1145001000":{"d":"TEMPLATE FOR PK 2","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/1145001000","src":"IF","eu":null,"moq":null},"C010002791":{"d":"Bolsa 100 tornillos cabeza avel. corte en cruz M4 L12 zincado","f":"OTROS","w":"https://www.google.com/search?q=site:italianaferramenta.it+C010002791","src":"IF","eu":null,"moq":null},"3030101000":{"d":"REKORD 12MM HOLE CENTRE 52MM","f":"REKORD TECH","w":"https://www.italianaferramenta.it/en/catalog/rekord-tech-1012/3030101000","src":"IF","eu":null,"moq":null},"Y0JG064000":{"d":"Conf. punta KINTAI con accessori - p/Template KINTAI Broca KINTAI con accesorios de plantilla","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG064000","src":"IF","eu":null,"moq":null},"Y0JG0172RO":{"d":"TEMPLATE KINTAI FOR DRILLING JIG","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG0172RO","src":"IF","eu":null,"moq":null},"Y0JG0162RO":{"d":"Template ELEFANT con punte p/Dima CONNECTINGS Plantilla para ELEFANT con brocas","f":"DRILLING JIG CONNECTINGS","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-connectings-1502/Y0JG0162RO","src":"IF","eu":null,"moq":null},"Y0JG052800":{"d":"Conf. punta Ø8x117mm per dima di foratura Broca Ø8x117mm para plantilla de perforación","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG052800","src":"IF","eu":null,"moq":null},"Y0JG0160RO":{"d":"Dima CONNECTINGS per pannelli sp. 16-25mm Plantilla CONNECTINGS + separadores SL16-25mm","f":"DRILLING JIG CONNECTINGS","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-connectings-1502/Y0JG0160RO","src":"IF","eu":null,"moq":null},"Y0JG051700":{"d":"Anello di battuta per punta Ø8mm Anillo de tope para broca Ø8mm","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG051700","src":"IF","eu":null,"moq":null},"Y0JG051800":{"d":"Anello di battuta per punta Ø10mm Anillo de tope para broca Ø10mm","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG051800","src":"IF","eu":null,"moq":null},"Y0JG0101RO":{"d":"Dima foratura FIANCO per fori Ø5 e Ø8 Plantilla taladro Ø5- Ø8 para paneles laterales","f":"DRILLING JIG SIDE PANEL","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-side-panel-1503/Y0JG0101RO","src":"IF","eu":null,"moq":null},"C010002786":{"d":"tuerca M6x10 L13 zamak en bruto","f":"ELEFANT","w":"https://www.italianaferramenta.it/en/catalog/elefant-411/C010002786","src":"IF","eu":null,"moq":null},"11901010YA":{"d":"Elefant conecting fitting 18mm","f":"ELEFANT","w":"https://www.italianaferramenta.it/en/catalog/elefant-411/11901010YA","src":"EP","eu":null,"moq":null},"57008020IJ":{"d":"Tech kpush con imán gris","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008020IJ","src":"EP","eu":null,"moq":null},"10207010ZZ":{"d":"Soporte estante transparent","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/10207010ZZ","src":"EP","eu":null,"moq":null},"10208020WA":{"d":"K-line soporte estante con espiga","f":"K LINE","w":"https://www.italianaferramenta.it/en/catalog/k-line-103/10208020WA","src":"EP","eu":null,"moq":null},"10208030YA":{"d":"K-line glass soporte estante con espiga","f":"K LINE","w":"https://www.italianaferramenta.it/en/catalog/k-line-103/10208030YA","src":"EP","eu":null,"moq":null},"10208030YQ":{"d":"K-line glass soporte estante con espiga","f":"K LINE","w":"https://www.italianaferramenta.it/en/catalog/k-line-103/10208030YQ","src":"EP","eu":null,"moq":null},"11701070IL":{"d":"Maori soporte estante gris","f":"MAORI","w":"https://www.italianaferramenta.it/en/catalog/maori-109/11701070IL","src":"EP","eu":null,"moq":null},"11710030YA":{"d":"Maori bracket w/tornillo 19mm","f":"MAORI","w":"https://www.italianaferramenta.it/en/catalog/maori-109/11710030YA","src":"EP","eu":null,"moq":null},"12402000AB":{"d":"Kintai soporte estante 5mm blanco","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/12402000AB","src":"EP","eu":null,"moq":null},"12402000EE":{"d":"Kintai soporte estante 5mm antracita","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/12402000EE","src":"EP","eu":null,"moq":null},"16019020YA":{"d":"Kubic perno de cuerpo gris","f":"KUBIC","w":"https://www.italianaferramenta.it/en/catalog/kubic-209/16019020YA","src":"EP","eu":null,"moq":null},"16019021YA":{"d":"Kubic perno de cuerpo blanco","f":"KUBIC","w":"https://www.italianaferramenta.it/en/catalog/kubic-209/16019021YA","src":"EP","eu":null,"moq":null},"16019024YQ":{"d":"Kubic perno de cuerpo negro","f":"KUBIC","w":"https://www.italianaferramenta.it/en/catalog/kubic-209/16019024YQ","src":"EP","eu":null,"moq":null},"16019140YA":{"d":"Kubic parte superior con goma para vidrio","f":"KUBIC","w":"https://www.italianaferramenta.it/en/catalog/kubic-209/16019140YA","src":"EP","eu":null,"moq":null},"16019140YQ":{"d":"Kubic parte superior con goma para vidrio","f":"KUBIC","w":"https://www.italianaferramenta.it/en/catalog/kubic-209/16019140YQ","src":"EP","eu":null,"moq":null},"16113040YA":{"d":"Soporte para vidrio KRISTAL espiga Ø5 esp.5÷6mm niquelado","f":"KRISTAL","w":"https://www.italianaferramenta.it/en/catalog/kristal-206/16113040YA","src":"IF","eu":null,"moq":null},"16220030YD":{"d":"Soporte estante inox","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/16220030YD","src":"EP","eu":null,"moq":null},"20102020GR":{"d":"Insert nut plain","f":"INSERT NUTS","w":"https://www.italianaferramenta.it/en/catalog/insert-nuts-401/20102020GR","src":"EP","eu":null,"moq":null},"20820020YA":{"d":"Tubo de unión w/cabeza plana","f":"FLAT HEAD CONNECTINGS","w":"https://www.italianaferramenta.it/en/catalog/flat-head-connectings-410/20820020YA","src":"EP","eu":null,"moq":null},"20821020YA":{"d":"Tornillo unión tubo cab.plana corte cruz M4 L15mm niquelado","f":"FLAT HEAD CONNECTINGS","w":"https://www.italianaferramenta.it/en/catalog/flat-head-connectings-410/20821020YA","src":"IF","eu":null,"moq":null},"21612020ZN":{"d":"Conector de encimera","f":"OTHER WORKTOP CONNECTORS","w":"https://www.italianaferramenta.it/en/catalog/other-worktop-connectors-599/21612020ZN","src":"EP","eu":null,"moq":null},"40115630RO":{"d":"Separador puerta for bisagras","f":"KIMANA","w":"https://www.italianaferramenta.it/en/catalog/kimana-1101/40115630RO","src":"EP","eu":null,"moq":null},"40120000HX":{"d":"Base for bisagras graphite","f":"KIMANA","w":"https://www.italianaferramenta.it/en/catalog/kimana-1101/40120000HX","src":"EP","eu":null,"moq":null},"40120000YA":{"d":"Base for bisagras niquelado","f":"KIMANA","w":"https://www.italianaferramenta.it/en/catalog/kimana-1101/40120000YA","src":"EP","eu":null,"moq":null},"40120000YQ":{"d":"Base for bisagras negro","f":"KIMANA","w":"https://www.italianaferramenta.it/en/catalog/kimana-1101/40120000YQ","src":"EP","eu":null,"moq":null},"42510010UZ":{"d":"Compact compás abatible","f":"COMPACT DROP DOWN","w":"https://www.italianaferramenta.it/en/catalog/compact-drop-down-804/42510010UZ","src":"EP","eu":null,"moq":null},"42911010YA":{"d":"Compact placa lateral","f":"KRABY COMPACT BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/kraby-compact-brackets-805/42911010YA","src":"EP","eu":null,"moq":null},"4291802000":{"d":"Soporte puerta w/plastic cover","f":"KRABY COMPACT BRACKETS","w":"https://www.italianaferramenta.it/en/catalog/kraby-compact-brackets-805/4291802000","src":"EP","eu":null,"moq":null},"45205500UT":{"d":"Kiaro sistema apertura 550mm","f":"KIARO","w":"https://www.italianaferramenta.it/en/catalog/kiaro-814/45205500UT","src":"EP","eu":null,"moq":null},"46006000YA":{"d":"Kiaro sistema apertura 600mm niquelado","f":"KIARO","w":"https://www.italianaferramenta.it/en/catalog/kiaro-814/46006000YA","src":"EP","eu":null,"moq":null},"46205500FV":{"d":"Kiaro perfil aluminio 550mm","f":"KIARO ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-accessories-815/46205500FV","src":"EP","eu":null,"moq":null},"55007010AB":{"d":"K-lock cierre con imán blanco","f":"K LOCK","w":"https://www.italianaferramenta.it/en/catalog/k-lock-902/55007010AB","src":"EP","eu":null,"moq":null},"55007010IJ":{"d":"K-lock cierre con imán gris","f":"K LOCK","w":"https://www.italianaferramenta.it/en/catalog/k-lock-902/55007010IJ","src":"EP","eu":null,"moq":null},"57008020AB":{"d":"Tech kpush con imán blanco","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008020AB","src":"EP","eu":null,"moq":null},"57008060AB":{"d":"Kpush tech strong con imán blanco","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008060AB","src":"EP","eu":null,"moq":null},"57008060EE":{"d":"Kpush tech strong con imán antracitar","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008060EE","src":"EP","eu":null,"moq":null},"57008060IJ":{"d":"Kpush tech strong con imán gris","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57008060IJ","src":"EP","eu":null,"moq":null},"57015020EE":{"d":"Kpush tech carcasa 20mm antracita","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57015020EE","src":"EP","eu":null,"moq":null},"57015040EE":{"d":"Kpush tech plate 20mm antracita","f":"K PUSH TECH","w":"https://www.italianaferramenta.it/en/catalog/k-push-tech-903/57015040EE","src":"EP","eu":null,"moq":null},"57025020AB":{"d":"Tapa superior para K-PUSH TECH 37mm blanco","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57025020AB","src":"IF","eu":null,"moq":null},"57025020IJ":{"d":"Tech kpush carcasa gris","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57025020IJ","src":"EP","eu":null,"moq":null},"57025040AB":{"d":"Tech kpush placa de montaje blanco","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57025040AB","src":"EP","eu":null,"moq":null},"57025040IJ":{"d":"Tech kpush placa de montaje gris","f":"ADAPTER HOUSINGS","w":"https://www.italianaferramenta.it/en/catalog/adapter-housings-904/57025040IJ","src":"EP","eu":null,"moq":null},"60101390HX":{"d":"Tornillo 16 graphite","f":"COUNTERSUNK HEAD WOOD SCREWS","w":"https://www.italianaferramenta.it/en/catalog/countersunk-head-wood-screws-601/60101390HX","src":"EP","eu":null,"moq":null},"60101390YA":{"d":"Tornillo 16 niquelado","f":"COUNTERSUNK HEAD WOOD SCREWS","w":"https://www.italianaferramenta.it/en/catalog/countersunk-head-wood-screws-601/60101390YA","src":"EP","eu":null,"moq":null},"60101390YQ":{"d":"Tornillo 16 negro","f":"COUNTERSUNK HEAD WOOD SCREWS","w":"https://www.italianaferramenta.it/en/catalog/countersunk-head-wood-screws-601/60101390YQ","src":"EP","eu":null,"moq":null},"60502050ZN":{"d":"Euro tornillo 6.3x10.5 mm","f":"EURO SCREWS","w":"https://www.italianaferramenta.it/en/catalog/euro-screws-603/60502050ZN","src":"EP","eu":null,"moq":null},"63420500ZN":{"d":"Libra h6 hanger pins right","f":"LIBRA H6","w":"https://www.italianaferramenta.it/en/catalog/libra-h6-1206/63420500ZN","src":"EP","eu":null,"moq":null},"63420510ZN":{"d":"Libra h6 hanger pins left","f":"LIBRA H6","w":"https://www.italianaferramenta.it/en/catalog/libra-h6-1206/63420510ZN","src":"EP","eu":null,"moq":null},"63422200ZN":{"d":"Libra h7 dowel fixing right","f":"LIBRA H7","w":"https://www.italianaferramenta.it/en/catalog/libra-h7-1207/63422200ZN","src":"EP","eu":null,"moq":null},"63422210ZN":{"d":"Libra h7 dowel fixing left","f":"LIBRA H7","w":"https://www.italianaferramenta.it/en/catalog/libra-h7-1207/63422210ZN","src":"EP","eu":null,"moq":null},"63450050ZN":{"d":"Wp5 wall plate two way split","f":"WPC BARS AND PLATES","w":"https://www.italianaferramenta.it/en/catalog/wpc-bars-and-plates-1222/63450050ZN","src":"EP","eu":null,"moq":null},"63466010YA":{"d":"Libra oval tapa embellecedora","f":"COVER CAPS","w":"https://www.italianaferramenta.it/en/catalog/cover-caps-701/63466010YA","src":"EP","eu":null,"moq":null},"6700000000":{"d":"Libra h7 alum.bar h.40.2 -l.4000","f":"LIBRA ALU PROFILES","w":"https://www.italianaferramenta.it/en/catalog/libra-alu-profiles-1210/6700000000","src":"EP","eu":null,"moq":null},"6710000000":{"d":"Libra h7 alum.bar h.80.5 -l.4000","f":"LIBRA ALU PROFILES","w":"https://www.italianaferramenta.it/en/catalog/libra-alu-profiles-1210/6710000000","src":"EP","eu":null,"moq":null},"P1903171AB":{"d":"Kintai soporte estante 5mm blanco","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/P1903171AB","src":"EP","eu":null,"moq":null},"P1903171EE":{"d":"Kintai soporte estante 5mm antracitara.","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/P1903171EE","src":"EP","eu":null,"moq":null},"P1903171IJ":{"d":"Kintai soporte estante 5mm gris","f":"KINTAI","w":"https://www.italianaferramenta.it/en/catalog/kintai-115/P1903171IJ","src":"EP","eu":null,"moq":null},"Y0JG063600":{"d":"Broca Ø15x90mm con accesorios de plantilla","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG063600","src":"IF","eu":null,"moq":null},"K1SM0026A01":{"d":"Herramienta para cortar tapa difusora de luz perfíl AL 010","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K1SM0026A01","src":"IF","eu":null,"moq":null},"K1SM0025N00":{"d":"Dima foratura per foro passaggi cavi elettrici per AL 010 Plantilla para taladro cables eléctricos para perfíl  AL 010","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/K1SM0025N00","src":"IF","eu":null,"moq":null},"K1SM0024N00":{"d":"Ausilio per montaggio telaio AL010 Plantilla para montaje de perfil AL010","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/K1SM0024N00","src":"IF","eu":null,"moq":null},"Y0JG0170RO":{"d":"Dima SHELF SUPPORTS per pannelli sp. 15-30mm Plantilla SHELF SUPPORTS p/paneles SL15-30mm","f":"DRILLING JIG SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-shelf-supports-1506/Y0JG0170RO","src":"IF","eu":null,"moq":null},"Y0JG063800":{"d":"Conf. punta Ø18x90mm con accessori per dima Broca Ø18x90mm con accesorios de plantilla","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG063800","src":"IF","eu":null,"moq":null},"Y0JG0100RO":{"d":"Dima TARGET J10 - J12 per pannelli sp. 16 e 18 mm Plantilla TARGET J10-J12 p/taladros costado 16 y 18mm","f":"DRILLING JIG TARGET","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-target-1501/Y0JG0100RO","src":"IF","eu":null,"moq":null},"Y0JG0120RO":{"d":"Plantilla taladrado REKORD Ø12 para paneles 18mm de espesor","f":"DRILLING JIG REKORD TECH","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-rekord-tech-1508/Y0JG0120RO","src":"IF","eu":null,"moq":null},"3030152000":{"d":"REKORD 12MM DRILL JIG LONG","f":"REKORD TECH","w":"https://www.italianaferramenta.it/en/catalog/rekord-tech-1012/3030152000","src":"IF","eu":null,"moq":null},"Y0JG0130RO":{"d":"Dima TRIADE SYSTEM per foro Ø14mm Plantilla TRIADE SYSTEM para taladro Ø14","f":"DRILLING JIG TRIADE PRO","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-triade-pro-1507/Y0JG0130RO","src":"IF","eu":null,"moq":null},"3030158000":{"d":"REKORD 12MM DRILL JIG","f":"REKORD TECH","w":"https://www.italianaferramenta.it/en/catalog/rekord-tech-1012/3030158000","src":"IF","eu":null,"moq":null},"6270101000":{"d":"Broca kimana hunge 26mm","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/6270101000","src":"EP","eu":null,"moq":null},"K1SM0027N00":{"d":"Ausilio per taglio manuale opalino profilo AL 010  Plantilla para corte manual de tapa difusora de luz perfíl AL010","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/K1SM0027N00","src":"IF","eu":null,"moq":null},"Y0JG0510ZN":{"d":"Boccola per dime Ø16x37 M14 foro Ø8mm zin. Casquillo para plantillas Ø16x37 M14 taladro Ø8 zinc","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG0510ZN","src":"IF","eu":null,"moq":null},"Y0JG013600":{"d":"Conf. inserto TRIADE per dima Plaquita TRIADE para plantilla","f":"DRILLING JIG TRIADE PRO","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-triade-pro-1507/Y0JG013600","src":"IF","eu":null,"moq":null},"Y0JG054000":{"d":"perforación","f":"DRILLING JIG TRIADE PRO","w":"https://www.italianaferramenta.it/en/catalog/drilling-jig-triade-pro-1507/Y0JG054000","src":"IF","eu":null,"moq":null},"K2HK0024N00":{"d":"Conf. 1 clip + giunzioni + viti per mont.  specchiera AL011 Bolsa 1 placa 120x40x12mm + juntas de esquina + tornillos para perfil de espejo AL011","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K2HK0024N00","src":"IF","eu":null,"moq":null},"Y0JG051600":{"d":"Anello di battuta per punta Ø5mm Anillo de tope para broca Ø5mm","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG051600","src":"IF","eu":null,"moq":null},"Y0JG052700":{"d":"Conf. punta Ø5x86mm per dima di foratura Broca Ø5x86mm para plantilla de perforación","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG052700","src":"IF","eu":null,"moq":null},"Y0JG0509ZN":{"d":"Boccola per dime Ø16x37 M14 foro Ø5mm zin. Casquillo para plantilla Ø16x37 M14 taladro Ø5mm zinc","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG0509ZN","src":"IF","eu":null,"moq":null},"Y0JG051900":{"d":"Anello di battuta per punta Ø12mm Anillo de tope para broca Ø12mm","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/Y0JG051900","src":"IF","eu":null,"moq":null},"1145202000":{"d":"DRILLING JIG 8MM","f":"ACCESSORIES FOR DRILLING JIGS","w":"https://www.italianaferramenta.it/en/catalog/accessories-for-drilling-jigs-1599/1145202000","src":"IF","eu":null,"moq":null},"K1PR0023V02":{"d":"V02","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K1PR0023V02","src":"IF","eu":null,"moq":null},"K1PR0025A01":{"d":"Conf. 10 profili allum. AL011 Lungh.1980mm Zero Chimico Bolsa 10 perfiles de aluminio AL011 L1980mm, aluminio natural","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K1PR0025A01","src":"IF","eu":null,"moq":null},"K2HK0023N00":{"d":"Conf. 2 clip + giunzioni + viti per mont.  specchiera AL010 Bolsa 2 placa 43x20x12mm + juntas de esquina + tornillos para perfil de espejo AL010","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K2HK0023N00","src":"IF","eu":null,"moq":null},"K1PR0023A01":{"d":"Conf. 10 profili allum. AL010 Lungh.1980mm Zero Chimico Bolsa 10 perfiles de aluminio AL010 L1980mm, aluminio natural","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K1PR0023A01","src":"IF","eu":null,"moq":null},"K1PR0024N00":{"d":"Conf. 10 fasce diffusore opale 31x0,5 L.2000 mm Bolsa 10 tapas tira difusora de luz 31x0,5 L.2000mm","f":"KIARO LIGHTING ACCESSORIES","w":"https://www.italianaferramenta.it/en/catalog/kiaro-lighting-accessories-817/K1PR0024N00","src":"IF","eu":null,"moq":null},"3030104000":{"d":"REKORD 12MM HOLE CENTRE 120MM","f":"REKORD TECH","w":"https://www.italianaferramenta.it/en/catalog/rekord-tech-1012/3030104000","src":"IF","eu":null,"moq":null},"63450100ZN":{"d":"Placa L60 H33 con rebordes de seguridad zincado","f":"WPC BARS AND PLATES","w":"https://www.italianaferramenta.it/en/catalog/wpc-bars-and-plates-1222/63450100ZN","src":"IF","eu":null,"moq":null},"12502010IJ":{"d":"reggipiano c/fermo Trik 12 gri.19 Soporte estante TRIK 12 con freno gris","f":"OTHER SHELF SUPPORTS","w":"https://www.italianaferramenta.it/en/catalog/other-shelf-supports-199/12502010IJ","src":"IF","eu":null,"moq":null},"30501010EA":{"d":"negra","f":"REKORD TECH","w":"https://www.italianaferramenta.it/en/catalog/rekord-tech-1012/30501010EA","src":"IF","eu":null,"moq":null},"23002010AB":{"d":"copriforo gambo basso Ø8 bia. Tapa embellecedora  Ø8 blanco","f":"COVER CAPS","w":"https://www.italianaferramenta.it/en/catalog/cover-caps-701/23002010AB","src":"IF","eu":null,"moq":null}};
+var NUEVOS = [{"sku":"C010002963","desc":"Bolsa 1 kit completo Symetra One (panel hasta W1300 x H2000)","eu":13.0,"moq":10},{"sku":"C010003025","desc":"Kit Symetra One panel grande (hasta W2000 x H2700)","eu":19.0,"moq":10},{"sku":"C010003026","desc":"Bolsa 2 niveladores c/soporte pared Symetra + tornillos","eu":2.7,"moq":50},{"sku":"C010003027","desc":"Bolsa 3 niveladores c/soporte pared Symetra + tornillos","eu":null,"moq":null},{"sku":"C010002964","desc":"Bolsa 6 niveladores c/soporte pared Symetra + tornillos","eu":null,"moq":null}];
+var IMG_B64 = {"C010000165":"data:image/jpeg;base64,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dbS5QskYjyEcZAA2npxnkdcVyWkeHorS/KbGOwZwentj3HNbF5pQbbIoCFeQtSNO25oWJluPs6MS0UeQFJO0Dv1969O8EWQi0ySZwC0z/oOK850uBnZI0BMh+VQO5Nex2FutraRW6dI1C59eOtQy0WMDGO1IFA6UtFSMKKKKACiiigAooooAKKKKACiiigAooooAx/E9z5GlPj78h8vHsev6VxcSK0bHc8ajkqWyD+FdP4kk829hgH/LIbz9TWeEWNGfavAyeOtUgMaP/SAXjWSRV6hV+bGcZx6e9WJmivNxilWVBgYVs4+tWdOg/wBGclzGknDOvVVHJx9TxWFdusrljGm08gBcY+mOlMCWW3nhBNvyO6kVlXRlUkSx4984q9HdSRABWIUdiSacb0vwyKy/XFMTRz7sQxAY4oWdsdDWvcrZSY3xNGT1IP8AUcVSuLSFt32a6QPtOFkO39elCYrFayZpGZ043c8Zq229rc5Bz0Bq3o9oUkit5YXUsv3ifl9Tg961LHQ59UujAh224OHkAwB+HrSuKxe8Dab9ou/tJ5gtzwc53P8A/WFegDiqum2UNhax21sgWKMYA759T71bqCwooooAKKKKACiiigAooooAKKKKACiiigAoyKKzteujZ6TczL9/G1fqeB/OgDlJ7pp72W5DArKx2EHnaDikuLjdbuvqKzoUKKqhuFGBTwzF9vQgjJPb3qwLV9L9m08oSpLKsSgDoB1/M1hMmRmtTxApmv0gt1JjQbAB1yPX/ParOm6CboEbixXqAcAfU0Ac8yU0wvn0+teh2nhazT5rhpJj6E7QPyrRj0fTkGBZQY90BpXA8sWKSM7wwX3PFWV0P+2BEIbd/tAfLXKKdgXvn1P+c16lDZW0BzBbwxn1VADU2D7ilcDCstBjgtvssSeRbkDcc7pHx6noDz2rZtbeK2iEcCBIx0AFTUUgCiiigAooooAKKKKACiiigAooooAKKKKACiiigArmvF0pd7a2Xocyt+HA/nXS1x3ijQNTvdTN7YSRlgoVFZtuAKAM+K3LZ7Y6k0lpp76hbTmHe24hR8vX1xVjT7HU5LaS0ureSK5kbHm8bVTucjqfauztLWO1t44IVCxou1QOwp3A5qy0K7kuC903lox3Oc5Zj149K6eCBIECRIqIOgFSge9FIAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKCKKKAEC478UtFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQB//Z","C010002605":"data:image/jpeg;base64,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UX8zXcaP8BfF94ym+ksdPjJ53SeYwH0FAHsv7O3/ACTCy/67S/8AoVcn8a9Cnb4g6Xqyx3MsL23k4RMorAnr/nvXqnw88NyeE/Cdno8159sa33fvdgTIJzjFdIQD1FIRy3w0sDY+ErUMhSSYtKwIweTx+gFdTRRQAUUUUAFFFFABRRRQAUUUUAFVdVgF1pl3AylllidCB1OQRVqigD4O8TRGO2lidSrJKAVPUYNc9X1r8X/hFD4pt7m/0FkttWb5mjbiOYj+Te9eNaX8CfG96FM8FnYqQeZpgSOfQZpjPMBQWA6kD619D6P+zYuQ2teIHYZOUtYscfU/4V3GkfArwRp7h5LKe9cEnNxMT2x0GKAPkFH3ttjDO3oozW/pXg3xRq206foGoSqxADmIqvPua+2dI8MaHo8appmk2VsF6FIVB/PrWx06UhHyNo3wH8Z35RrwWWnxnGfMk3sB9BXb6N+zfbLsbWtfnlPG6O2jCA+vJ/wr6CqveXtrYxGS9uYbeMAktK4UYHuaAPPdG+CXgjTNrNpjXki4+a5kLZOfTgV22meHtH0pQunaXZ2wAwPLhUH88Ve+1W/2cXHnxeQRkSbxtI+vSuc1X4geFdKyLzXLIMMfKj7z+S5oA6miuc8HeNNF8XpdNok8kn2VgsoeMoRkZHWujoAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAq6jqFnpls1xqF1DbQDq8rhR+tec+L/jV4X0O1b+zpzq95yFhtjhc4zlmPAH0ya5f9qa2kmtfDxefybPzpA7NkqGwCMqOTxmvni6jSKUrZzK8QA/ePHtyfYZ6UDOo1z4n/ABE16SQy+If7Nt2LAQ2EYTAPbcefxrnbnw7qWr6Ze67qs+qalY2nNzd3EzOidOOvXpwKgt43ncIjzTueAsS/4V2Nh8P/ABb4jERXQbp4v4Wuf3cY7/dJ2/pQByekX0U2nG3s57hrOMZEW9gnPoM1csHJjZpIViYMQMdx616/ofwE1mbadX1O0sk7x26b2H8hXdaL8DfDFkVfUHvNRkHP72Tav5D/ABoAwP2Y2Vn8RFSCcw5I+jV7rWboehaXoNqbfR7GCzhJyViXGT7+taVAgooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigDkviT4Is/HWjQ2N5PLbNDKJY5Yxkg4wRj3rnNC+CHg/TCr3NvPqMo73Mhx/3yMV6hRQBl6T4e0fSEC6Zptpagf8APOIA/n1rUoooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z","C010000131":"data:image/jpeg;base64,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","C010002374":"data:image/jpeg;base64,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","C010002315":"data:image/jpeg;base64,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","C010002603":"data:image/jpeg;base64,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UX8zXcaP8BfF94ym+ksdPjJ53SeYwH0FAHsv7O3/ACTCy/67S/8AoVcn8a9Cnb4g6Xqyx3MsL23k4RMorAnr/nvXqnw88NyeE/Cdno8159sa33fvdgTIJzjFdIQD1FIRy3w0sDY+ErUMhSSYtKwIweTx+gFdTRRQAUUUUAFFFFABRRRQAUUUUAFVdVgF1pl3AylllidCB1OQRVqigD4O8TRGO2lidSrJKAVPUYNc9X1r8X/hFD4pt7m/0FkttWb5mjbiOYj+Te9eNaX8CfG96FM8FnYqQeZpgSOfQZpjPMBQWA6kD619D6P+zYuQ2teIHYZOUtYscfU/4V3GkfArwRp7h5LKe9cEnNxMT2x0GKAPkFH3ttjDO3oozW/pXg3xRq206foGoSqxADmIqvPua+2dI8MaHo8appmk2VsF6FIVB/PrWx06UhHyNo3wH8Z35RrwWWnxnGfMk3sB9BXb6N+zfbLsbWtfnlPG6O2jCA+vJ/wr6CqveXtrYxGS9uYbeMAktK4UYHuaAPPdG+CXgjTNrNpjXki4+a5kLZOfTgV22meHtH0pQunaXZ2wAwPLhUH88Ve+1W/2cXHnxeQRkSbxtI+vSuc1X4geFdKyLzXLIMMfKj7z+S5oA6miuc8HeNNF8XpdNok8kn2VgsoeMoRkZHWujoAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAq6jqFnpls1xqF1DbQDq8rhR+tec+L/jV4X0O1b+zpzq95yFhtjhc4zlmPAH0ya5f9qa2kmtfDxefybPzpA7NkqGwCMqOTxmvni6jSKUrZzK8QA/ePHtyfYZ6UDOo1z4n/ABE16SQy+If7Nt2LAQ2EYTAPbcefxrnbnw7qWr6Ze67qs+qalY2nNzd3EzOidOOvXpwKgt43ncIjzTueAsS/4V2Nh8P/ABb4jERXQbp4v4Wuf3cY7/dJ2/pQByekX0U2nG3s57hrOMZEW9gnPoM1csHJjZpIViYMQMdx616/ofwE1mbadX1O0sk7x26b2H8hXdaL8DfDFkVfUHvNRkHP72Tav5D/ABoAwP2Y2Vn8RFSCcw5I+jV7rWboehaXoNqbfR7GCzhJyViXGT7+taVAgooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigDkviT4Is/HWjQ2N5PLbNDKJY5Yxkg4wRj3rnNC+CHg/TCr3NvPqMo73Mhx/3yMV6hRQBl6T4e0fSEC6Zptpagf8APOIA/n1rUoooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z","C010001345":"data:image/jpeg;base64,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","C010002784":"data:image/jpeg;base64,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","C010002783":"data:image/jpeg;base64,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","C010002756":"data:image/jpeg;base64,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","C010002372":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCACXAJYDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKCcdapXOq2FqCbi9t48DPMgzQBdormrvxxoNtuzeeYQcfu0JrnpPjD4WgnMd3O8AwSGYqc4/GgD0aivKdR+PvgKyiRhqU07sCfLhhJIx69qveBvjH4X8X3At7OS4tZiwVVuU2hiegyCRmgD0iigkDqQPrTYpElXdE6uvTKnIoAdRRRQAUUEgDJOBWZe+INIsQTd6nZxYG7DSrnH0oA06KwdL8X6Bqt+1lYanbzXI6IDjd9M9fwreoAKKKKACiiigArK8Ua3beHdEudSvSfLiHCjq7Hoo+tatePftFXpTTdJsVYjzJHlZex2gAfzNAHl+q+OddvvMK3BMjHKiR2K598GuEt/E3iPUr2ewvhLauWKiaDGIyemfb3rUIxz2qpd30KRy29lapa3ECBnmj4Mm71/I/nTGc7caH4ovpZPtV5I6Z4eSU4bHHSmL4MRTm/wBWiUZOQnJx696tyTSynMkrsfdjTMd8UANXw34fix5txdXBxyE4GfXPFa2nXVjpKMmmWboGIJLSdSO9ZJmjU4Mi56Yzk/lTRcoRlFkfjPyr/jQB1l34y1q+IE15LgcDLsxH5mu4+EnxDuPDUGqQ3ME9+sxR4034CtyCfxGPyrx1ZJi3ywgdfvv/AIVt6HqkultO7hG8wADaOmKAPdr34t69cAiw0u2twScNISxA7e1YV/458X3oxJqa2y4/5YqErzGfxPdSZCcCqE2qXs33pCPxoA76+1TUblZBf65dyBzlh5x5rDaTT4STLM0xB4LHJFcm8sr/AH5T+dM+XuxNAHVnXbW2cNbKUkU5V1OCD6g19RfC/wASHxV4MsdRkObkAxT8Yy68E/jwfxr4yBUdFr6b/ZnR18E3ruGCvesVyOMbFHFAM9dooopCCgkKCSQAOSTRXjnx/udRS2ga3uZV0yyVbm7tIdwe7XeAUBXkfLuoBK56df8AiLRrD/j81O0iOcYaUZrxP406zaeJ5tKbw4J9UMSyKy2sLMeSuMHGO3rXMWvxRtZ5lXwf8OoiHcAy3ikle2T+NXLrxd8TprWb7GmlaWmCEWOEKEGOmaVykjyXUvDHiW3uZdTt7W/tJArO6XbKEYAngL1Hy4/I+lKSJBLOZVWZkETRkfdOT1/OjUIvEGteJLe11vxGryzyhZGjkJUbjggducmo9Y0S30fQFFtO05NzODITkgKI8DPtn9aLjsUhFIR88zZwPugDml+zRn76l+v32J61U0KQy6ajsSck9auOzYO0EkdF9aokkVFX7qqPoKcKjgcsCrHMicMR0zjNS0AC9RUshwmfeox1rpvA/hK68aayNLsbmK2k2GUySKSNoxngd+aAOZyaM+rAV9C6Z+zxZLtOqa7dTHBysEaoPbrk12Wk/BrwXp+C2mG7bnm5kMn6dKLgfJMQ82QJEGlc/wAKKWP5Cuo0jwH4o1Uj7JoV6VOfmkTyx/49ivsLTtC0rTFC6fp1pbgf884lFaNILnzTonwL124ZTqU1paJnkBi7Y+gr3/wnoNr4a0G20uxB8qEcserserH61r0UCCiiigArA8VaEdWjSSAqLiMEAN0Yelb9FAbHl8fgvW5Wwv2CzTOM5LnHrgAVBr3wzuZtDvXk1ieS6WIvGkcYVSwGcevNer0UrD5mfBGraPPb3dtf6SVe8t5PMKXB3K5HTPuK0/E2tS61ocEd1pcVjNBBIzmD/VuXKdB1B4Ndl8YNGuPD3iy/mFlLBpdxOTbykfIxIBIB+pNeb6jeLcOlmXAjnRtx7jBHf86dguY/hxdulqhOdrEVfff0WPJ7HPFV7X7JYxeTFLuAJOAdxz+FTfaS3+rglb3ICj9aYEkEfloQTlicsfU1JVfN03RYYx7ksf6UvlSH/WXL/RAFoAsdOTwPU163+zQBP48neFldYrN95U5xllArxxLWAMCy7z6uSxr3T9l5D/wkmqsiYQWgBIHAO8cUAfSFFFFIQUUUUAFFFFABRRRQAUUUUAFFFFAFDXdG0/XtOksNXtY7q1k6xyDPPqPQ+9eBfEz4N+H/AAzoN9r1hPetPEyrBC8gMcYZgCOmTxnqa+jKralYWup2UtnfwJPbSjDxuMg0AfBChQQsagEnACjrW1pXhbxBrBH9naRezgkAMIiF59zxX2VpXhHw/pKqNP0iyhI6ERDPXPWttEVFwihR6AYpjPk3SPgl4wv9jXENtZIcE+dL8wB9hmuz0j9nkfK2r64xPBKW8WO/Iya+gKKQjzbSPgt4P091eSzlvHAH/HxKWBPrjpXeaVpVhpNuINMs4LWIDG2JAtXaKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/9k=","C010002522":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCABBAEEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6oooooAKKKKACiiigAooooAKKKKACikJAByQMdazb7XdNsjia6Qv0CJ8xJ9MCgDTornjrt3cxs9hpsixAZ866PlIB6881Bppu9ehaZdZia3DFStmOAR2JPNOwF3xXrTaLp6zxRrK5kVCpydoY43HHQZ71zsviiXWdJvtPgjlt9WCZVYDyygjcVPbiuli0/TNKSR5mXMilXaZ8lh3GO9Y2kLYaZNMNAsZblpHZ84Cgbjk5Y8kZpqwjg49B8Q2120ttJKsjnKOsx4PqcEEfrXq13rFpoelW0uv3sUMhRFdyD8znAJAHOMmq32DV71i11dQ2UZ/gtUG//vs/0xSx+E9KWeKdonkuY33+dI5ZyfcnJxQ3fcLG19oh/wCeqfnRT9i/3RRUjPO/ES2/h2aebVLm4uI7iUvDbQ7UwvcsepA9SST0Fc/L43SymWXw/Z20luFzI/2Vic+hbPH512HxE8OHVHtb6BIXniHlFZxldpOcjsG64zxzXKaR4VnitpbWaOOKJ5xMHyrP9MAEflj8a0ja2onc7i4uIfGHge5+ytueaLDLGTlXGDt/+tXnngmDxH4b1kObRpLSRts0atw65+8PQjr+leseHdOXTbAxRqVDMXwTk5Pc1aext3kLlOTycEgVN7aDKEHh2xSYzS+bcOTnMzlsVrxxpEu2NFRfRRinUVIBRRRQAUUUUABAIwRkVGkMSNlI0U+oUVJRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQB//2Q==","C010002370":"data:image/jpeg;base64,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","C010002507":"data:image/jpeg;base64,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ZsBlGZ2eSVWKl3PPHoOg/Cm6QpGm2oPbP8zVi2j2eYPVyf1oA6Xwf969+qfyNdJWD4TgkjiuJXUhJCNue+M81vVRD3CiiigQUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFU9WtWvLGSFNu84KlumQauUUAcBfW8tgw+2IYw3Q9QfxFZmkrDHDKsLowMrt8p9TXX+NEb7PayAfKshBPpkf/Wrl5YYpx++jR/95QaRaZQ1S336zpUp/gMgz+ArTM0ScPKin0LCqbaPp8hBktImx0zmrVvaW1t/x728UZ9VQCkMm0mD7RLBaxnazk4JHA6musstBtrc7pS079fm4Ufh/jXP+HlMmvQbf4FZ2+mMfzIrt6aJbAAAAAYA6AUUUUyQooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigDlviLeLb6LFbsDm7mWIMDgjGW49/lrh4ptQhXhY7tOxzsb/Cu6+Img/8ACQeHXgUM0kLiZVU4YkA/dI6Nzke4ry60udUNrH9iuLK8VON0ylHb2YqcZ98D6UmXHY301K576bc59iv+NPNzqEqny7ZLf/alfJ/IVmfbtZSEsNNs5JMfcW7I5/GOpI7rWHhZp4dPtiRxl2l2+5+7mkM1/Ct62n+KbSGVzK9/vhLHjkKX4HYDb+tenV5R8MfD8U+ty6ybqe+eAshupWyGcjlEA4VRnkD29K9XpoiW4UUUUxBRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABXmnjL4Yf2jqU2qeHdROm3sx3SxMCYpG/vccqT36j2r0uigDwaTwL8RoX2RXNhKv8AfF0QP1TNXdO+E/iLUplPijX0iturQ2ZaR29tzAAfka9sopWHdlPRtMtNG0y30/ToRDawLtRQc/iT3J6k1coopiCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z","C010002785":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCACwAMgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKCQBknAoAKKoS6rArskWZnH93pn61jz391dxSKX8kHjaox+vWgDZvdUtbQhXk3SHoicmqsuuxpt228hJ9SAKwo0BVUwoZcHO3oaf5Z2kv8x7YNAjWk11/wDlnb8erNU9prCyPsuIzGf7w5FYSqRgDP0PFSshQkMCG6/WgDpY762kbasoz78VYrjic8Vt6HeNIDbzEllHyse49KBmtRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAU2WRIkLyMFUdSTUF5cGIbY8GQjqegrJli81syuzn3NAFm61iNRttgWb+8RxWaJZrt91xIX2/dUjAH4Ur2uGyn3qSNQ57q4oEDRBZC0QCs3DAcU0oBKM5B/Qmp0G87ZBhv880/aUJimHB5yO4oAr7Sc9T6tjBpAgAZhgKD93PSrBRoJNr5wRwf7wpWUQzhlG9Ooz0IoAqSoWBkAJYff+lPbM8G4/fj756r/APWqbKxXWR/q+Dx6Gq2/yJXCH5On1U0ARsBkEd6licwyJIvVTmokOVBp5+6aAOrRg6Ky9GGRS1U0pt1hF7Aj9at0DCiiigAooooAKKKKACiiigAooooAKKKKAMu5O6Rj6mqzyKvBNWJBz+dUXUbxnkZyaBE6sGHBpJYCyCROXXt6gdarq+JMAYGavwPtYZxjPegCFVFxDuj4lQZ/3h6Ush8+23lvmj5HHX2oU/Zr1gMhTyB7VEjYdwp45xj0NACyyB7Zc/eU5H071E75VQf4e/saQD5WXrjofWoZGARS2cCgBzFi4DHIA28ntVVz85BPYinzSFZFweDjNVpW/f8A1oAlhfKt7Gnl+MDkntVOJ8Bz71s6DZNNMLmVSIk5XI+8f8KAN6yiMFpFGeqrz9amoooGFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAZ1wuJG+tU2UZyPWtS7TkN2PBqhIuAfQ96BFWVAjA9qsjBjBH0qPiRCrnJHT3p8YwgFAEUxzsb5sg4OaYxxKOe2KbM2GHJ601z+9FACO2WcH0qnI/7o/WnySYdz7VBDDNdusUCli569gPU0AMmkyyc1XZnlmIiR3YdlBNdFaeHQJC93LuA+6sfGPcmtmztIbOLy7dAq5yfUn1NAGVoWkLFbLJexK07HO1udo7D61uDgcUUUDCiiigAooooAKKKKACiiigAooooAKKKKACiiigBHUOpU96z3QglXFaNNdFcfMPxoAy/sw3ZDHFOcBU+lXDbn+Eg/WoZLSSTjcqjv3oEY7/ADSgUqW09xueKMsOgPTNbkFjDFkld7HqWqyAAMAYFAGRa6JEqobli75yyj7p9vpWuAAOABRRQMKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//2Q==","C010002791":"data:image/jpeg;base64,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","C010002786":"data:image/jpeg;base64,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"};
+var IMG_BASE = 'https://www.italianaferramenta.it/materials/dati/documenti/immagini/';
+var LEAD_MESES = 3;
+
+/* ============ ESTADO ============ */
+var RAW = [];
+var DATA = [];
+var ORDER_QTY = {};
+var CFG = {std:{}, piso:{}};
+var FAM_OPEN = {};
+
+function loadCfg(){
+  try{
+    var raw = localStorage.getItem('ITALI_CFG');
+    if(raw){ var o = JSON.parse(raw); CFG.std = o.std || {}; CFG.piso = o.piso || {}; }
+  } catch(e){}
+}
+function saveCfg(){
+  try{ localStorage.setItem('ITALI_CFG', JSON.stringify(CFG)); } catch(e){}
+}
+
+/* ============ UTILIDADES ============ */
+function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
+function fmtInt(n){ return Math.round(n).toLocaleString('en-US'); }
+function fmtEur(n){ return 'EUR ' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmt1(n){ return n.toLocaleString('en-US', {minimumFractionDigits:1, maximumFractionDigits:1}); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function setStatus(mode, text){
+  var bar = document.getElementById('statusBar');
+  var dot = document.getElementById('statusDot');
+  var txt = document.getElementById('statusTxt');
+  bar.className = 'statusbar' + (mode === 'loading' ? ' loading' : (mode === 'err' ? ' err' : ''));
+  dot.className = 'status-dot' + (mode === 'loading' ? ' loading' : (mode === 'err' ? ' err' : ''));
+  txt.textContent = text;
+}
+
+function defaultPoNumber(){
+  var d = new Date();
+  var mm = String(d.getMonth()+1); if(mm.length < 2) mm = '0' + mm;
+  return 'IT' + mm + d.getFullYear() + '-01';
+}
+
+/* ============ CARGA DE DATOS ============ */
+function tryLoadFromHub(){
+  setStatus('loading', 'Buscando reporte de inventario del hub...');
+  var raw;
+  try{ raw = sessionStorage.getItem('CCP_REPORT'); } catch(e){ raw = null; }
+  if(!raw){
+    setStatus('err', 'No se encontro el reporte en el hub. Cargalo manualmente abajo.');
+    document.getElementById('uploadPanel').classList.add('show');
+    return;
+  }
+  try{
+    var rows = JSON.parse(raw);
+    var dateRaw = null;
+    try{ dateRaw = sessionStorage.getItem('CCP_REPORT_DATE'); } catch(e){}
+    var dateLabel = '';
+    if(dateRaw){
+      var d = new Date(dateRaw);
+      dateLabel = 'reporte del ' + d.toLocaleDateString('es-PR', {day:'2-digit', month:'short', year:'numeric'});
+    }
+    activateData(rows, 'Cargado del hub', dateLabel);
+  } catch(e){
+    setStatus('err', 'Error leyendo el reporte del hub: ' + e.message);
+    document.getElementById('uploadPanel').classList.add('show');
+  }
+}
+
+function parseSheetRows(workbook){
+  var ws = workbook.Sheets[workbook.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, {defval: ''});
+}
+
+function handleFileUpload(file){
+  document.getElementById('fileStatus').textContent = 'Leyendo ' + file.name + '...';
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var wb = XLSX.read(e.target.result, {type: 'array', raw: true, cellDates: true});
+      activateData(parseSheetRows(wb), 'Archivo cargado manualmente (' + file.name + ')', '');
+      document.getElementById('fileStatus').textContent = '';
+    } catch(err1){
+      var reader2 = new FileReader();
+      reader2.onload = function(e2){
+        try{
+          var wb2 = XLSX.read(e2.target.result, {type: 'binary'});
+          activateData(parseSheetRows(wb2), 'Archivo cargado manualmente (' + file.name + ')', '');
+          document.getElementById('fileStatus').textContent = '';
+        } catch(err2){
+          document.getElementById('fileStatus').textContent = 'Error leyendo el archivo: ' + err2.message;
+        }
+      };
+      reader2.readAsBinaryString(file);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function activateData(rows, sourceLabel, dateLabel){
+  RAW = rows.filter(function(row){
+    var vc = String(row['Vendor Code'] || '').trim().toUpperCase();
+    var vn = String(row['Vendor Name'] || '').toUpperCase();
+    return vc === 'ITALI' || vn.indexOf('ITALIAN') !== -1;
+  });
+  if(RAW.length === 0){
+    setStatus('err', 'El reporte no contiene SKUs de ITALIANA FERRAMENTA (Vendor ITALI). Verifica el archivo.');
+    document.getElementById('uploadPanel').classList.add('show');
+    return;
+  }
+  DATA = RAW.map(function(r){
+    var sku = String(r['Item Number'] || '').trim();
+    var meta = DB[sku] || {};
+    return {
+      sku: sku,
+      descRep: String(r['Item Description'] || '').trim(),
+      desc: meta.d || String(r['Item Description'] || '').trim(),
+      fam: meta.f || 'OTROS',
+      web: meta.w || '',
+      src: meta.src || '',
+      eu: (meta.eu === undefined) ? null : meta.eu,
+      moq: (meta.moq === undefined) ? null : meta.moq,
+      qoh: num(r['Quantity on Hand']),
+      qoo: num(r['Quantity on Order']),
+      std: num(r['Sales To Date']),
+      l12: num(r['Last 12 Months Sales']),
+      p3m: num(r['PROMEDI ULTIMO 3 MESES']),
+      stdRep: num(r['Standard Package']) || 1,
+      disc: String(r['Discontinued Item?'] || '').trim().toUpperCase() === 'Y'
+    };
+  });
+  document.getElementById('mainWrap').classList.remove('hidden');
+  document.getElementById('uploadPanel').classList.remove('show');
+  var msg = sourceLabel + ' - ' + DATA.length + ' SKUs ITALI';
+  if(dateLabel) msg += ' (' + dateLabel + ')';
+  setStatus('ok', msg);
+  computeAll();
+  renderAll();
+}
+
+/* ============ CALCULO ============ */
+function getMeses(){
+  var v = parseFloat(document.getElementById('monthsInput').value);
+  if(!isFinite(v) || v <= 0) v = 12;
+  return v;
+}
+function stdPkgEff(d){
+  var o = CFG.std[d.sku];
+  if(o !== undefined && o !== null && o !== '' && num(o) > 0) return num(o);
+  return d.stdRep || 1;
+}
+function pisoEff(d){
+  var o = CFG.piso[d.sku];
+  if(o !== undefined && o !== null && o !== '' && num(o) > 0) return num(o);
+  return 0;
+}
+function computeAll(){
+  var meses = getMeses();
+  DATA.forEach(function(d){
+    d.std12 = d.std / 12;
+    d.l12r = d.l12 / 12;
+    d.rate = Math.max(d.std12, d.p3m);
+    d.vx = d.rate * meses;
+    d.pkg = stdPkgEff(d);
+    d.piso = pisoEff(d);
+    var falta = d.vx - d.qoh - d.qoo;
+    falta = Math.max(falta, d.piso - d.qoh);
+    d.falta = falta;
+    d.cob = d.rate > 0 ? (d.qoh + d.qoo) / d.rate : Infinity;
+    var sug = 0;
+    if(!d.disc && falta > 0 && d.rate > 0){
+      sug = Math.ceil(falta / d.pkg) * d.pkg;
+      if(d.moq) sug = Math.max(sug, d.moq);
+    }
+    d.sug = sug;
+    if(ORDER_QTY[d.sku] === undefined){
+      d.qty = sug;
+    } else {
+      d.qty = num(ORDER_QTY[d.sku]);
+    }
+  });
+}
+
+function covClass(d){
+  if(!isFinite(d.cob)) return 'cov-ok';
+  var meses = getMeses();
+  if(d.cob >= meses) return 'cov-ok';
+  if(d.cob >= LEAD_MESES + 1) return 'cov-band';
+  if(d.cob >= LEAD_MESES) return 'cov-warn';
+  return 'cov-crit';
+}
+
+/* ============ RENDER ORDEN ============ */
+function renderSummary(){
+  var lineas = 0, unidades = 0, costo = 0, sinPrecio = 0, activos = 0;
+  DATA.forEach(function(d){
+    if(d.rate > 0 && !d.disc) activos++;
+    if(d.qty > 0){
+      lineas++; unidades += d.qty;
+      if(d.eu !== null){ costo += d.qty * d.eu; } else { sinPrecio++; }
+    }
+  });
+  var html = [];
+  html.push('<div class="summary-item"><div class="lbl">SKUs ITALI</div><div class="val">' + DATA.length + '</div></div>');
+  html.push('<div class="summary-item"><div class="lbl">Con actividad</div><div class="val">' + activos + '</div></div>');
+  html.push('<div class="summary-item"><div class="lbl">Lineas en orden</div><div class="val">' + lineas + '</div></div>');
+  html.push('<div class="summary-item"><div class="lbl">Unidades</div><div class="val">' + fmtInt(unidades) + '</div></div>');
+  html.push('<div class="summary-item total"><div class="lbl">Costo parcial (' + (lineas - sinPrecio) + ' lineas con precio)</div><div class="val">' + fmtEur(costo) + '</div></div>');
+  if(sinPrecio > 0){
+    html.push('<div class="summary-item"><div class="lbl">Lineas sin precio</div><div class="val">' + sinPrecio + '</div></div>');
+  }
+  document.getElementById('summaryGrid').innerHTML = html.join('');
+}
+
+function imgTag(sku){
+  return '<img class="pimg" loading="lazy" data-sku="' + esc(sku) + '" src="' + IMG_BASE + encodeURIComponent(sku) + '.jpg" alt="">';
+}
+
+function attachImgFallbacks(root){
+  var imgs = root.querySelectorAll('img.pimg');
+  for(var i = 0; i < imgs.length; i++){
+    (function(img){
+      img.addEventListener('error', function(){
+        var sku = img.getAttribute('data-sku');
+        if(!img.getAttribute('data-tried') && IMG_B64[sku]){
+          img.setAttribute('data-tried', '1');
+          img.src = IMG_B64[sku];
+        } else {
+          var span = document.createElement('span');
+          span.className = 'noimg';
+          span.textContent = 'SIN FOTO';
+          if(img.parentNode) img.parentNode.replaceChild(span, img);
+        }
+      });
+    })(imgs[i]);
+  }
+}
+
+function renderOrden(){
+  renderSummary();
+  var byFam = {};
+  DATA.forEach(function(d){
+    if(d.sug <= 0 && d.qty <= 0) return;
+    if(!byFam[d.fam]) byFam[d.fam] = [];
+    byFam[d.fam].push(d);
+  });
+  var fams = Object.keys(byFam).sort();
+  var root = document.getElementById('ordenList');
+  if(fams.length === 0){
+    root.innerHTML = '<div class="panel emptystate">Ninguna linea sugerida con la cobertura actual. Ajusta los meses o revisa la pestana Reporte.</div>';
+    return;
+  }
+  var html = [];
+  fams.forEach(function(f){
+    var arr = byFam[f];
+    arr.sort(function(a,b){ return b.qty * (b.eu || 0) - a.qty * (a.eu || 0); });
+    var famCost = 0, famUnits = 0;
+    arr.forEach(function(d){ famUnits += d.qty; if(d.eu !== null) famCost += d.qty * d.eu; });
+    var open = FAM_OPEN[f] !== false;
+    html.push('<div class="family-card">');
+    html.push('<div class="family-head" data-fam="' + esc(f) + '">');
+    html.push('<span class="family-caret">' + (open ? '&#9660;' : '&#9654;') + '</span>');
+    html.push('<span class="family-name">' + esc(f) + '</span>');
+    html.push('<span class="family-meta">' + arr.length + ' SKUs &middot; ' + fmtInt(famUnits) + ' uds</span>');
+    html.push('<span class="family-total">' + (famCost > 0 ? fmtEur(famCost) : '') + '</span>');
+    html.push('</div>');
+    html.push('<div class="family-body' + (open ? ' open' : '') + '"><div class="tablewrap"><table><thead><tr>');
+    html.push('<th></th><th>SKU</th><th>Descripcion</th><th class="num">QoH</th><th class="num">QoO</th><th class="num">Tasa/mes</th><th class="num">Cob (m)</th><th class="num">Sugerido</th><th class="num">Ordenar</th><th class="num">EUR</th><th class="num">Total</th>');
+    html.push('</tr></thead><tbody>');
+    arr.forEach(function(d){
+      var badges = '';
+      if(d.pkg === 1) badges += '<span class="badge warn">REVISAR STD</span>';
+      if(d.moq && d.qty > 0 && d.qty === d.moq && d.falta < d.moq) badges += '<span class="badge amber">MOQ ' + fmtInt(d.moq) + '</span>';
+      if(d.disc) badges += '<span class="badge disc">DESC</span>';
+      var qooTxt = d.qoo > 0 ? '<span class="badge qoo">' + fmtInt(d.qoo) + '</span>' : '0';
+      html.push('<tr>');
+      html.push('<td>' + imgTag(d.sku) + '</td>');
+      html.push('<td><b>' + esc(d.sku) + '</b>' + badges + '</td>');
+      html.push('<td class="desc-cell">' + esc(d.desc) + (d.web ? ' <a class="weblink" href="' + esc(d.web) + '" target="_blank" rel="noopener">WEB</a>' : '') + '</td>');
+      html.push('<td class="num">' + fmtInt(d.qoh) + '</td>');
+      html.push('<td class="num">' + qooTxt + '</td>');
+      html.push('<td class="num">' + fmt1(d.rate) + '</td>');
+      html.push('<td class="num ' + covClass(d) + '">' + (isFinite(d.cob) ? fmt1(d.cob) : '-') + '</td>');
+      html.push('<td class="num">' + fmtInt(d.sug) + '</td>');
+      html.push('<td class="num"><input class="qty-input" type="number" min="0" step="1" data-qty="' + esc(d.sku) + '" value="' + d.qty + '"></td>');
+      html.push('<td class="num">' + (d.eu !== null ? d.eu.toFixed(4) : '-') + '</td>');
+      html.push('<td class="num"><b>' + (d.eu !== null ? fmtEur(d.qty * d.eu) : '-') + '</b></td>');
+      html.push('</tr>');
+    });
+    html.push('</tbody></table></div></div></div>');
+  });
+  root.innerHTML = html.join('');
+  attachImgFallbacks(root);
+  var heads = root.querySelectorAll('.family-head');
+  for(var i = 0; i < heads.length; i++){
+    heads[i].addEventListener('click', function(){
+      var f = this.getAttribute('data-fam');
+      FAM_OPEN[f] = FAM_OPEN[f] === false ? true : false;
+      renderOrden();
+    });
+  }
+  var qtys = root.querySelectorAll('input[data-qty]');
+  for(var j = 0; j < qtys.length; j++){
+    qtys[j].addEventListener('change', function(){
+      ORDER_QTY[this.getAttribute('data-qty')] = num(this.value);
+      computeAll();
+      renderOrden();
+    });
+  }
+}
+
+/* ============ RENDER REPORTE ============ */
+function renderReporte(){
+  var q = (document.getElementById('repSearch').value || '').toUpperCase();
+  var solo = document.getElementById('repSoloActivos').checked;
+  var arr = DATA.filter(function(d){
+    if(solo && d.l12 <= 0 && d.p3m <= 0 && d.qoh <= 0) return false;
+    if(q && d.sku.toUpperCase().indexOf(q) === -1 && d.desc.toUpperCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  arr.sort(function(a,b){ return b.l12 - a.l12; });
+  var html = [];
+  html.push('<table><thead><tr><th>SKU</th><th>Descripcion</th><th class="num">QoH</th><th class="num">QoO</th><th class="num">STD/12</th><th class="num">L12/12</th><th class="num">P3M</th><th class="num">Tasa usada</th><th class="num">Cob (m)</th></tr></thead><tbody>');
+  arr.forEach(function(d){
+    var inflado = d.l12r > 0 && d.std12 > d.l12r * 1.5;
+    html.push('<tr>');
+    html.push('<td><b>' + esc(d.sku) + '</b>' + (d.disc ? '<span class="badge disc">DESC</span>' : '') + '</td>');
+    html.push('<td class="desc-cell">' + esc(d.desc) + '</td>');
+    html.push('<td class="num">' + fmtInt(d.qoh) + '</td>');
+    html.push('<td class="num">' + fmtInt(d.qoo) + '</td>');
+    html.push('<td class="num"' + (inflado ? ' style="color:#9a5b00;font-weight:700;"' : '') + '>' + fmt1(d.std12) + (inflado ? ' &#9888;' : '') + '</td>');
+    html.push('<td class="num">' + fmt1(d.l12r) + '</td>');
+    html.push('<td class="num">' + fmt1(d.p3m) + '</td>');
+    html.push('<td class="num"><b>' + fmt1(d.rate) + '</b></td>');
+    html.push('<td class="num ' + covClass(d) + '">' + (isFinite(d.cob) ? fmt1(d.cob) : '-') + '</td>');
+    html.push('</tr>');
+  });
+  html.push('</tbody></table>');
+  document.getElementById('reporteWrap').innerHTML = html.join('');
+}
+
+/* ============ RENDER BD ============ */
+function renderBD(){
+  var q = (document.getElementById('bdSearch').value || '').toUpperCase();
+  var famSel = document.getElementById('bdFam').value;
+  var arr = DATA.filter(function(d){
+    if(famSel && d.fam !== famSel) return false;
+    if(q && d.sku.toUpperCase().indexOf(q) === -1 && d.desc.toUpperCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  arr.sort(function(a,b){ return a.fam < b.fam ? -1 : (a.fam > b.fam ? 1 : (a.sku < b.sku ? -1 : 1)); });
+  var html = [];
+  html.push('<table><thead><tr><th></th><th>SKU</th><th>Descripcion</th><th>Familia</th><th>Fuente</th><th class="num">QoH</th><th class="num">EUR</th><th class="num">MOQ</th><th>Links</th></tr></thead><tbody>');
+  arr.forEach(function(d){
+    var srcBadge = d.src === 'IF' ? '<span class="badge if">IF</span>' : '<span class="badge amber">EPICOR</span>';
+    var links = [];
+    if(d.web) links.push('<a class="weblink" href="' + esc(d.web) + '" target="_blank" rel="noopener">WEB</a>');
+    links.push('<a class="weblink" href="' + IMG_BASE + encodeURIComponent(d.sku) + '.jpg" target="_blank" rel="noopener">FOTO</a>');
+    html.push('<tr>');
+    html.push('<td>' + imgTag(d.sku) + '</td>');
+    html.push('<td><b>' + esc(d.sku) + '</b>' + (d.disc ? '<span class="badge disc">DESC</span>' : '') + '</td>');
+    html.push('<td class="desc-cell">' + esc(d.desc) + '</td>');
+    html.push('<td style="font-size:10px;">' + esc(d.fam) + '</td>');
+    html.push('<td>' + srcBadge + '</td>');
+    html.push('<td class="num">' + fmtInt(d.qoh) + '</td>');
+    html.push('<td class="num">' + (d.eu !== null ? d.eu.toFixed(4) : '-') + '</td>');
+    html.push('<td class="num">' + (d.moq ? fmtInt(d.moq) : '-') + '</td>');
+    html.push('<td>' + links.join(' ') + '</td>');
+    html.push('</tr>');
+  });
+  html.push('</tbody></table>');
+  var root = document.getElementById('bdWrap');
+  root.innerHTML = html.join('');
+  attachImgFallbacks(root);
+}
+
+function renderNuevos(){
+  var html = [];
+  html.push('<table><thead><tr><th></th><th>SKU</th><th>Descripcion</th><th class="num">EUR</th><th class="num">MOQ</th></tr></thead><tbody>');
+  NUEVOS.forEach(function(n){
+    html.push('<tr>');
+    html.push('<td>' + imgTag(n.sku) + '</td>');
+    html.push('<td><b>' + esc(n.sku) + '</b><span class="badge nuevo">NUEVO</span></td>');
+    html.push('<td class="desc-cell">' + esc(n.desc) + '</td>');
+    html.push('<td class="num">' + (n.eu !== null && n.eu !== undefined ? Number(n.eu).toFixed(4) : '-') + '</td>');
+    html.push('<td class="num">' + (n.moq ? fmtInt(n.moq) : '-') + '</td>');
+    html.push('</tr>');
+  });
+  html.push('</tbody></table>');
+  var root = document.getElementById('nuevosWrap');
+  root.innerHTML = html.join('');
+  attachImgFallbacks(root);
+}
+
+function fillFamFilter(){
+  var sel = document.getElementById('bdFam');
+  while(sel.options.length > 1) sel.remove(1);
+  var fams = [];
+  DATA.forEach(function(d){ if(fams.indexOf(d.fam) === -1) fams.push(d.fam); });
+  fams.sort();
+  fams.forEach(function(f){
+    var o = document.createElement('option');
+    o.value = f; o.textContent = f;
+    sel.appendChild(o);
+  });
+}
+
+/* ============ GENERAR PO ============ */
+function buildPoText(){
+  var lines = [];
+  var po = document.getElementById('poNumber').value || defaultPoNumber();
+  var d = new Date();
+  var fecha = d.toLocaleDateString('es-PR', {day:'2-digit', month:'long', year:'numeric'});
+  lines.push('==========================================================');
+  lines.push('ORDEN DE COMPRA / PURCHASE ORDER: ' + po);
+  lines.push('Fecha: ' + fecha);
+  lines.push('==========================================================');
+  lines.push('');
+  lines.push('PROVEEDOR / SUPPLIER:');
+  lines.push('ITALIANA FERRAMENTA s.r.l.');
+  lines.push('Viale Europa 17, I-33070 Brugnera (PN), ITALY');
+  lines.push('Tel +39 0434 428211  -  info@italianaferramenta.it');
+  lines.push('');
+  lines.push('ENVIAR A / SHIP TO:');
+  lines.push('Caribbean Cabinet Products, Inc.');
+  lines.push('Barrio Singapur Carr 1 Km 114.1');
+  lines.push('Juana Diaz, PR 00795 - PUERTO RICO');
+  lines.push('');
+  lines.push('Terminos de entrega: FCA BRUGNERA (PN) ITALY');
+  lines.push('Pago: SWIFT BEFORE DELIVERY');
+  lines.push('----------------------------------------------------------');
+  lines.push('SKU          CANT      EUR/UD     TOTAL EUR  DESCRIPCION');
+  lines.push('----------------------------------------------------------');
+  var total = 0, unidades = 0, sinPrecio = 0;
+  var ordered = DATA.filter(function(d){ return d.qty > 0; });
+  ordered.sort(function(a,b){ return a.fam < b.fam ? -1 : (a.fam > b.fam ? 1 : 0); });
+  ordered.forEach(function(d){
+    var sku = d.sku; while(sku.length < 13) sku += ' ';
+    var q = fmtInt(d.qty); while(q.length < 9) q = ' ' + q;
+    var pu = d.eu !== null ? d.eu.toFixed(4) : '   -  ';
+    while(pu.length < 10) pu = ' ' + pu;
+    var tl = '';
+    if(d.eu !== null){ var t = d.qty * d.eu; total += t; tl = t.toFixed(2); } else { sinPrecio++; tl = '-'; }
+    while(tl.length < 12) tl = ' ' + tl;
+    unidades += d.qty;
+    lines.push(sku + q + pu + tl + '  ' + d.desc);
+  });
+  lines.push('----------------------------------------------------------');
+  lines.push('TOTAL LINEAS: ' + ordered.length + '   UNIDADES: ' + fmtInt(unidades));
+  lines.push('TOTAL EUR (lineas con precio): ' + total.toFixed(2));
+  if(sinPrecio > 0){
+    lines.push('NOTA: ' + sinPrecio + ' lineas sin precio en base de datos - solicitar cotizacion a IF.');
+  }
+  lines.push('==========================================================');
+  return lines.join('\n');
+}
+
+function generatePo(){
+  var ordered = DATA.filter(function(d){ return d.qty > 0; });
+  if(ordered.length === 0){
+    document.getElementById('poStatus').textContent = 'No hay lineas con cantidad mayor a 0. Ajusta la orden primero.';
+    document.getElementById('poText').value = '';
+    return;
+  }
+  document.getElementById('poText').value = buildPoText();
+  document.getElementById('poStatus').textContent = ordered.length + ' lineas incluidas.';
+}
+
+function copyPo(){
+  var ta = document.getElementById('poText');
+  if(!ta.value){ generatePo(); }
+  if(!ta.value) return;
+  ta.focus();
+  ta.select();
+  try{
+    document.execCommand('copy');
+    document.getElementById('poStatus').textContent = 'PO copiado al portapapeles.';
+  } catch(e){
+    document.getElementById('poStatus').textContent = 'Copia manualmente el texto seleccionado.';
+  }
+}
+
+/* ============ CONFIG ============ */
+function renderConfig(){
+  var q = (document.getElementById('cfgSearch').value || '').toUpperCase();
+  var solo1 = document.getElementById('cfgSoloStd1').checked;
+  var arr = DATA.filter(function(d){
+    if(solo1 && d.stdRep !== 1) return false;
+    if(q && d.sku.toUpperCase().indexOf(q) === -1 && d.desc.toUpperCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  arr.sort(function(a,b){ return b.l12 - a.l12; });
+  var html = [];
+  html.push('<table><thead><tr><th>SKU</th><th>Descripcion</th><th class="num">L12</th><th class="num">std reporte</th><th class="num">std override</th><th class="num">Piso min</th><th class="num">MOQ</th></tr></thead><tbody>');
+  arr.forEach(function(d){
+    var so = CFG.std[d.sku] !== undefined ? CFG.std[d.sku] : '';
+    var po = CFG.piso[d.sku] !== undefined ? CFG.piso[d.sku] : '';
+    html.push('<tr>');
+    html.push('<td><b>' + esc(d.sku) + '</b>' + (d.stdRep === 1 ? '<span class="badge warn">STD=1</span>' : '') + '</td>');
+    html.push('<td class="desc-cell">' + esc(d.desc) + '</td>');
+    html.push('<td class="num">' + fmtInt(d.l12) + '</td>');
+    html.push('<td class="num">' + fmtInt(d.stdRep) + '</td>');
+    html.push('<td class="num"><input class="cfg-input" type="number" min="0" step="1" data-cfgstd="' + esc(d.sku) + '" value="' + so + '"></td>');
+    html.push('<td class="num"><input class="cfg-input" type="number" min="0" step="1" data-cfgpiso="' + esc(d.sku) + '" value="' + po + '"></td>');
+    html.push('<td class="num">' + (d.moq ? fmtInt(d.moq) : '-') + '</td>');
+    html.push('</tr>');
+  });
+  html.push('</tbody></table>');
+  document.getElementById('cfgWrap').innerHTML = html.join('');
+}
+
+function saveConfigInputs(){
+  var root = document.getElementById('cfgWrap');
+  var stds = root.querySelectorAll('input[data-cfgstd]');
+  for(var i = 0; i < stds.length; i++){
+    var sku = stds[i].getAttribute('data-cfgstd');
+    var v = stds[i].value;
+    if(v === '' || num(v) <= 0){ delete CFG.std[sku]; } else { CFG.std[sku] = num(v); }
+  }
+  var pisos = root.querySelectorAll('input[data-cfgpiso]');
+  for(var j = 0; j < pisos.length; j++){
+    var sku2 = pisos[j].getAttribute('data-cfgpiso');
+    var v2 = pisos[j].value;
+    if(v2 === '' || num(v2) <= 0){ delete CFG.piso[sku2]; } else { CFG.piso[sku2] = num(v2); }
+  }
+  saveCfg();
+  computeAll();
+  renderOrden();
+  renderConfig();
+  setStatus('ok', 'Configuracion guardada (' + Object.keys(CFG.std).length + ' std overrides, ' + Object.keys(CFG.piso).length + ' pisos).');
+}
+
+function buildIaExport(){
+  var meses = getMeses();
+  var out = {
+    tool: 'itali.html',
+    fecha: new Date().toISOString(),
+    meses_cobertura: meses,
+    regla_tasa: 'MAX(SalesToDate/12, P3M)',
+    cfg: CFG,
+    lineas: DATA.filter(function(d){ return d.qty > 0 || d.falta > 0; }).map(function(d){
+      return {sku: d.sku, desc: d.desc, fam: d.fam, qoh: d.qoh, qoo: d.qoo,
+        std12: Math.round(d.std12 * 10) / 10, l12r: Math.round(d.l12r * 10) / 10, p3m: Math.round(d.p3m * 10) / 10,
+        rate: Math.round(d.rate * 10) / 10, cob: isFinite(d.cob) ? Math.round(d.cob * 10) / 10 : null,
+        pkg: d.pkg, moq: d.moq, sug: d.sug, qty: d.qty, eur: d.eu};
+    })
+  };
+  document.getElementById('iaText').value = JSON.stringify(out, null, 1);
+}
+
+function copyIa(){
+  var ta = document.getElementById('iaText');
+  if(!ta.value) buildIaExport();
+  ta.focus(); ta.select();
+  try{ document.execCommand('copy'); } catch(e){}
+}
+
+/* ============ RENDER GLOBAL Y EVENTOS ============ */
+function renderAll(){
+  renderOrden();
+  renderReporte();
+  fillFamFilter();
+  renderBD();
+  renderNuevos();
+  renderConfig();
+}
+
+function switchTab(name){
+  var btns = document.querySelectorAll('.tabbtn');
+  for(var i = 0; i < btns.length; i++){
+    btns[i].className = 'tabbtn' + (btns[i].getAttribute('data-tabbtn') === name ? ' active' : '');
+  }
+  var tabs = document.querySelectorAll('[data-tab]');
+  for(var j = 0; j < tabs.length; j++){
+    tabs[j].className = tabs[j].getAttribute('data-tab') === name ? 'tab-active' : '';
+    tabs[j].setAttribute('data-tab', tabs[j].getAttribute('data-tab'));
+  }
+}
+
+document.getElementById('navBackBtn').addEventListener('click', function(){ location.href = 'index.html'; });
+document.getElementById('reloadHubBtn').addEventListener('click', tryLoadFromHub);
+document.getElementById('showUploadBtn').addEventListener('click', function(){
+  document.getElementById('uploadPanel').classList.add('show');
+});
+document.getElementById('fileInput').addEventListener('change', function(){
+  if(this.files && this.files[0]) handleFileUpload(this.files[0]);
+});
+var tabBtns = document.querySelectorAll('.tabbtn');
+for(var ti = 0; ti < tabBtns.length; ti++){
+  tabBtns[ti].addEventListener('click', function(){ switchTab(this.getAttribute('data-tabbtn')); });
+}
+document.getElementById('monthsDown').addEventListener('click', function(){
+  var el = document.getElementById('monthsInput');
+  el.value = Math.max(0.1, Math.round((parseFloat(el.value) - 0.1) * 10) / 10);
+  computeAll(); renderOrden(); renderReporte();
+});
+document.getElementById('monthsUp').addEventListener('click', function(){
+  var el = document.getElementById('monthsInput');
+  el.value = Math.min(36, Math.round((parseFloat(el.value) + 0.1) * 10) / 10);
+  computeAll(); renderOrden(); renderReporte();
+});
+document.getElementById('monthsInput').addEventListener('change', function(){ computeAll(); renderOrden(); renderReporte(); });
+document.getElementById('recalcBtn').addEventListener('click', function(){ ORDER_QTY = {}; computeAll(); renderOrden(); renderReporte(); });
+document.getElementById('repSearch').addEventListener('input', renderReporte);
+document.getElementById('repSoloActivos').addEventListener('change', renderReporte);
+document.getElementById('bdSearch').addEventListener('input', renderBD);
+document.getElementById('bdFam').addEventListener('change', renderBD);
+document.getElementById('generatePoBtn').addEventListener('click', generatePo);
+document.getElementById('copyPoBtn').addEventListener('click', copyPo);
+document.getElementById('cfgSearch').addEventListener('input', renderConfig);
+document.getElementById('cfgSoloStd1').addEventListener('change', renderConfig);
+document.getElementById('cfgSaveBtn').addEventListener('click', saveConfigInputs);
+document.getElementById('iaBtn').addEventListener('click', buildIaExport);
+document.getElementById('iaCopyBtn').addEventListener('click', copyIa);
+
+document.getElementById('poNumber').value = defaultPoNumber();
+loadCfg();
+tryLoadFromHub();
+</script>
+</body>
+</html>
